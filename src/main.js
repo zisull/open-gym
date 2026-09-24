@@ -106,9 +106,10 @@ function startMode(id) {
   player.exitShotAim();
   player.mode = 'free'; player.blend = 0;
   if (id === 'shot') {
-    // 投篮挑战：直接空投到随机投篮点，球已在手
+    // 投篮挑战：直接空投到随机投篮点，球已在手（周围 1.5m 小圈可自由走位）
     const spot = randomShotSpot();
     player.pos.set(spot.x, 0, spot.z);
+    scoring.currentSpot = spot;
     ball.startHeld();
     machine.set('shot');
   } else {
@@ -274,9 +275,11 @@ function tick() {
     }
 
     /* ---- HUD ---- */
+    const curDist = Math.hypot(player.pos.x - RIM_POS.x, player.pos.z - RIM_POS.z);
+    const dMul = ScoreManager.distanceMultiplier(curDist).toFixed(1);
     const live = scoring.mode.id === 'free'
-      ? `拍球 ${scoring.taps} 次 · 投篮 ${scoring.shotMade}/${scoring.shotTaken}`
-      : `进 ${scoring.shotMade} · 换位 ${scoring.spots} 次`;
+      ? `拍球 ${scoring.taps} 次 · 投篮 ${scoring.shotMade}/${scoring.shotTaken} · 当前距离×${dMul}`
+      : `进 ${scoring.shotMade} · 换位 ${scoring.spots} 次 · 当前距离×${dMul}`;
     ui.setScore(
       scoring.displayScore,
       Math.max(loadRecord(currentModeId), scoring.displayScore),

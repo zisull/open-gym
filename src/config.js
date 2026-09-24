@@ -53,22 +53,26 @@ export const CFG = {
   },
   /* ---------- 投篮 ---------- */
   shot: {
-    zoneRadius: 6.9,     // 投篮触发区：距圈心水平距离
+    zoneRadius: 6.9,     // 投篮触发区：距圈心水平距离（走入自动切入瞄准）
     zoneMinDist: 1.6,    // 太近不触发（篮下架不住）
-    zoneMaxZ: -3.0,      // 必须在自家半场（z 小于该值）
-    chargeTime: 1.25,    // 蓄力从 0 到满的时间（秒）
+    zoneMaxZ: -3.0,      // 自动切入瞄准只限进攻端半场
+    chargeTime: 1.35,    // 蓄力从 0 到满的时间（秒）
+    tapHold: 0.18,       // 持球时左键：短按=拍球，超过该秒数=长按进入蓄力
     speedMin: 5.6,       // 出手初速度下限（power=0）
-    speedMax: 12.8,      // 出手初速度上限（power=1）
+    speedMax: 17.5,      // 出手初速度上限（power=1，足够覆盖全场最远端线角）
     elevAngle: 52 * Math.PI / 180, // 固定理想抛物线仰角
     sweetHalf: 0.055,    // 力度条最佳区半宽
     aimBlend: 0.55,      // 准星偏移对理想弹道的干扰权重（0=全辅助 1=全手动）
-    score2Dist: 6.75,    // 三分线距离：出手点距圈心水平距离大于此为 3 分
-    base2: 20,           // 两分基础分
-    base3: 30,           // 三分基础分
+    score2Dist: 6.75,    // 三分线距离：仅用于"三分/两分"称号
+    base: 20,            // 投篮基础分
+    // 距离倍率：≥distMulMin 米起 1.0x，随距离线性涨到 distMulCap 封顶（球场内 ≤3x）
+    distMulMin: 3, distMulFull: 25, distMulCap: 3,
     maxComboMul: 3,      // 连击倍数上限
     comboMul: [1, 1, 2, 3], // 连击 n 的倍数（索引=连击数，3+ 封顶）
-    // 投篮挑战随机换位站位（距圈心水平距离范围）
+    // 投篮挑战：随机站位（距圈心 2.6~6.4m）+ 点位周围小圈自由走位微调
     randomSpotMin: 2.6, randomSpotMax: 6.4,
+    spotRadius: 1.5,     // 允许离开随机点的最大半径（米）
+    adjustSpeed: 2.4,    // 挑战模式站位微调移速
   },
   /* ---------- 拍球（无门槛装饰动作） ---------- */
   tap: {

@@ -109,21 +109,39 @@ export class HoldState extends State {
   enter() {
     const { player, ui, modeDef } = this.G;
     player.speed = CFG.player.speedHold;
+    this._downT = -1; // -1 = 未按下；>=0 = 左键按住累计秒数
     ui.setPrompt(modeDef.id === 'free'
-      ? '<b>左键</b> 拍球 · WASD 走位，进入投篮区自动进入瞄准'
+      ? '<b>短按左键</b> 拍球 · <b>长按左键</b> 原地起投 · 走入投篮区自动瞄准'
       : 'WASD 走位，进入投篮区开始进攻');
   }
   update(dt) {
     const { player, ball, camera, scoring, machine } = this.G;
     ball.updateHeld(dt, camera);
     if (scoring.ended) return;
+    // 长按左键超过阈值 -> 原地进入投篮蓄力（自由模式全场可用）
+    if (this._downT >= 0) {
+      this._downT += dt;
+      if (this.G.modeDef.shotScore && this._downT > CFG.shot.tapHold) {
+        this._downT = -1;
+        this.G.pendingCharge = true; // 让 ShotState 继承"按住"输入
+        machine.set('shot');
+        return;
+      }
+    }
     // 持球移动进入投篮触发区 -> 自动切入投篮瞄准（仅计分投篮的模式）
     if (this.G.modeDef.shotScore && player.inShotZone() && player.mode !== 'shot') {
       machine.set('shot');
     }
   }
   onLeftDown() {
-    // 无门槛拍球：自动跟手，左键即拍
+    this._downT = 0;
+  }
+  onLeftUp() {
+    if (this._downT < 0) return;
+    const quick = this._downT <= CFG.shot.tapHold;
+    this._downT = -1;
+    if (!quick) return;
+    // 无门槛拍球：短按即拍，自动跟手
     const { ball, sfx, fx, ui, scoring } = this.G;
     if (ball.tap()) {
       sfx.play('tap', { rate: 1.85 + Math.random() * 0.12, volume: 0.85 });
@@ -138,10 +156,13 @@ export class HoldState extends State {
 export class ShotState extends State {
   enter() {
     const { player, ui, modeDef } = this.G;
-    player.speed = CFG.player.speedShot;
+    // 挑战模式：点位周围小圈自由走位；自由模式：慢速微调
+    player.speed = modeDef.id === 'shot' ? CFG.shot.adjustSpeed : CFG.player.speedShot;
     player.enterShotAim();
     this.charge = 0;
-    this.charging = false;
+    // 由 HoldState 长按继承而来的"按住"输入，直接开始蓄力
+    this.charging = !!this.G.pendingCharge;
+    this.G.pendingCharge = false;
     this.flying = false;
     this.scored = false;
     this.resolved = false;
@@ -157,8 +178,24 @@ export class ShotState extends State {
     ui.showPowerBar(false);
   }
 
+  /** 挑战模式：把玩家钳制在随机点位中心周围的小圈内（可自由走位调整视角） */
+  clampToSpot() {
+    const { player, scoring } = this.G;
+    const spot = scoring.currentSpot;
+    if (!spot) return;
+    const dx = player.pos.x - spot.x, dz = player.pos.z - spot.z;
+    const d = Math.hypot(dx, dz);
+    const R = CFG.shot.spotRadius;
+    if (d > R) {
+      player.pos.x = spot.x + (dx / d) * R;
+      player.pos.z = spot.z + (dz / d) * R;
+    }
+  }
+
   update(dt) {
-    const { player, ball, camera, ui, scoring } = this.G;
+    const { player, ball, camera, ui, scoring, modeDef } = this.G;
+
+    if (modeDef.id === 'shot') this.clampToSpot();
 
     if (!this.flying) {
       /* ---- 持球瞄准阶段 ---- */
@@ -166,8 +203,8 @@ export class ShotState extends State {
       if (this.charging) this.charge = Math.min(1, this.charge + dt / CFG.shot.chargeTime);
       // 力度条 + 最佳力度段（随站位实时反解）
       ui.updatePowerBar(this.charge, idealPower(raised));
-      // 走出投篮区 -> 取消投篮，回到普通持球
-      if (!player.inShotZone() && !this.charging) {
+      // 自由模式：未蓄力时走出投篮区 -> 取消瞄准，回到普通持球
+      if (modeDef.id !== 'shot' && !player.inShotZone() && !this.charging && this.charge <= 0) {
         this.G.machine.set('hold');
         return;
       }
@@ -214,16 +251,19 @@ export class ShotState extends State {
 
   /** 回球入手的去向：投篮挑战命中后已换新站位；否则原地继续 */
   relocateAndContinue() {
-    const { scoring, player, ui } = this.G;
-    if (this.scored && this.G.modeDef.id === 'shot') {
+    const { scoring, player, ui, modeDef } = this.G;
+    if (this.scored && modeDef.id === 'shot') {
       const spot = randomShotSpot();
       player.pos.set(spot.x, 0, spot.z);
       player.vel.set(0, 0, 0);
+      scoring.currentSpot = spot;
       scoring.spots++;
       this.G.sfx.play('combo', { volume: 0.55 });
       ui.showScorePopup(0, '🎲 命中！传送至新投篮点', 0);
+      this.G.machine.set('shot'); // 重进投篮状态：在新点位重新架起瞄准
+      return;
     }
-    this.G.machine.set(this.G.player.inShotZone() && this.G.modeDef.shotScore ? 'shot' : 'hold');
+    this.G.machine.set(player.inShotZone() && modeDef.shotScore ? 'shot' : 'hold');
   }
 
   onLeftDown() {
@@ -261,14 +301,15 @@ export class ShotState extends State {
   onScore() {
     this.scored = true;
     const { scoring, sfx, fx, ui } = this.G;
-    const { points, is3 } = scoring.addShotMade(this.releaseDist || 5);
+    const { points, is3, distMul } = scoring.addShotMade(this.releaseDist || 5);
     sfx.play('net');
     sfx.play('cheer', { volume: 0.75 });
     fx.burstScore(RIM_POS);
     fx.shake();
     fx.flash();
     this.G.netSway();
-    ui.showScorePopup(points, is3 ? '三分命中!' : '两分命中!', scoring.shotCombo);
+    const label = `${is3 ? '三分' : '两分'}命中 · 距离×${distMul.toFixed(1)}`;
+    ui.showScorePopup(points, label, scoring.shotCombo);
   }
 
   /** 球落地后结算（进或不进都走到这里） */

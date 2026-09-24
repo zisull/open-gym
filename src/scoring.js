@@ -40,6 +40,7 @@ export class ScoreManager {
     this.shotMade = 0;       // 统计：进球数
     this.shotTaken = 0;      // 统计：出手数
     this.spots = 0;          // 统计：投篮挑战命中的站位数（换位次数）
+    this.currentSpot = null; // 投篮挑战当前站位中心（小圈走位钳制用）
     this.timeLeft = modeDef.timed ? CFG.challenge.duration : Infinity;
     this.ended = false;
   }
@@ -56,6 +57,16 @@ export class ScoreManager {
     return S.comboMul[Math.min(this.shotCombo, S.maxComboMul)];
   }
 
+  /**
+   * 出手距离倍率：≥3m 起 1.0x，随距离线性增长，25m 处封顶 3.0x（球场内 ≤3x）。
+   * 取 0.1 步进，便于 UI 展示整档数值。
+   */
+  static distanceMultiplier(dist) {
+    const S = CFG.shot;
+    const m = 1 + (S.distMulCap - 1) * (dist - S.distMulMin) / (S.distMulFull - S.distMulMin);
+    return Math.round(Math.min(S.distMulCap, Math.max(1, m)) * 10) / 10;
+  }
+
   /** 拍球一次（无门槛）。返回 { points } */
   addTap() {
     this.taps++;
@@ -68,18 +79,19 @@ export class ScoreManager {
   /** 投篮出手登记 */
   registerShotAttempt() { this.shotTaken++; }
 
-  /** 进球。返回 { points, is3, multiplier }；连击 +1 */
+  /** 进球。返回 { points, is3, distMul, multiplier }；连击 +1 */
   addShotMade(dist) {
     this.shotCombo++;
     this.shotComboMax = Math.max(this.shotComboMax, this.shotCombo);
     this.shotFail = 0;
     this.shotMade++;
-    if (!this.mode.shotScore) return { points: 0, is3: false, multiplier: 1 };
+    if (!this.mode.shotScore) return { points: 0, is3: false, distMul: 1, multiplier: 1 };
     const is3 = dist > CFG.shot.score2Dist;
+    const distMul = ScoreManager.distanceMultiplier(dist);
     const mul = this.shotMultiplier();
-    const pts = (is3 ? CFG.shot.base3 : CFG.shot.base2) * mul;
+    const pts = Math.round(CFG.shot.base * distMul * mul);
     this.shotScore += pts;
-    return { points: pts, is3, multiplier: mul };
+    return { points: pts, is3, distMul, multiplier: mul };
   }
 
   /** 投篮未中。返回是否达到 3 连败（连击清零） */

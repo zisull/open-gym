@@ -21770,17 +21770,19 @@
         /* ---------- 投篮 ---------- */
         shot: {
           zoneRadius: 6.9,
-          // 投篮触发区：距圈心水平距离
+          // 投篮触发区：距圈心水平距离（走入自动切入瞄准）
           zoneMinDist: 1.6,
           // 太近不触发（篮下架不住）
           zoneMaxZ: -3,
-          // 必须在自家半场（z 小于该值）
-          chargeTime: 1.25,
+          // 自动切入瞄准只限进攻端半场
+          chargeTime: 1.35,
           // 蓄力从 0 到满的时间（秒）
+          tapHold: 0.18,
+          // 持球时左键：短按=拍球，超过该秒数=长按进入蓄力
           speedMin: 5.6,
           // 出手初速度下限（power=0）
-          speedMax: 12.8,
-          // 出手初速度上限（power=1）
+          speedMax: 17.5,
+          // 出手初速度上限（power=1，足够覆盖全场最远端线角）
           elevAngle: 52 * Math.PI / 180,
           // 固定理想抛物线仰角
           sweetHalf: 0.055,
@@ -21788,18 +21790,24 @@
           aimBlend: 0.55,
           // 准星偏移对理想弹道的干扰权重（0=全辅助 1=全手动）
           score2Dist: 6.75,
-          // 三分线距离：出手点距圈心水平距离大于此为 3 分
-          base2: 20,
-          // 两分基础分
-          base3: 30,
-          // 三分基础分
+          // 三分线距离：仅用于"三分/两分"称号
+          base: 20,
+          // 投篮基础分
+          // 距离倍率：≥distMulMin 米起 1.0x，随距离线性涨到 distMulCap 封顶（球场内 ≤3x）
+          distMulMin: 3,
+          distMulFull: 25,
+          distMulCap: 3,
           maxComboMul: 3,
           // 连击倍数上限
           comboMul: [1, 1, 2, 3],
           // 连击 n 的倍数（索引=连击数，3+ 封顶）
-          // 投篮挑战随机换位站位（距圈心水平距离范围）
+          // 投篮挑战：随机站位（距圈心 2.6~6.4m）+ 点位周围小圈自由走位微调
           randomSpotMin: 2.6,
-          randomSpotMax: 6.4
+          randomSpotMax: 6.4,
+          spotRadius: 1.5,
+          // 允许离开随机点的最大半径（米）
+          adjustSpeed: 2.4
+          // 挑战模式站位微调移速
         },
         /* ---------- 拍球（无门槛装饰动作） ---------- */
         tap: {
@@ -29898,17 +29906,34 @@
         enter() {
           const { player, ui, modeDef } = this.G;
           player.speed = CFG.player.speedHold;
-          ui.setPrompt(modeDef.id === "free" ? "<b>\u5DE6\u952E</b> \u62CD\u7403 \xB7 WASD \u8D70\u4F4D\uFF0C\u8FDB\u5165\u6295\u7BEE\u533A\u81EA\u52A8\u8FDB\u5165\u7784\u51C6" : "WASD \u8D70\u4F4D\uFF0C\u8FDB\u5165\u6295\u7BEE\u533A\u5F00\u59CB\u8FDB\u653B");
+          this._downT = -1;
+          ui.setPrompt(modeDef.id === "free" ? "<b>\u77ED\u6309\u5DE6\u952E</b> \u62CD\u7403 \xB7 <b>\u957F\u6309\u5DE6\u952E</b> \u539F\u5730\u8D77\u6295 \xB7 \u8D70\u5165\u6295\u7BEE\u533A\u81EA\u52A8\u7784\u51C6" : "WASD \u8D70\u4F4D\uFF0C\u8FDB\u5165\u6295\u7BEE\u533A\u5F00\u59CB\u8FDB\u653B");
         }
         update(dt) {
           const { player, ball, camera, scoring, machine } = this.G;
           ball.updateHeld(dt, camera);
           if (scoring.ended) return;
+          if (this._downT >= 0) {
+            this._downT += dt;
+            if (this.G.modeDef.shotScore && this._downT > CFG.shot.tapHold) {
+              this._downT = -1;
+              this.G.pendingCharge = true;
+              machine.set("shot");
+              return;
+            }
+          }
           if (this.G.modeDef.shotScore && player.inShotZone() && player.mode !== "shot") {
             machine.set("shot");
           }
         }
         onLeftDown() {
+          this._downT = 0;
+        }
+        onLeftUp() {
+          if (this._downT < 0) return;
+          const quick = this._downT <= CFG.shot.tapHold;
+          this._downT = -1;
+          if (!quick) return;
           const { ball, sfx, fx, ui, scoring } = this.G;
           if (ball.tap()) {
             sfx.play("tap", { rate: 1.85 + Math.random() * 0.12, volume: 0.85 });
@@ -29921,10 +29946,11 @@
       ShotState = class extends State {
         enter() {
           const { player, ui, modeDef } = this.G;
-          player.speed = CFG.player.speedShot;
+          player.speed = modeDef.id === "shot" ? CFG.shot.adjustSpeed : CFG.player.speedShot;
           player.enterShotAim();
           this.charge = 0;
-          this.charging = false;
+          this.charging = !!this.G.pendingCharge;
+          this.G.pendingCharge = false;
           this.flying = false;
           this.scored = false;
           this.resolved = false;
@@ -29939,13 +29965,27 @@
           player.exitShotAim();
           ui.showPowerBar(false);
         }
+        /** 挑战模式：把玩家钳制在随机点位中心周围的小圈内（可自由走位调整视角） */
+        clampToSpot() {
+          const { player, scoring } = this.G;
+          const spot = scoring.currentSpot;
+          if (!spot) return;
+          const dx = player.pos.x - spot.x, dz = player.pos.z - spot.z;
+          const d = Math.hypot(dx, dz);
+          const R = CFG.shot.spotRadius;
+          if (d > R) {
+            player.pos.x = spot.x + dx / d * R;
+            player.pos.z = spot.z + dz / d * R;
+          }
+        }
         update(dt) {
-          const { player, ball, camera, ui, scoring } = this.G;
+          const { player, ball, camera, ui, scoring, modeDef } = this.G;
+          if (modeDef.id === "shot") this.clampToSpot();
           if (!this.flying) {
             const raised = ball.updateHeld(dt, camera, this.charge * 0.9);
             if (this.charging) this.charge = Math.min(1, this.charge + dt / CFG.shot.chargeTime);
             ui.updatePowerBar(this.charge, idealPower(raised));
-            if (!player.inShotZone() && !this.charging) {
+            if (modeDef.id !== "shot" && !player.inShotZone() && !this.charging && this.charge <= 0) {
               this.G.machine.set("hold");
               return;
             }
@@ -29986,16 +30026,19 @@
         }
         /** 回球入手的去向：投篮挑战命中后已换新站位；否则原地继续 */
         relocateAndContinue() {
-          const { scoring, player, ui } = this.G;
-          if (this.scored && this.G.modeDef.id === "shot") {
+          const { scoring, player, ui, modeDef } = this.G;
+          if (this.scored && modeDef.id === "shot") {
             const spot = randomShotSpot();
             player.pos.set(spot.x, 0, spot.z);
             player.vel.set(0, 0, 0);
+            scoring.currentSpot = spot;
             scoring.spots++;
             this.G.sfx.play("combo", { volume: 0.55 });
             ui.showScorePopup(0, "\u{1F3B2} \u547D\u4E2D\uFF01\u4F20\u9001\u81F3\u65B0\u6295\u7BEE\u70B9", 0);
+            this.G.machine.set("shot");
+            return;
           }
-          this.G.machine.set(this.G.player.inShotZone() && this.G.modeDef.shotScore ? "shot" : "hold");
+          this.G.machine.set(player.inShotZone() && modeDef.shotScore ? "shot" : "hold");
         }
         onLeftDown() {
           if (this.flying) return;
@@ -30030,14 +30073,15 @@
         onScore() {
           this.scored = true;
           const { scoring, sfx, fx, ui } = this.G;
-          const { points, is3 } = scoring.addShotMade(this.releaseDist || 5);
+          const { points, is3, distMul } = scoring.addShotMade(this.releaseDist || 5);
           sfx.play("net");
           sfx.play("cheer", { volume: 0.75 });
           fx.burstScore(RIM_POS);
           fx.shake();
           fx.flash();
           this.G.netSway();
-          ui.showScorePopup(points, is3 ? "\u4E09\u5206\u547D\u4E2D!" : "\u4E24\u5206\u547D\u4E2D!", scoring.shotCombo);
+          const label = `${is3 ? "\u4E09\u5206" : "\u4E24\u5206"}\u547D\u4E2D \xB7 \u8DDD\u79BB\xD7${distMul.toFixed(1)}`;
+          ui.showScorePopup(points, label, scoring.shotCombo);
         }
         /** 球落地后结算（进或不进都走到这里） */
         onResolve() {
@@ -30122,7 +30166,7 @@
       init_config();
       LS_SHADOW = "fpbb.settings.shadow";
       LS_VOLUME = "fpbb.settings.volume";
-      ScoreManager = class {
+      ScoreManager = class _ScoreManager {
         constructor() {
           this.mode = null;
           this.reset(CFG.MODES.free);
@@ -30139,6 +30183,7 @@
           this.shotMade = 0;
           this.shotTaken = 0;
           this.spots = 0;
+          this.currentSpot = null;
           this.timeLeft = modeDef.timed ? CFG.challenge.duration : Infinity;
           this.ended = false;
         }
@@ -30152,6 +30197,15 @@
           const S = CFG.shot;
           return S.comboMul[Math.min(this.shotCombo, S.maxComboMul)];
         }
+        /**
+         * 出手距离倍率：≥3m 起 1.0x，随距离线性增长，25m 处封顶 3.0x（球场内 ≤3x）。
+         * 取 0.1 步进，便于 UI 展示整档数值。
+         */
+        static distanceMultiplier(dist) {
+          const S = CFG.shot;
+          const m = 1 + (S.distMulCap - 1) * (dist - S.distMulMin) / (S.distMulFull - S.distMulMin);
+          return Math.round(Math.min(S.distMulCap, Math.max(1, m)) * 10) / 10;
+        }
         /** 拍球一次（无门槛）。返回 { points } */
         addTap() {
           this.taps++;
@@ -30164,18 +30218,19 @@
         registerShotAttempt() {
           this.shotTaken++;
         }
-        /** 进球。返回 { points, is3, multiplier }；连击 +1 */
+        /** 进球。返回 { points, is3, distMul, multiplier }；连击 +1 */
         addShotMade(dist) {
           this.shotCombo++;
           this.shotComboMax = Math.max(this.shotComboMax, this.shotCombo);
           this.shotFail = 0;
           this.shotMade++;
-          if (!this.mode.shotScore) return { points: 0, is3: false, multiplier: 1 };
+          if (!this.mode.shotScore) return { points: 0, is3: false, distMul: 1, multiplier: 1 };
           const is3 = dist > CFG.shot.score2Dist;
+          const distMul = _ScoreManager.distanceMultiplier(dist);
           const mul = this.shotMultiplier();
-          const pts = (is3 ? CFG.shot.base3 : CFG.shot.base2) * mul;
+          const pts = Math.round(CFG.shot.base * distMul * mul);
           this.shotScore += pts;
-          return { points: pts, is3, multiplier: mul };
+          return { points: pts, is3, distMul, multiplier: mul };
         }
         /** 投篮未中。返回是否达到 3 连败（连击清零） */
         addShotMiss() {
@@ -30564,6 +30619,7 @@
         if (id === "shot") {
           const spot = randomShotSpot();
           player.pos.set(spot.x, 0, spot.z);
+          scoring.currentSpot = spot;
           ball.startHeld();
           machine.set("shot");
         } else {
@@ -30721,7 +30777,9 @@
             if (justEnd) finishSession();
             ui.setTimer(scoring.timeLeft, scoring.timeLeft / CFG.challenge.duration, scoring.timeLeft <= 10);
           }
-          const live = scoring.mode.id === "free" ? `\u62CD\u7403 ${scoring.taps} \u6B21 \xB7 \u6295\u7BEE ${scoring.shotMade}/${scoring.shotTaken}` : `\u8FDB ${scoring.shotMade} \xB7 \u6362\u4F4D ${scoring.spots} \u6B21`;
+          const curDist = Math.hypot(player.pos.x - RIM_POS.x, player.pos.z - RIM_POS.z);
+          const dMul = ScoreManager.distanceMultiplier(curDist).toFixed(1);
+          const live = scoring.mode.id === "free" ? `\u62CD\u7403 ${scoring.taps} \u6B21 \xB7 \u6295\u7BEE ${scoring.shotMade}/${scoring.shotTaken} \xB7 \u5F53\u524D\u8DDD\u79BB\xD7${dMul}` : `\u8FDB ${scoring.shotMade} \xB7 \u6362\u4F4D ${scoring.spots} \u6B21 \xB7 \u5F53\u524D\u8DDD\u79BB\xD7${dMul}`;
           ui.setScore(
             scoring.displayScore,
             Math.max(loadRecord(currentModeId), scoring.displayScore),
