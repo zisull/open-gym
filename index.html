@@ -78,7 +78,7 @@
     </div>
     <div id="help">
       <b>操作</b>：WASD 移动（左手）· 鼠标转向（右手）· <b>左键</b> 拾球 / 投篮（按住蓄力，松手出手）· <b>右键</b> 拍球 / 取消投篮 · ESC 暂停<br>
-      🎬 球场后方（<b>+Z 端右侧红门</b>）可进入<b>电影院</b>：圆筒影厅的<b>环墙皆是巨幕</b>，<b>全厅统一 6.8m 高</b>（近乎贴天花板），屏数 = <code>video/</code> 里的片源数（3 部、5 部都行），每块屏吃满自己那段弧、画面等比裁剪不变形，片源够多就<b>铺满一整圈</b>；中央<b>圆形小床</b>左键入座、任意朝向观看，<b>滚轮</b>拉近拉远；「<b>选择视频</b>」<b>多选即换片单</b>（选几部放几部）；「<b>放大观看</b>」的大屏墙上可点 <b>✕ 删片</b> / <b>＋ 加片</b>；「<b>隐藏</b>」收起控制条（左下角 <b>☰</b> 唤回），排布自动记住
+      🎬 球场后方（<b>+Z 端右侧红门</b>）可进入<b>电影院</b>：圆筒影厅的<b>环墙皆是巨幕</b>，<b>全厅统一 6.8m 高</b>（近乎贴天花板），屏数 = <code>video/</code> 里的片源数（3 部、5 部都行），每块屏吃满自己那段弧、画面等比裁剪不变形，片源够多就<b>铺满一整圈</b>；中央<b>圆形小床</b>左键入座、任意朝向观看，<b>滚轮</b>拉近拉远。所有管理集中在<b>「🎛 控制台」</b>一处：清单里<b>勾 🔊 指定哪几部出声（可以多部一起响）</b>、单部 ▶/⏸、<b>✕ 删片</b>，底部<b>「📂 换片单」＝整条替换</b>、<b>「＋ 加入视频」＝追加</b>、<b>↺ 恢复默认</b>；直接点影厅银幕或大屏格也能切换该片出声。排布与出声选择自动记住
     </div>
   </div>
 
@@ -87,22 +87,38 @@
   <div id="fade"></div>
   <!-- 影院内准星提示（复用提示样式） -->
   <div id="cinema-hint" class="glass hidden"></div>
-  <!-- 入座后的放映控制条（此时释放指针锁定，可用鼠标点击） -->
+  <!-- 入座后的放映控制条（此时释放指针锁定，可用鼠标点击）。只做"看"的开关，管理全部收进控制台 -->
   <div id="cinema-bar" class="hidden">
     <span id="cb-status">未选择影片</span>
     <button class="btn" id="cb-play">▶ 播放</button>
-    <button class="btn" id="cb-file" title="可多选：这一次选几部就环绕放几部，旧片单整条替换">📂 选择视频</button>
-    <button class="btn" id="cb-reset" title="清空本地导入，恢复默认片单">↺ 恢复默认</button>
-    <label class="cb-vol">音量<input type="range" id="cb-vol" min="0" max="1" step="0.05" value="0.9"></label>
+    <button class="btn" id="cb-console" title="打开放映控制台：指定哪几部出声、加片删片">🎛 控制台</button>
     <button class="btn" id="cb-big">⛶ 放大观看</button>
     <button class="btn" id="cb-hide" title="隐藏控制条，专心观影（左下角小钮可唤回）">🙈 隐藏</button>
     <button class="btn primary" id="cb-stand">🧍 起身（或按 WASD）</button>
-    <input type="file" id="cb-file-in" multiple accept="video/*,.mkv,.mov,.avi,.m4v,.webm,.ogg,.ogv" class="hidden">
-    <input type="file" id="cb-add-in" multiple accept="video/*,.mkv,.mov,.avi,.m4v,.webm,.ogg,.ogv" class="hidden">
   </div>
   <!-- 控制条隐藏后的唤回小钮 -->
   <button class="btn hidden" id="cb-ghost" title="唤回放映控制条">☰ 放映条</button>
-  <!-- 大屏墙的格子层：每格一片「✕ 移除」，末格是「＋ 加入视频」；由 src/cinema.js 填充 -->
+  <!-- 统一放映控制台：片源清单（可多选出声）+ 总音量 + 加片/换片单/删片，一处管完 -->
+  <div id="cinema-console" class="hidden">
+    <div class="cc-head">
+      <b>🎛 放映控制台</b>
+      <button class="btn cc-x" id="cc-close" title="收起控制台">✕</button>
+    </div>
+    <div class="cc-ctl">
+      <label class="cb-vol">总音量<input type="range" id="cb-vol" min="0" max="1" step="0.05" value="0.9"></label>
+      <button class="btn" id="cc-mute" title="全部消音（再点恢复上次选择）">🔇 静音</button>
+    </div>
+    <div class="cc-tip">勾 <b>🔊</b> 的那几部会<b>同时出声</b>；也可以直接点影厅里的银幕或大屏格切换出声。</div>
+    <div id="cc-list"></div>
+    <div class="cc-foot">
+      <button class="btn" id="cb-file" title="可多选：这一次选几部就环绕放几部，旧片单整条替换">📂 换片单（整条替换）</button>
+      <button class="btn" id="cc-add" title="往环上追加，不覆盖现有片单">＋ 加入视频</button>
+      <button class="btn" id="cb-reset" title="清空本地导入，恢复默认片单">↺ 恢复默认</button>
+    </div>
+    <input type="file" id="cb-file-in" multiple accept="video/*,.mkv,.mov,.avi,.m4v,.webm,.ogg,.ogv" class="hidden">
+    <input type="file" id="cb-add-in" multiple accept="video/*,.mkv,.mov,.avi,.m4v,.webm,.ogg,.ogv" class="hidden">
+  </div>
+  <!-- 大屏墙的格子层：只负责"点这格切换出声 + 出声角标"，管理操作在控制台里；由 src/cinema.js 填充 -->
   <div id="big-wall" class="hidden"></div>
   <!-- 放映机 <video> 元素由 src/cinema.js 按片源数量动态创建（离屏渲染保证解码持续），每块弧形银幕一个 -->
 

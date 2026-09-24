@@ -29,7 +29,7 @@ function makeVideoEl() {
   v.playsInline = true;
   v.preload = 'auto';
   v.loop = true; // 单片循环播放
-  v.muted = true; // 只有"焦点屏"出声，避免多路音轨叠加
+  v.muted = true; // 建好先静音，由 applyAudio() 按"出声集合"逐路放行（可多部同时响）
   document.body.appendChild(v);
   return v;
 }
@@ -91,7 +91,37 @@ export function createCinema({ camera, player, sfx }) {
   }
 
   const screens = []; // 与 sources 一一对应，rebuild() 重建
-  let focus = 0;      // 当前出声屏索引
+  /**
+   * 出声集合：存的是**片源名**（不是下标），所以删片/加片/重开都不会错位。
+   * 允许多部同时出声——这是"统一控制台"要解决的核心问题（旧模型只有一个 focus 位，
+   * 且 rebuild 把非焦点屏 volume 写成 0、tapScreen 又只改 muted 不改 volume，点了没声）。
+   */
+  const VOICE_KEY = 'bb.cinema.voices';
+  let voiceNames = loadVoiceNames();
+  let voices = new Set(); // 每次 rebuild 由 voiceNames 映射成当前下标
+
+  function loadVoiceNames() {
+    try {
+      const a = JSON.parse(localStorage.getItem(VOICE_KEY) || 'null');
+      return Array.isArray(a) ? a : null; // null = 用户还没选过，默认让第一部出声
+    } catch (e) { return null; }
+  }
+  function saveVoices() {
+    try {
+      localStorage.setItem(VOICE_KEY, JSON.stringify(
+        screens.filter((s, i) => voices.has(i) && s.src).map((s) => s.src.name)
+      ));
+    } catch (e) { /* 无痕模式存不了，不影响放映 */ }
+  }
+  /** 把 voiceNames 映射到当前 screens 下标；一个都没对上就退回「第一部有片的屏」 */
+  function syncVoices() {
+    voices = new Set();
+    screens.forEach((s, i) => { if (s.src && voiceNames && voiceNames.includes(s.src.name)) voices.add(i); });
+    if (!voices.size) {
+      const first = screens.findIndex((s) => s.src);
+      if (first >= 0) voices.add(first);
+    }
+  }
 
   /** 建一块屏：src 为 null 时是永久占位空洞（比如上次用本地文件放的，重开复原不了） */
   function makeScreen(src, a, slot) {
@@ -138,11 +168,10 @@ export function createCinema({ camera, player, sfx }) {
     const n = Math.max(sources.length, 1);
     const slot = SPAN / n;
     for (let i = 0; i < n; i++) screens.push(makeScreen(sources[i] || null, GAP / 2 + slot * (i + 0.5), slot));
-    if (focus >= screens.length) focus = 0;
-    // 新建的 <video> 音量要重新按滑块分配（只有焦点屏出声），否则多路音轨叠加
-    const vv = Number($('cb-vol').value);
-    screens.forEach((s, i) => { s.videoEl.volume = i === focus ? vv : 0; });
+    syncVoices();
+    applyAudio(); // 新建的 <video> 一律 muted，必须在这里按出声集合重新放行
     layoutBigGrid(document.body.classList.contains('big-screen'));
+    renderConsole();
     saveLayout();
   }
 
@@ -280,9 +309,10 @@ export function createCinema({ camera, player, sfx }) {
 
   function refreshStatus() {
     const live = sources.filter(Boolean).length;
+    const v = voices.size;
     setStatus(live
-      ? `▶ ${live} 块 ${SH}m 高巨幕环绕 · 点屏切声音 · 滚轮拉近拉远`
-      : '还没有片源：把视频放进 video/ 或点「选择视频」');
+      ? `▶ ${live} 块 ${SH}m 高巨幕环绕 · 🔊 ${v} 路出声 · 🎛 控制台管片单 · 滚轮拉近拉远`
+      : '还没有片源：把视频放进 video/，或在控制台里「📂 换片单」');
   }
 
   sources = loadSources();
@@ -293,13 +323,15 @@ export function createCinema({ camera, player, sfx }) {
   rebuild();
   refreshStatus();
 
+  function syncPlayBtn() {
+    playBtn.textContent = screens.some((o) => o.src && !o.videoEl.paused) ? '⏸ 暂停' : '▶ 播放';
+  }
   function playAll() {
-    screens.forEach((s, i) => {
+    screens.forEach((s) => {
       if (!s.src) return;
-      s.videoEl.muted = i !== focus;
       s.videoEl.play().catch(() => { /* 未交互动前可能被拦截 */ });
     });
-    applyVolume();
+    applyAudio();
     playBtn.textContent = '⏸ 暂停';
   }
   function pauseAll() {
@@ -307,26 +339,32 @@ export function createCinema({ camera, player, sfx }) {
     playBtn.textContent = '▶ 播放';
   }
 
-  /** 点屏幕：换出焦点（声音跟过去）并切换该屏播放/暂停 */
+  /** 点屏幕 = 把这部片加进/移出"出声集合"（可以多部一起响），顺手把它播起来 */
   function tapScreen(i) {
     const s = screens[i];
     if (!s || !s.src) return;
-    focus = i;
-    screens.forEach((o, j) => { o.videoEl.muted = j !== i; });
-    setStatus(s.videoEl.paused ? `🔊 ${s.src.name}` : `⏸ ${s.src.name}`);
-    if (s.videoEl.paused) s.videoEl.play().catch(() => {});
-    playBtn.textContent = screens.some((o) => o.src && !o.videoEl.paused) ? '⏸ 暂停' : '▶ 播放';
+    if (voices.has(i)) voices.delete(i);
+    else {
+      voices.add(i);
+      if (s.videoEl.paused) s.videoEl.play().catch(() => {});
+    }
+    applyAudio();
+    saveVoices();
+    renderConsole();
+    layoutBigGrid(document.body.classList.contains('big-screen'));
+    setStatus(voices.has(i) ? `🔊 已加入出声：${s.src.name}` : `🔇 已消音：${s.src.name}`);
+    syncPlayBtn();
   }
 
   /**
    * 放大观看：全部片源铺满屏幕的宫格，格数随屏数变（CSS 变量交给 style.css 排版）。
-   * 同时在 #big-wall 上盖一层同规格的格子：每片一个「✕ 移除」，末格「＋ 加入视频」，
-   * 于是这面墙既是放映墙也是片源管理器（格子按 DOM 顺序落位，天然与第 i 块片源对齐）。
+   * #big-wall 是同规格的格子层（格子按 DOM 顺序落位，天然与第 i 块片源对齐）：
+   * 整格点一下＝该片加入/移出出声，出声的亮角标 🔊、不出声的压暗——只管"听哪个"，
+   * 加片删片统一走控制台，不再在这儿摆一套重复的按钮。
    */
   function layoutBigGrid(on) {
     const wall = $('big-wall');
     wall.textContent = ''; // 重建前清空旧格子（含事件监听）
-    const st = wall.style;
     if (!on) {
       wall.classList.add('hidden');
       for (const s of screens) {
@@ -335,12 +373,11 @@ export function createCinema({ camera, player, sfx }) {
       }
       return;
     }
-    const canAdd = sources.length < K.maxScreens;
-    const total = screens.length + (canAdd ? 1 : 0);
-    const cols = Math.ceil(Math.sqrt(total));
-    const rows = Math.ceil(total / cols);
-    st.setProperty('--cols', String(cols));
-    st.setProperty('--rows', String(rows));
+    const n = Math.max(screens.length, 1);
+    const cols = Math.ceil(Math.sqrt(n));
+    const rows = Math.ceil(n / cols);
+    wall.style.setProperty('--cols', String(cols));
+    wall.style.setProperty('--rows', String(rows));
     screens.forEach((s, i) => {
       const vs = s.videoEl.style;
       vs.setProperty('--cols', String(cols));
@@ -350,55 +387,120 @@ export function createCinema({ camera, player, sfx }) {
     });
     screens.forEach((s, i) => {
       const cell = document.createElement('div');
-      cell.className = 'bwcell';
-      if (s.src) {
-        const tag = document.createElement('span');
-        tag.className = 'bwname';
-        tag.textContent = s.src.name;
-        cell.appendChild(tag);
-        const x = document.createElement('button');
-        x.className = 'bwkill';
-        x.textContent = '✕';
-        x.title = `移除《${s.src.name}》，环上银幕一并收掉`;
-        x.addEventListener('click', () => removeSource(i));
-        cell.appendChild(x);
-      }
+      cell.className = 'bwcell' + (voices.has(i) ? ' live' : '');
+      const spk = document.createElement('span');
+      spk.className = 'bwspk';
+      spk.textContent = voices.has(i) ? '🔊' : '🔇';
+      cell.appendChild(spk);
+      const tag = document.createElement('span');
+      tag.className = 'bwname';
+      tag.textContent = s.src ? s.src.name : '（空位：控制台里加片）';
+      cell.appendChild(tag);
+      cell.title = s.src ? '点击切换这部片是否出声' : '这块还是空位';
+      cell.addEventListener('click', () => tapScreen(i));
       wall.appendChild(cell);
     });
-    if (canAdd) {
-      const add = document.createElement('button');
-      add.className = 'bwadd';
-      add.textContent = '＋ 加入视频';
-      add.title = `追加到环上（上限 ${K.maxScreens} 块屏）`;
-      add.addEventListener('click', () => $('cb-add-in').click());
-      wall.appendChild(add);
-    }
     wall.classList.remove('hidden');
   }
 
-  /** 移除环上第 i 部片源：银幕与格子一起重排，并写回存档（空洞占位格同样可删） */
+  /** 移除环上第 i 部片源：银幕、格子、控制台一起重排，并写回存档（空洞占位格同样可删） */
   function removeSource(i) {
     sources.splice(i, 1);
-    if (focus >= sources.length) focus = 0;
     rebuild();
     const live = sources.filter(Boolean).length;
-    setStatus(live ? `🗑 已移除 1 部，环上还有 ${live} 部巨幕` : '片单空了：点「＋ 加入视频」或「📂 选择视频」');
+    setStatus(live ? `🗑 已移除 1 部，环上还有 ${live} 部巨幕` : '片单空了：控制台里点「＋ 加入视频」或「📂 换片单」');
     sfx.play('ui', { volume: 0.4 });
   }
 
-  const applyVolume = () => {
+  /** 总音量只作用于"出声集合"里的片；其余静音，所以多路同时放也不会糊成一团。
+      注意：必须是函数声明（提升），init 里的第一次 rebuild() 就要调用它。 */
+  function applyAudio() {
     const v = Number($('cb-vol').value);
-    screens.forEach((s, i) => { s.videoEl.volume = i === focus ? v : 0; });
-  };
+    screens.forEach((s, i) => {
+      const on = voices.has(i);
+      s.videoEl.muted = !on;
+      s.videoEl.volume = on ? v : 0;
+    });
+  }
+
+  /* ================= 统一控制台：片源清单（多选出声 / 单部播停 / 删片） ================= */
+
+  function renderConsole() {
+    const list = $('cc-list');
+    list.textContent = '';
+    if (!screens.some((s) => s.src)) {
+      const e = document.createElement('div');
+      e.className = 'cc-empty';
+      e.textContent = '片单是空的：下面「📂 换片单」整条替换，或「＋ 加入视频」追加。';
+      list.appendChild(e);
+      return;
+    }
+    screens.forEach((s, i) => {
+      const row = document.createElement('div');
+      row.className = 'ccrow' + (voices.has(i) ? ' live' : '');
+      const idx = document.createElement('span');
+      idx.className = 'cc-idx';
+      idx.textContent = String(i + 1);
+      const nm = document.createElement('span');
+      nm.className = 'cc-nm' + (s.src ? '' : ' hole');
+      nm.textContent = s.src ? s.src.name : '空位（复原不了的本地片源）';
+      nm.title = nm.textContent;
+      row.append(idx, nm);
+      if (s.src) {
+        const spk = document.createElement('button');
+        spk.className = 'btn cc-spk' + (voices.has(i) ? ' on' : '');
+        spk.textContent = voices.has(i) ? '🔊' : '🔇';
+        spk.title = voices.has(i) ? '移出出声' : '加入出声（可多部同时）';
+        spk.addEventListener('click', () => tapScreen(i));
+        const pp = document.createElement('button');
+        pp.className = 'btn cc-pp';
+        pp.textContent = s.videoEl.paused ? '▶' : '⏸';
+        pp.title = '单独播/停这一部';
+        pp.addEventListener('click', () => {
+          if (s.videoEl.paused) s.videoEl.play().catch(() => {}); else s.videoEl.pause();
+          renderConsole();
+          syncPlayBtn();
+        });
+        const x = document.createElement('button');
+        x.className = 'btn cc-kill';
+        x.textContent = '✕';
+        x.title = '从环上移除这部';
+        x.addEventListener('click', () => removeSource(i));
+        row.append(spk, pp, x);
+      }
+      list.appendChild(row);
+    });
+  }
+
+  const consoleEl = $('cinema-console');
+  function showConsole(v) {
+    consoleEl.classList.toggle('hidden', !v);
+    if (v) renderConsole();
+    $('cb-console').classList.toggle('primary', v);
+  }
+  $('cb-console').addEventListener('click', () => showConsole(consoleEl.classList.contains('hidden')));
+  $('cc-close').addEventListener('click', () => showConsole(false));
+  let lastVoices = null; // 「🔇 静音」是可逆的：记下静音前的集合，再点还原
+  $('cc-mute').addEventListener('click', () => {
+    if (voices.size) { lastVoices = new Set(voices); voices.clear(); }
+    else if (lastVoices) { voices = new Set(lastVoices); lastVoices = null; }
+    applyAudio();
+    saveVoices();
+    renderConsole();
+    layoutBigGrid(document.body.classList.contains('big-screen'));
+    setStatus(voices.size ? `🔊 ${voices.size} 路出声` : '🔇 全部消音');
+  });
 
   $('cb-play').addEventListener('click', () => {
     if (!sources.some(Boolean)) { refreshStatus(); return; }
     if (screens.some((s) => s.src && !s.videoEl.paused)) pauseAll(); else playAll();
+    renderConsole();
   });
   $('cb-vol').addEventListener('input', () => {
-    applyVolume();
+    applyAudio();
     try { localStorage.setItem('bb.cinema.vol', $('cb-vol').value); } catch (e) { /* 同上 */ }
   });
+  $('cc-add').addEventListener('click', () => $('cb-add-in').click());
   $('cb-big').addEventListener('click', () => {
     const on = !document.body.classList.contains('big-screen');
     document.body.classList.toggle('big-screen', on);
@@ -408,7 +510,7 @@ export function createCinema({ camera, player, sfx }) {
   $('cb-stand').addEventListener('click', () => stand());
   $('cb-reset').addEventListener('click', () => {
     sources = defaultSources();
-    focus = 0;
+    voiceNames = null; // 换片单就把出声选择清回默认（第一部响）
     rebuild();
     playAll();
     refreshStatus();
@@ -421,13 +523,14 @@ export function createCinema({ camera, player, sfx }) {
     // 多选即全量替换：这一次选了几部，环上就放这几部，旧片单不再保留
     const over = Math.max(0, files.length - K.maxScreens);
     sources = files.slice(0, K.maxScreens).map((f) => ({ name: f.name, url: URL.createObjectURL(f), local: true }));
-    focus = 0;
+    voiceNames = null;
     rebuild();
     playAll();
     setStatus(`🎬 ${sources.length} 部巨幕环绕中${over ? `（上限 ${K.maxScreens} 块屏，多出的 ${over} 部未导入）` : ''}`);
   });
 
-  // 大屏墙上的「＋ 加入视频」：这是**追加**（与「📂 选择视频」的整条替换相对），加完立刻重排环
+  // 控制台的「＋ 加入视频」：这是**追加**（与「📂 换片单」的整条替换相对），加完立刻重排环；
+  // 新加的片默认不出声，避免一追加就突然多一路音轨糊在原有那路上
   $('cb-add-in').addEventListener('change', (e) => {
     const files = Array.from(e.target.files || []);
     e.target.value = '';
@@ -435,18 +538,18 @@ export function createCinema({ camera, player, sfx }) {
     const room = Math.max(0, K.maxScreens - sources.length);
     const take = files.slice(0, room);
     for (const f of take) sources.push({ name: f.name, url: URL.createObjectURL(f), local: true });
-    focus = screens.length ? Math.min(focus, Math.max(sources.length - 1, 0)) : 0;
     rebuild();
     playAll();
     setStatus(take.length
-      ? `➕ 追加 ${take.length} 部，环上共 ${sources.filter(Boolean).length} 部巨幕`
+      ? `➕ 追加 ${take.length} 部，环上共 ${sources.filter(Boolean).length} 部巨幕（新加的在控制台勾 🔊 才出声）`
         + (files.length - take.length ? `（已到 ${K.maxScreens} 块屏上限，${files.length - take.length} 部未导入）` : '')
-      : `环上已满 ${K.maxScreens} 块屏，先移走几部再加`);
+      : `环上已满 ${K.maxScreens} 块屏，先在控制台里移走几部再加`);
   });
 
-  /* 控制条收起/唤回：观影时不想被按钮挡住，左下角留一个小钮 */
+  /* 控制条收起/唤回：观影时不想被按钮挡住，左下角留一个小钮（控制台一起收） */
   $('cb-hide').addEventListener('click', () => {
     bar.classList.add('hidden');
+    showConsole(false);
     $('cb-ghost').classList.remove('hidden');
   });
   $('cb-ghost').addEventListener('click', () => {
@@ -520,6 +623,7 @@ export function createCinema({ camera, player, sfx }) {
     player.eyeHeight = CFG.player.eye;
     player.speed = K.walkSpeed;
     bar.classList.add('hidden');
+    showConsole(false); // 控制台是坐着用的界面，起身一起收掉
     $('cb-ghost').classList.add('hidden'); // 起身即复位「收起」状态，下次落座自然要能看到控制条
     if (document.body.classList.contains('big-screen')) {
       document.body.classList.remove('big-screen');
@@ -641,12 +745,13 @@ export function createCinema({ camera, player, sfx }) {
     },
     /** 无头验证用：当前环上每块屏的几何（高度 / 槽位圆心角 / 实占弧 / 宽高比 / 是否有片源） */
     debugRing() {
-      return screens.map((s) => ({
+      return screens.map((s, i) => ({
         h: SH,
         slotDeg: +((s.slot / DEG) % 360).toFixed(1),
         arcDeg: +((s.arc / DEG)).toFixed(1),
         ar: +(s.src?.ar ? s.src.ar.toFixed(2) : 0),
         src: s.src ? 1 : 0,
+        voice: voices.has(i) ? 1 : 0,
       }));
     },
     stopVideo() { pauseAll(); },

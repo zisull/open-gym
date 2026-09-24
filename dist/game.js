@@ -29466,10 +29466,10 @@
     ctx.font = `28px 'Microsoft YaHei', system-ui`;
     ctx.fillText("\u2460 \u628A\u89C6\u9891\u6587\u4EF6\u653E\u8FDB video/ \u6587\u4EF6\u5939", 512, 280);
     ctx.fillText("\u2461 \u53CC\u51FB tools/gen_videos.bat \u751F\u6210\u653E\u6620\u6E05\u5355", 512, 326);
-    ctx.fillText("\u226425MB \u77ED\u7247\u81EA\u52A8\u8FDB\u653E\u6620\u5355\uFF1B\u5927\u6587\u4EF6\u70B9\u201C\u9009\u62E9\u89C6\u9891\u201D", 512, 392);
+    ctx.fillText("\u226425MB \u77ED\u7247\u81EA\u52A8\u8FDB\u653E\u6620\u5355\uFF1B\u5927\u6587\u4EF6\u8D70\u300C\u6362\u7247\u5355\u300D", 512, 392);
     ctx.fillStyle = "#39445a";
     ctx.font = `24px 'Microsoft YaHei', system-ui`;
-    ctx.fillText("\u201C\u9009\u62E9\u89C6\u9891\u201D\u53EF\u591A\u9009\uFF1A\u8FD9\u6B21\u9009\u51E0\u90E8\u5C31\u73AF\u7ED5\u653E\u51E0\u90E8\uFF08\u66FF\u6362\u65E7\u7247\u5355\uFF09", 512, 448);
+    ctx.fillText("\u300C\u63A7\u5236\u53F0\u300D\u91CC\u53EF\u6307\u5B9A\u54EA\u51E0\u90E8\u51FA\u58F0\uFF08\u591A\u90E8\u4E00\u8D77\u54CD\uFF09\u3001\u52A0\u7247\u5220\u7247", 512, 448);
     ctx.fillText("MP4 \xB7 WebM \xB7 MOV \xB7 M4V \xB7 Ogg\uFF08\u4EE5\u6D4F\u89C8\u5668\u53EF\u89E3\u7801\u4E3A\u51C6\uFF09", 512, 486);
     const tex = new CanvasTexture(cv);
     tex.colorSpace = SRGBColorSpace;
@@ -29883,7 +29883,35 @@
       }
     }
     const screens = [];
-    let focus = 0;
+    const VOICE_KEY = "bb.cinema.voices";
+    let voiceNames = loadVoiceNames();
+    let voices = /* @__PURE__ */ new Set();
+    function loadVoiceNames() {
+      try {
+        const a2 = JSON.parse(localStorage.getItem(VOICE_KEY) || "null");
+        return Array.isArray(a2) ? a2 : null;
+      } catch (e) {
+        return null;
+      }
+    }
+    function saveVoices() {
+      try {
+        localStorage.setItem(VOICE_KEY, JSON.stringify(
+          screens.filter((s, i) => voices.has(i) && s.src).map((s) => s.src.name)
+        ));
+      } catch (e) {
+      }
+    }
+    function syncVoices() {
+      voices = /* @__PURE__ */ new Set();
+      screens.forEach((s, i) => {
+        if (s.src && voiceNames && voiceNames.includes(s.src.name)) voices.add(i);
+      });
+      if (!voices.size) {
+        const first = screens.findIndex((s) => s.src);
+        if (first >= 0) voices.add(first);
+      }
+    }
     function makeScreen(src, a2, slot) {
       const videoEl = makeVideoEl();
       const tex = new VideoTexture(videoEl);
@@ -29925,12 +29953,10 @@
       const n = Math.max(sources.length, 1);
       const slot = SPAN / n;
       for (let i = 0; i < n; i++) screens.push(makeScreen(sources[i] || null, GAP / 2 + slot * (i + 0.5), slot));
-      if (focus >= screens.length) focus = 0;
-      const vv = Number($2("cb-vol").value);
-      screens.forEach((s, i) => {
-        s.videoEl.volume = i === focus ? vv : 0;
-      });
+      syncVoices();
+      applyAudio();
       layoutBigGrid(document.body.classList.contains("big-screen"));
+      renderConsole();
       saveLayout();
     }
     scene.add(new HemisphereLight(3752271, 657932, 0.55));
@@ -30061,7 +30087,8 @@
     }
     function refreshStatus() {
       const live = sources.filter(Boolean).length;
-      setStatus(live ? `\u25B6 ${live} \u5757 ${SH}m \u9AD8\u5DE8\u5E55\u73AF\u7ED5 \xB7 \u70B9\u5C4F\u5207\u58F0\u97F3 \xB7 \u6EDA\u8F6E\u62C9\u8FD1\u62C9\u8FDC` : "\u8FD8\u6CA1\u6709\u7247\u6E90\uFF1A\u628A\u89C6\u9891\u653E\u8FDB video/ \u6216\u70B9\u300C\u9009\u62E9\u89C6\u9891\u300D");
+      const v = voices.size;
+      setStatus(live ? `\u25B6 ${live} \u5757 ${SH}m \u9AD8\u5DE8\u5E55\u73AF\u7ED5 \xB7 \u{1F50A} ${v} \u8DEF\u51FA\u58F0 \xB7 \u{1F39B} \u63A7\u5236\u53F0\u7BA1\u7247\u5355 \xB7 \u6EDA\u8F6E\u62C9\u8FD1\u62C9\u8FDC` : "\u8FD8\u6CA1\u6709\u7247\u6E90\uFF1A\u628A\u89C6\u9891\u653E\u8FDB video/\uFF0C\u6216\u5728\u63A7\u5236\u53F0\u91CC\u300C\u{1F4C2} \u6362\u7247\u5355\u300D");
     }
     sources = loadSources();
     try {
@@ -30071,14 +30098,16 @@
     }
     rebuild();
     refreshStatus();
+    function syncPlayBtn() {
+      playBtn.textContent = screens.some((o) => o.src && !o.videoEl.paused) ? "\u23F8 \u6682\u505C" : "\u25B6 \u64AD\u653E";
+    }
     function playAll() {
-      screens.forEach((s, i) => {
+      screens.forEach((s) => {
         if (!s.src) return;
-        s.videoEl.muted = i !== focus;
         s.videoEl.play().catch(() => {
         });
       });
-      applyVolume();
+      applyAudio();
       playBtn.textContent = "\u23F8 \u6682\u505C";
     }
     function pauseAll() {
@@ -30088,19 +30117,22 @@
     function tapScreen(i) {
       const s = screens[i];
       if (!s || !s.src) return;
-      focus = i;
-      screens.forEach((o, j) => {
-        o.videoEl.muted = j !== i;
-      });
-      setStatus(s.videoEl.paused ? `\u{1F50A} ${s.src.name}` : `\u23F8 ${s.src.name}`);
-      if (s.videoEl.paused) s.videoEl.play().catch(() => {
-      });
-      playBtn.textContent = screens.some((o) => o.src && !o.videoEl.paused) ? "\u23F8 \u6682\u505C" : "\u25B6 \u64AD\u653E";
+      if (voices.has(i)) voices.delete(i);
+      else {
+        voices.add(i);
+        if (s.videoEl.paused) s.videoEl.play().catch(() => {
+        });
+      }
+      applyAudio();
+      saveVoices();
+      renderConsole();
+      layoutBigGrid(document.body.classList.contains("big-screen"));
+      setStatus(voices.has(i) ? `\u{1F50A} \u5DF2\u52A0\u5165\u51FA\u58F0\uFF1A${s.src.name}` : `\u{1F507} \u5DF2\u6D88\u97F3\uFF1A${s.src.name}`);
+      syncPlayBtn();
     }
     function layoutBigGrid(on) {
       const wall2 = $2("big-wall");
       wall2.textContent = "";
-      const st = wall2.style;
       if (!on) {
         wall2.classList.add("hidden");
         for (const s of screens) {
@@ -30109,12 +30141,11 @@
         }
         return;
       }
-      const canAdd = sources.length < K.maxScreens;
-      const total = screens.length + (canAdd ? 1 : 0);
-      const cols = Math.ceil(Math.sqrt(total));
-      const rows = Math.ceil(total / cols);
-      st.setProperty("--cols", String(cols));
-      st.setProperty("--rows", String(rows));
+      const n = Math.max(screens.length, 1);
+      const cols = Math.ceil(Math.sqrt(n));
+      const rows = Math.ceil(n / cols);
+      wall2.style.setProperty("--cols", String(cols));
+      wall2.style.setProperty("--rows", String(rows));
       screens.forEach((s, i) => {
         const vs = s.videoEl.style;
         vs.setProperty("--cols", String(cols));
@@ -30124,45 +30155,107 @@
       });
       screens.forEach((s, i) => {
         const cell = document.createElement("div");
-        cell.className = "bwcell";
-        if (s.src) {
-          const tag = document.createElement("span");
-          tag.className = "bwname";
-          tag.textContent = s.src.name;
-          cell.appendChild(tag);
-          const x = document.createElement("button");
-          x.className = "bwkill";
-          x.textContent = "\u2715";
-          x.title = `\u79FB\u9664\u300A${s.src.name}\u300B\uFF0C\u73AF\u4E0A\u94F6\u5E55\u4E00\u5E76\u6536\u6389`;
-          x.addEventListener("click", () => removeSource(i));
-          cell.appendChild(x);
-        }
+        cell.className = "bwcell" + (voices.has(i) ? " live" : "");
+        const spk = document.createElement("span");
+        spk.className = "bwspk";
+        spk.textContent = voices.has(i) ? "\u{1F50A}" : "\u{1F507}";
+        cell.appendChild(spk);
+        const tag = document.createElement("span");
+        tag.className = "bwname";
+        tag.textContent = s.src ? s.src.name : "\uFF08\u7A7A\u4F4D\uFF1A\u63A7\u5236\u53F0\u91CC\u52A0\u7247\uFF09";
+        cell.appendChild(tag);
+        cell.title = s.src ? "\u70B9\u51FB\u5207\u6362\u8FD9\u90E8\u7247\u662F\u5426\u51FA\u58F0" : "\u8FD9\u5757\u8FD8\u662F\u7A7A\u4F4D";
+        cell.addEventListener("click", () => tapScreen(i));
         wall2.appendChild(cell);
       });
-      if (canAdd) {
-        const add = document.createElement("button");
-        add.className = "bwadd";
-        add.textContent = "\uFF0B \u52A0\u5165\u89C6\u9891";
-        add.title = `\u8FFD\u52A0\u5230\u73AF\u4E0A\uFF08\u4E0A\u9650 ${K.maxScreens} \u5757\u5C4F\uFF09`;
-        add.addEventListener("click", () => $2("cb-add-in").click());
-        wall2.appendChild(add);
-      }
       wall2.classList.remove("hidden");
     }
     function removeSource(i) {
       sources.splice(i, 1);
-      if (focus >= sources.length) focus = 0;
       rebuild();
       const live = sources.filter(Boolean).length;
-      setStatus(live ? `\u{1F5D1} \u5DF2\u79FB\u9664 1 \u90E8\uFF0C\u73AF\u4E0A\u8FD8\u6709 ${live} \u90E8\u5DE8\u5E55` : "\u7247\u5355\u7A7A\u4E86\uFF1A\u70B9\u300C\uFF0B \u52A0\u5165\u89C6\u9891\u300D\u6216\u300C\u{1F4C2} \u9009\u62E9\u89C6\u9891\u300D");
+      setStatus(live ? `\u{1F5D1} \u5DF2\u79FB\u9664 1 \u90E8\uFF0C\u73AF\u4E0A\u8FD8\u6709 ${live} \u90E8\u5DE8\u5E55` : "\u7247\u5355\u7A7A\u4E86\uFF1A\u63A7\u5236\u53F0\u91CC\u70B9\u300C\uFF0B \u52A0\u5165\u89C6\u9891\u300D\u6216\u300C\u{1F4C2} \u6362\u7247\u5355\u300D");
       sfx.play("ui", { volume: 0.4 });
     }
-    const applyVolume = () => {
+    function applyAudio() {
       const v = Number($2("cb-vol").value);
       screens.forEach((s, i) => {
-        s.videoEl.volume = i === focus ? v : 0;
+        const on = voices.has(i);
+        s.videoEl.muted = !on;
+        s.videoEl.volume = on ? v : 0;
       });
-    };
+    }
+    function renderConsole() {
+      const list = $2("cc-list");
+      list.textContent = "";
+      if (!screens.some((s) => s.src)) {
+        const e = document.createElement("div");
+        e.className = "cc-empty";
+        e.textContent = "\u7247\u5355\u662F\u7A7A\u7684\uFF1A\u4E0B\u9762\u300C\u{1F4C2} \u6362\u7247\u5355\u300D\u6574\u6761\u66FF\u6362\uFF0C\u6216\u300C\uFF0B \u52A0\u5165\u89C6\u9891\u300D\u8FFD\u52A0\u3002";
+        list.appendChild(e);
+        return;
+      }
+      screens.forEach((s, i) => {
+        const row = document.createElement("div");
+        row.className = "ccrow" + (voices.has(i) ? " live" : "");
+        const idx = document.createElement("span");
+        idx.className = "cc-idx";
+        idx.textContent = String(i + 1);
+        const nm = document.createElement("span");
+        nm.className = "cc-nm" + (s.src ? "" : " hole");
+        nm.textContent = s.src ? s.src.name : "\u7A7A\u4F4D\uFF08\u590D\u539F\u4E0D\u4E86\u7684\u672C\u5730\u7247\u6E90\uFF09";
+        nm.title = nm.textContent;
+        row.append(idx, nm);
+        if (s.src) {
+          const spk = document.createElement("button");
+          spk.className = "btn cc-spk" + (voices.has(i) ? " on" : "");
+          spk.textContent = voices.has(i) ? "\u{1F50A}" : "\u{1F507}";
+          spk.title = voices.has(i) ? "\u79FB\u51FA\u51FA\u58F0" : "\u52A0\u5165\u51FA\u58F0\uFF08\u53EF\u591A\u90E8\u540C\u65F6\uFF09";
+          spk.addEventListener("click", () => tapScreen(i));
+          const pp = document.createElement("button");
+          pp.className = "btn cc-pp";
+          pp.textContent = s.videoEl.paused ? "\u25B6" : "\u23F8";
+          pp.title = "\u5355\u72EC\u64AD/\u505C\u8FD9\u4E00\u90E8";
+          pp.addEventListener("click", () => {
+            if (s.videoEl.paused) s.videoEl.play().catch(() => {
+            });
+            else s.videoEl.pause();
+            renderConsole();
+            syncPlayBtn();
+          });
+          const x = document.createElement("button");
+          x.className = "btn cc-kill";
+          x.textContent = "\u2715";
+          x.title = "\u4ECE\u73AF\u4E0A\u79FB\u9664\u8FD9\u90E8";
+          x.addEventListener("click", () => removeSource(i));
+          row.append(spk, pp, x);
+        }
+        list.appendChild(row);
+      });
+    }
+    const consoleEl = $2("cinema-console");
+    function showConsole(v) {
+      consoleEl.classList.toggle("hidden", !v);
+      if (v) renderConsole();
+      $2("cb-console").classList.toggle("primary", v);
+    }
+    $2("cb-console").addEventListener("click", () => showConsole(consoleEl.classList.contains("hidden")));
+    $2("cc-close").addEventListener("click", () => showConsole(false));
+    let lastVoices = null;
+    $2("cc-mute").addEventListener("click", () => {
+      if (voices.size) {
+        lastVoices = new Set(voices);
+        voices.clear();
+      } else if (lastVoices) {
+        voices = new Set(lastVoices);
+        lastVoices = null;
+      }
+      applyAudio();
+      saveVoices();
+      renderConsole();
+      layoutBigGrid(document.body.classList.contains("big-screen"));
+      setStatus(voices.size ? `\u{1F50A} ${voices.size} \u8DEF\u51FA\u58F0` : "\u{1F507} \u5168\u90E8\u6D88\u97F3");
+    });
     $2("cb-play").addEventListener("click", () => {
       if (!sources.some(Boolean)) {
         refreshStatus();
@@ -30170,14 +30263,16 @@
       }
       if (screens.some((s) => s.src && !s.videoEl.paused)) pauseAll();
       else playAll();
+      renderConsole();
     });
     $2("cb-vol").addEventListener("input", () => {
-      applyVolume();
+      applyAudio();
       try {
         localStorage.setItem("bb.cinema.vol", $2("cb-vol").value);
       } catch (e) {
       }
     });
+    $2("cc-add").addEventListener("click", () => $2("cb-add-in").click());
     $2("cb-big").addEventListener("click", () => {
       const on = !document.body.classList.contains("big-screen");
       document.body.classList.toggle("big-screen", on);
@@ -30187,7 +30282,7 @@
     $2("cb-stand").addEventListener("click", () => stand());
     $2("cb-reset").addEventListener("click", () => {
       sources = defaultSources();
-      focus = 0;
+      voiceNames = null;
       rebuild();
       playAll();
       refreshStatus();
@@ -30199,7 +30294,7 @@
       if (!files.length) return;
       const over = Math.max(0, files.length - K.maxScreens);
       sources = files.slice(0, K.maxScreens).map((f) => ({ name: f.name, url: URL.createObjectURL(f), local: true }));
-      focus = 0;
+      voiceNames = null;
       rebuild();
       playAll();
       setStatus(`\u{1F3AC} ${sources.length} \u90E8\u5DE8\u5E55\u73AF\u7ED5\u4E2D${over ? `\uFF08\u4E0A\u9650 ${K.maxScreens} \u5757\u5C4F\uFF0C\u591A\u51FA\u7684 ${over} \u90E8\u672A\u5BFC\u5165\uFF09` : ""}`);
@@ -30211,13 +30306,13 @@
       const room = Math.max(0, K.maxScreens - sources.length);
       const take = files.slice(0, room);
       for (const f of take) sources.push({ name: f.name, url: URL.createObjectURL(f), local: true });
-      focus = screens.length ? Math.min(focus, Math.max(sources.length - 1, 0)) : 0;
       rebuild();
       playAll();
-      setStatus(take.length ? `\u2795 \u8FFD\u52A0 ${take.length} \u90E8\uFF0C\u73AF\u4E0A\u5171 ${sources.filter(Boolean).length} \u90E8\u5DE8\u5E55` + (files.length - take.length ? `\uFF08\u5DF2\u5230 ${K.maxScreens} \u5757\u5C4F\u4E0A\u9650\uFF0C${files.length - take.length} \u90E8\u672A\u5BFC\u5165\uFF09` : "") : `\u73AF\u4E0A\u5DF2\u6EE1 ${K.maxScreens} \u5757\u5C4F\uFF0C\u5148\u79FB\u8D70\u51E0\u90E8\u518D\u52A0`);
+      setStatus(take.length ? `\u2795 \u8FFD\u52A0 ${take.length} \u90E8\uFF0C\u73AF\u4E0A\u5171 ${sources.filter(Boolean).length} \u90E8\u5DE8\u5E55\uFF08\u65B0\u52A0\u7684\u5728\u63A7\u5236\u53F0\u52FE \u{1F50A} \u624D\u51FA\u58F0\uFF09` + (files.length - take.length ? `\uFF08\u5DF2\u5230 ${K.maxScreens} \u5757\u5C4F\u4E0A\u9650\uFF0C${files.length - take.length} \u90E8\u672A\u5BFC\u5165\uFF09` : "") : `\u73AF\u4E0A\u5DF2\u6EE1 ${K.maxScreens} \u5757\u5C4F\uFF0C\u5148\u5728\u63A7\u5236\u53F0\u91CC\u79FB\u8D70\u51E0\u90E8\u518D\u52A0`);
     });
     $2("cb-hide").addEventListener("click", () => {
       bar.classList.add("hidden");
+      showConsole(false);
       $2("cb-ghost").classList.remove("hidden");
     });
     $2("cb-ghost").addEventListener("click", () => {
@@ -30285,6 +30380,7 @@
       player.eyeHeight = CFG.player.eye;
       player.speed = K.walkSpeed;
       bar.classList.add("hidden");
+      showConsole(false);
       $2("cb-ghost").classList.add("hidden");
       if (document.body.classList.contains("big-screen")) {
         document.body.classList.remove("big-screen");
@@ -30406,12 +30502,13 @@
       },
       /** 无头验证用：当前环上每块屏的几何（高度 / 槽位圆心角 / 实占弧 / 宽高比 / 是否有片源） */
       debugRing() {
-        return screens.map((s) => ({
+        return screens.map((s, i) => ({
           h: SH,
           slotDeg: +(s.slot / DEG % 360).toFixed(1),
           arcDeg: +(s.arc / DEG).toFixed(1),
           ar: +(s.src?.ar ? s.src.ar.toFixed(2) : 0),
-          src: s.src ? 1 : 0
+          src: s.src ? 1 : 0,
+          voice: voices.has(i) ? 1 : 0
         }));
       },
       stopVideo() {
@@ -32002,6 +32099,8 @@
             const rec = (i) => L[i % L.length] ? { n: L[i % L.length].name, k: 0 } : null;
             const list = L.length ? [rec(0), null, rec(1), null, rec(2)] : [];
             localStorage.setItem("bb.cinema.screens", JSON.stringify(list));
+            const v = params.get("voice") === "ghost" ? ["__missing__.mp4"] : L.map((x) => x.name);
+            localStorage.setItem("bb.cinema.voices", JSON.stringify(v));
             mark(`SAVED n=${list.length} ${L.map((x) => x.name).join(",") || "(\u7247\u5355\u7A7A)"}`);
           }, 2e3);
         }
@@ -32058,7 +32157,7 @@
             const el = document.getElementById("dbg-out");
             const vs = Array.from(document.querySelectorAll(".btv"));
             const vs0 = vs[0]?.style;
-            el.textContent = `${demo.toUpperCase()} seated=${cinema.seated} bar=${document.getElementById("cinema-bar").classList.contains("hidden") ? 0 : 1} eye=${player.eyeHeight.toFixed(2)} pos=${player.pos.x.toFixed(1)},${player.pos.z.toFixed(1)} big=${document.body.classList.contains("big-screen") ? 1 : 0} n=${vs.length} src=${vs.map((v) => v.currentSrc || v.src ? 1 : 0).join("")} ring=${cinema.debugRing().map((r) => `h${r.h}/a${r.arcDeg}${r.src}`).join(",")} zoom=${fov0.toFixed(1)}>${fovIn.toFixed(1)}>${camera.fov.toFixed(1)} grid=${vs0?.getPropertyValue("--cols") || "-"}x${vs0?.getPropertyValue("--rows") || "-"}`;
+            el.textContent = `${demo.toUpperCase()} seated=${cinema.seated} bar=${document.getElementById("cinema-bar").classList.contains("hidden") ? 0 : 1} eye=${player.eyeHeight.toFixed(2)} pos=${player.pos.x.toFixed(1)},${player.pos.z.toFixed(1)} big=${document.body.classList.contains("big-screen") ? 1 : 0} n=${vs.length} src=${vs.map((v) => v.currentSrc || v.src ? 1 : 0).join("")} ring=${cinema.debugRing().map((r) => `h${r.h}/a${r.arcDeg}${r.src}`).join(",")} vce=${cinema.debugRing().map((r) => r.voice).join("")} zoom=${fov0.toFixed(1)}>${fovIn.toFixed(1)}>${camera.fov.toFixed(1)} grid=${vs0?.getPropertyValue("--cols") || "-"}x${vs0?.getPropertyValue("--rows") || "-"}`;
           }, 3400);
         }
         if (demo === "import") {
@@ -32080,13 +32179,14 @@
           }, 4800);
         }
         if (demo === "wall") {
-          const tiles = () => `kill=${document.querySelectorAll(".bwkill").length} add=${document.querySelectorAll(".bwadd").length} btv=${document.querySelectorAll(".btv").length} ring=${cinema.debugRing().map((r) => r.src).join("")}`;
+          const spk = () => document.querySelectorAll("#cc-list .cc-spk");
+          const st = () => `rows=${document.querySelectorAll("#cc-list .ccrow").length} voice=${cinema.debugRing().map((r) => r.voice).join("")} aud=${Array.from(document.querySelectorAll(".btv")).map((v) => !v.muted && v.volume > 0 ? 1 : 0).join("")} btv=${document.querySelectorAll(".btv").length}`;
           setTimeout(() => {
             player.pos.set(0, 0, CFG.cinema.bed.z + 1.6);
             player.freeYaw = 0;
             player.yaw = 0;
             cinema.onLeftDown();
-            document.getElementById("cb-big").click();
+            document.getElementById("cb-console").click();
           }, 2600);
           setTimeout(() => {
             const inp = document.getElementById("cb-add-in");
@@ -32094,17 +32194,30 @@
             Object.defineProperty(inp, "files", { value: [mk("add-a.mp4"), mk("add-b.mp4")] });
             inp.dispatchEvent(new Event("change"));
           }, 3400);
-          setTimeout(() => mark(`WALL1 ${tiles()} cols=${document.querySelector(".btv")?.style.getPropertyValue("--cols")}`), 4200);
-          setTimeout(() => document.querySelector(".bwkill").click(), 5e3);
-          setTimeout(() => mark(`WALL2 ${tiles()}`), 5700);
+          setTimeout(() => mark(`P1 ${st()} open=${document.getElementById("cinema-console").classList.contains("hidden") ? 0 : 1}`), 4200);
+          setTimeout(() => {
+            const b2 = spk();
+            b2[1].click();
+            b2[2].click();
+          }, 5e3);
+          setTimeout(() => mark(`P2 ${st()}`), 5600);
+          setTimeout(() => document.querySelector("#cc-list .cc-kill").click(), 6200);
+          setTimeout(() => mark(`P3 ${st()}`), 6800);
+          setTimeout(() => {
+            document.getElementById("cc-mute").click();
+            const muted = cinema.debugRing().map((r) => r.voice).join("");
+            document.getElementById("cc-mute").click();
+            mark(`MUTE off=${muted} back=${cinema.debugRing().map((r) => r.voice).join("")}`);
+          }, 7400);
           setTimeout(() => {
             document.getElementById("cb-hide").click();
             const hidden = document.getElementById("cinema-bar").classList.contains("hidden") ? 1 : 0;
+            const cc = document.getElementById("cinema-console").classList.contains("hidden") ? 0 : 1;
             const ghost = document.getElementById("cb-ghost").classList.contains("hidden") ? 0 : 1;
             document.getElementById("cb-ghost").click();
             const back = document.getElementById("cinema-bar").classList.contains("hidden") ? 0 : 1;
-            mark(`BAR hide=${hidden} ghost=${ghost} back=${back}`);
-          }, 6400);
+            mark(`BAR hide=${hidden} console=${cc} ghost=${ghost} back=${back}`);
+          }, 8e3);
         }
         if (demo === "ring") {
           const cnt = Math.max(1, Number(params.get("n")) || 5);

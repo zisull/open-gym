@@ -485,13 +485,18 @@ try {
   }
   if (demo === 'save') {
     // 两段式持久化断言：写死「环上 5 部片（第 1/3/5 有片、第 2/4 是空洞）」，
-    // 第二次启动应复原成 n=5 src=10101，且各块屏等高 6.8、槽位圆心角 69.2°。。
+    // 第二次启动应复原成 n=5 src=10101，且各块屏等高 6.8、槽位圆心角 69.2°。
+    // 出声名单按「片名」存（不是下标）：默认把片单里的片名全点上 → 还原后 vce 应与 src 一致（10101）；
+    // 加 ?voice=ghost 则存一个不存在的片名，还原时匹配不到 → 回退成 vce=10000（第一块有片的屏出声）。
     // 延迟到默认片源的 loadedmetadata（会回调 saveLayout 覆盖）之后再写，保证这条 5 槽是最后一次写入。
     setTimeout(() => {
       const L = window.BB_VIDEOS || [];
       const rec = (i) => (L[i % L.length] ? { n: L[i % L.length].name, k: 0 } : null);
       const list = L.length ? [rec(0), null, rec(1), null, rec(2)] : [];
       localStorage.setItem('bb.cinema.screens', JSON.stringify(list));
+      // ?voice=ghost → 存一个环上不存在的片名，第二次启动应回退到「第一块有片的屏」出声
+      const v = params.get('voice') === 'ghost' ? ['__missing__.mp4'] : L.map((x) => x.name);
+      localStorage.setItem('bb.cinema.voices', JSON.stringify(v));
       mark(`SAVED n=${list.length} ${L.map((x) => x.name).join(',') || '(片单空)'}`);
     }, 2000);
   }
@@ -538,6 +543,7 @@ try {
         + ` big=${document.body.classList.contains('big-screen') ? 1 : 0} n=${vs.length}`
         + ` src=${vs.map((v) => ((v.currentSrc || v.src) ? 1 : 0)).join('')}`
         + ` ring=${cinema.debugRing().map((r) => `h${r.h}/a${r.arcDeg}${r.src}`).join(',')}`
+        + ` vce=${cinema.debugRing().map((r) => r.voice).join('')}`
         + ` zoom=${fov0.toFixed(1)}>${fovIn.toFixed(1)}>${camera.fov.toFixed(1)}`
         + ` grid=${vs0?.getPropertyValue('--cols') || '-'}x${vs0?.getPropertyValue('--rows') || '-'}`;
     }, 3400);
@@ -565,17 +571,19 @@ try {
     }, 4800);
   }
   if (demo === 'wall') {
-    // 大屏墙管理：入座→开墙→「＋」追加 2 部→点「✕」删 1 部→控制条收起/唤回。
-    // 断言每步的格子数（.bwkill=可删片数，.bwadd=加入格）与环上屏数同步。
-    const tiles = () => `kill=${document.querySelectorAll('.bwkill').length}`
-      + ` add=${document.querySelectorAll('.bwadd').length}`
-      + ` btv=${document.querySelectorAll('.btv').length}`
-      + ` ring=${cinema.debugRing().map((r) => r.src).join('')}`;
+    // 统一控制台 + 多路出声：入座→开控制台→追加 2 部→勾 3 路出声→删 1 部→整体静音/还原→收条唤回。
+    // aud= 直接读每个 <video> 的真实放行状态（!muted && volume>0），这才是要验的东西：
+    // 旧模型 rebuild 把非焦点屏 volume 写 0、tapScreen 又只改 muted，所以点了永远不出声。
+    const spk = () => document.querySelectorAll('#cc-list .cc-spk');
+    const st = () => `rows=${document.querySelectorAll('#cc-list .ccrow').length}`
+      + ` voice=${cinema.debugRing().map((r) => r.voice).join('')}`
+      + ` aud=${Array.from(document.querySelectorAll('.btv')).map((v) => (!v.muted && v.volume > 0 ? 1 : 0)).join('')}`
+      + ` btv=${document.querySelectorAll('.btv').length}`;
     setTimeout(() => {
       player.pos.set(0, 0, CFG.cinema.bed.z + 1.6);
       player.freeYaw = 0; player.yaw = 0;
       cinema.onLeftDown();
-      document.getElementById('cb-big').click();
+      document.getElementById('cb-console').click();
     }, 2600);
     setTimeout(() => {
       const inp = document.getElementById('cb-add-in');
@@ -583,17 +591,26 @@ try {
       Object.defineProperty(inp, 'files', { value: [mk('add-a.mp4'), mk('add-b.mp4')] });
       inp.dispatchEvent(new Event('change'));
     }, 3400);
-    setTimeout(() => mark(`WALL1 ${tiles()} cols=${document.querySelector('.btv')?.style.getPropertyValue('--cols')}`), 4200);
-    setTimeout(() => document.querySelector('.bwkill').click(), 5000);
-    setTimeout(() => mark(`WALL2 ${tiles()}`), 5700);
+    setTimeout(() => mark(`P1 ${st()} open=${document.getElementById('cinema-console').classList.contains('hidden') ? 0 : 1}`), 4200);
+    setTimeout(() => { const b = spk(); b[1].click(); b[2].click(); }, 5000); // 三部一起出声
+    setTimeout(() => mark(`P2 ${st()}`), 5600);
+    setTimeout(() => document.querySelector('#cc-list .cc-kill').click(), 6200); // 删第一部
+    setTimeout(() => mark(`P3 ${st()}`), 6800);
+    setTimeout(() => {
+      document.getElementById('cc-mute').click();
+      const muted = cinema.debugRing().map((r) => r.voice).join('');
+      document.getElementById('cc-mute').click();
+      mark(`MUTE off=${muted} back=${cinema.debugRing().map((r) => r.voice).join('')}`);
+    }, 7400);
     setTimeout(() => {
       document.getElementById('cb-hide').click();
       const hidden = document.getElementById('cinema-bar').classList.contains('hidden') ? 1 : 0;
+      const cc = document.getElementById('cinema-console').classList.contains('hidden') ? 0 : 1;
       const ghost = document.getElementById('cb-ghost').classList.contains('hidden') ? 0 : 1;
       document.getElementById('cb-ghost').click();
       const back = document.getElementById('cinema-bar').classList.contains('hidden') ? 0 : 1;
-      mark(`BAR hide=${hidden} ghost=${ghost} back=${back}`);
-    }, 6400);
+      mark(`BAR hide=${hidden} console=${cc} ghost=${ghost} back=${back}`);
+    }, 8000);
   }
   if (demo === 'ring') {
     // 视觉验证「等高 + 铺满一整圈」：导入 ?n= 部假片（blob 解码不了 -> 银幕停在占位卡上，
