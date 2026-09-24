@@ -9,6 +9,8 @@ imgs/wall/*.jpeg
 imgs/wall/*.webp
 imgs/wall/*.gif
 imgs/wall/*.bmp
+imgs/wall/*.png
+!imgs/wall/sample-anime-girl.png
 video/*.mp4
 video/*.m4v
 video/*.webm

@@ -18,10 +18,10 @@ export const CFG = {
     playerMinX: -9.0, playerMaxX: 9.0,
     playerMinZ: -15.0, playerMaxZ: 15.8,
   },
-  /* ---------- 篮筐（比 FIBA 标准略放大一号，休闲友好） ---------- */
+  /* ---------- 篮筐（比 FIBA 标准放大 1.25 倍，休闲友好） ---------- */
   hoop: {
     rimHeight: 3.05,     // 筐沿高度
-    rimRadius: 0.26,     // 篮圈半径（标准 0.2286，加大让"擦筐进"更常见）
+    rimRadius: 0.325,    // 篮圈半径（标准 0.2286 × 1.25 ≈ 0.286 再放宽，擦筐进更容易）
     rimTube: 0.017,      // 篮圈钢管半径
     boardFaceZ: -12.8,   // 篮板正面 z 坐标（距端线 1.2m）
     rimOffset: 0.375,    // 圈心到篮板面的距离
@@ -29,7 +29,7 @@ export const CFG = {
     boardBottomY: 2.9,   // 篮板下沿高度
     netDepth: 0.45,      // 篮网深度
     // 判定进球：球心自上而下穿过筐平面的水平半径阈值
-    scoreRadius: 0.225,
+    scoreRadius: 0.28,
   },
   /* ---------- 篮球 ---------- */
   ball: {
@@ -96,26 +96,25 @@ export const CFG = {
     shakeAmp: 0.045,
     shakeDur: 0.28,
   },
-  /* ---------- 电影院（球馆 +z 墙红门进入；影厅为独立场景） ---------- */
+  /* ---------- 电影院（球馆 +z 墙红门进入；影厅为独立场景，四面墙皆银幕） ---------- */
   cinema: {
     // 球馆侧入口门：玩家走进该圆区域自动传送进影厅
     gymDoor: { x: 6.0, z: 16.35, r: 1.25 },
     // 影厅外壳尺寸（中心在原点）
     halfW: 9.0, halfL: 7.0, height: 7.0,
-    // 观众席：4 排 x 7 座，逐排升高
-    rows: [
-      { z: -1.6, y: 0.0 },
-      { z: 0.6, y: 0.5 },
-      { z: 2.8, y: 1.0 },
-      { z: 5.0, y: 1.5 },
+    // 四面墙银幕：wall = 法线朝向（-z 前 / +z 后 / -x 左 / +x 右），w/h 为最大可用宽/高，
+    // 实际按每个视频自身宽高比在此框内取最大矩形
+    screens: [
+      { id: 'front', wall: '-z', maxW: 16.4, maxH: 6.3, cy: 3.45 },
+      { id: 'back',  wall: '+z', maxW: 12.6, maxH: 6.3, cy: 3.45, cx: -1.4 }, // 让出右侧出口门
+      { id: 'left',  wall: '-x', maxW: 12.6, maxH: 6.3, cy: 3.45 },
+      { id: 'right', wall: '+x', maxW: 12.6, maxH: 6.3, cy: 3.45 },
     ],
-    cols: 7, colSpacing: 1.2,
-    eyeSit: 1.18,          // 入座视高（相对台基）
+    // 中央圆形大沙发：入座后坐在「座垫环」上（距心 sitR），eyeSit 为落座视高
+    sofa: { x: 0, z: 0.4, r: 2.6, sitR: 1.9, eyeSit: 1.28 },
     walkSpeed: 3.0,
     // 出口门（影厅 +z 墙）：走进 -> 回球馆
     exitDoor: { x: 6.5, z: 6.9, r: 1.15 },
-    // 银幕（16:9，位于 -z 前墙）
-    screenW: 9.2, screenH: 5.18, screenY: 3.4, screenZ: -6.9,
     // video/ 清单生成器单文件内嵌上限（字节），超过则提示改用"选择视频"
     maxEmbedMB: 80,
   },

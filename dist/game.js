@@ -21929,12 +21929,12 @@
           playerMinZ: -15,
           playerMaxZ: 15.8
         },
-        /* ---------- 篮筐（比 FIBA 标准略放大一号，休闲友好） ---------- */
+        /* ---------- 篮筐（比 FIBA 标准放大 1.25 倍，休闲友好） ---------- */
         hoop: {
           rimHeight: 3.05,
           // 筐沿高度
-          rimRadius: 0.26,
-          // 篮圈半径（标准 0.2286，加大让"擦筐进"更常见）
+          rimRadius: 0.325,
+          // 篮圈半径（标准 0.2286 × 1.25 ≈ 0.286 再放宽，擦筐进更容易）
           rimTube: 0.017,
           // 篮圈钢管半径
           boardFaceZ: -12.8,
@@ -21949,7 +21949,7 @@
           netDepth: 0.45,
           // 篮网深度
           // 判定进球：球心自上而下穿过筐平面的水平半径阈值
-          scoreRadius: 0.225
+          scoreRadius: 0.28
         },
         /* ---------- 篮球 ---------- */
         ball: {
@@ -22048,7 +22048,7 @@
           shakeAmp: 0.045,
           shakeDur: 0.28
         },
-        /* ---------- 电影院（球馆 +z 墙红门进入；影厅为独立场景） ---------- */
+        /* ---------- 电影院（球馆 +z 墙红门进入；影厅为独立场景，四面墙皆银幕） ---------- */
         cinema: {
           // 球馆侧入口门：玩家走进该圆区域自动传送进影厅
           gymDoor: { x: 6, z: 16.35, r: 1.25 },
@@ -22056,25 +22056,20 @@
           halfW: 9,
           halfL: 7,
           height: 7,
-          // 观众席：4 排 x 7 座，逐排升高
-          rows: [
-            { z: -1.6, y: 0 },
-            { z: 0.6, y: 0.5 },
-            { z: 2.8, y: 1 },
-            { z: 5, y: 1.5 }
+          // 四面墙银幕：wall = 法线朝向（-z 前 / +z 后 / -x 左 / +x 右），w/h 为最大可用宽/高，
+          // 实际按每个视频自身宽高比在此框内取最大矩形
+          screens: [
+            { id: "front", wall: "-z", maxW: 16.4, maxH: 6.3, cy: 3.45 },
+            { id: "back", wall: "+z", maxW: 12.6, maxH: 6.3, cy: 3.45, cx: -1.4 },
+            // 让出右侧出口门
+            { id: "left", wall: "-x", maxW: 12.6, maxH: 6.3, cy: 3.45 },
+            { id: "right", wall: "+x", maxW: 12.6, maxH: 6.3, cy: 3.45 }
           ],
-          cols: 7,
-          colSpacing: 1.2,
-          eyeSit: 1.18,
-          // 入座视高（相对台基）
+          // 中央圆形大沙发：入座后坐在「座垫环」上（距心 sitR），eyeSit 为落座视高
+          sofa: { x: 0, z: 0.4, r: 2.6, sitR: 1.9, eyeSit: 1.28 },
           walkSpeed: 3,
           // 出口门（影厅 +z 墙）：走进 -> 回球馆
           exitDoor: { x: 6.5, z: 6.9, r: 1.15 },
-          // 银幕（16:9，位于 -z 前墙）
-          screenW: 9.2,
-          screenH: 5.18,
-          screenY: 3.4,
-          screenZ: -6.9,
           // video/ 清单生成器单文件内嵌上限（字节），超过则提示改用"选择视频"
           maxEmbedMB: 80
         }
@@ -29830,6 +29825,17 @@
   });
 
   // src/cinema.js
+  function makeVideoEl(main) {
+    const v = document.createElement("video");
+    v.className = "btv";
+    v.playsInline = true;
+    v.preload = "auto";
+    v.loop = true;
+    v.muted = !main;
+    v.dataset.main = main ? "1" : "0";
+    document.body.appendChild(v);
+    return v;
+  }
   function createCinema({ camera, player, sfx }) {
     const scene = new Scene();
     scene.background = new Color(395019);
@@ -29848,25 +29854,53 @@
     carpet.rotation.x = -Math.PI / 2;
     carpet.position.y = 0.01;
     scene.add(carpet);
-    const bezel = new Mesh(
-      new BoxGeometry(K.screenW + 0.7, K.screenH + 0.55, 0.16),
-      new MeshStandardMaterial({ color: 263434, roughness: 0.9 })
-    );
-    bezel.position.set(0, K.screenY, K.screenZ - 0.06);
-    scene.add(bezel);
     const placeholderTex = makeScreenPlaceholderTexture();
-    const screenMat = new MeshBasicMaterial({ map: placeholderTex, color: 12108496 });
-    const screen = new Mesh(new PlaneGeometry(K.screenW, K.screenH), screenMat);
-    screen.position.set(0, K.screenY, K.screenZ + 0.03);
-    scene.add(screen);
-    const videoEl = document.getElementById("btv");
-    const videoTex = new VideoTexture(videoEl);
-    videoTex.colorSpace = SRGBColorSpace;
-    videoTex.minFilter = LinearFilter;
-    videoTex.magFilter = LinearFilter;
+    const WALL_ROT = { "-z": 0, "+z": Math.PI, "-x": Math.PI / 2, "+x": -Math.PI / 2 };
+    const WALL_POS = {
+      "-z": [0, 0, -K.halfL + 0.06],
+      "+z": [0, 0, K.halfL - 0.06],
+      "-x": [-K.halfW + 0.06, 0, 0],
+      "+x": [K.halfW - 0.06, 0, 0]
+    };
+    const screens = K.screens.map((sc, i) => {
+      const g = new Group();
+      const [bx, , bz] = WALL_POS[sc.wall];
+      g.position.set(bx + (sc.cx || 0), 0, bz);
+      g.rotation.y = WALL_ROT[sc.wall];
+      const bezel = new Mesh(
+        new PlaneGeometry(sc.maxW + 0.8, sc.maxH + 0.7),
+        new MeshStandardMaterial({ color: 263434, roughness: 0.9 })
+      );
+      bezel.position.set(0, sc.cy, -0.03);
+      g.add(bezel);
+      const mat = new MeshBasicMaterial({ map: placeholderTex, color: 12108496 });
+      const plane = new Mesh(new PlaneGeometry(sc.maxW * 0.6, sc.maxW * 0.6 * 9 / 16), mat);
+      plane.position.set(0, sc.cy, 0.03);
+      g.add(plane);
+      scene.add(g);
+      const videoEl = makeVideoEl(i === 0);
+      const tex = new VideoTexture(videoEl);
+      tex.colorSpace = SRGBColorSpace;
+      tex.minFilter = LinearFilter;
+      tex.magFilter = LinearFilter;
+      videoEl.addEventListener("loadedmetadata", () => {
+        const ar = (videoEl.videoWidth || 16) / (videoEl.videoHeight || 9);
+        let w = sc.maxW, h = w / ar;
+        if (h > sc.maxH) {
+          h = sc.maxH;
+          w = h * ar;
+        }
+        plane.geometry.dispose();
+        plane.geometry = new PlaneGeometry(w, h);
+        mat.map = tex;
+        mat.color.setHex(16777215);
+        mat.needsUpdate = true;
+      });
+      return { def: sc, group: g, plane, mat, videoEl, tex, idx: -1 };
+    });
     scene.add(new HemisphereLight(3752271, 657932, 0.55));
-    const proj = new PointLight(10466520, 6, 16, 1.6);
-    proj.position.set(0, K.screenY, K.screenZ + 3.2);
+    const proj = new PointLight(10466520, 5, 16, 1.6);
+    proj.position.set(0, K.screens[0].cy + 1.2, -K.halfL + 3.4);
     scene.add(proj);
     const sconceMat = new MeshStandardMaterial({ color: 2757640, emissive: 16742959, emissiveIntensity: 1.6 });
     for (const sx of [-1, 1]) {
@@ -29879,36 +29913,34 @@
         scene.add(p);
       }
     }
-    const seats = [];
-    const seatGeoC = new BoxGeometry(0.95, 0.5, 0.8);
-    const seatGeoB = new BoxGeometry(0.95, 0.72, 0.16);
-    const riserMat = new MeshStandardMaterial({ color: 2106156, roughness: 0.92 });
-    const nosyMat = new MeshStandardMaterial({ color: 1053208, roughness: 0.9 });
-    K.rows.forEach((row, ri) => {
-      if (row.y > 0) {
-        const riser = new Mesh(new BoxGeometry(10.6, row.y, 2.3), ri >= 2 ? riserMat : nosyMat);
-        riser.position.set(0, row.y / 2, row.z);
-        scene.add(riser);
-        const strip = new Mesh(
-          new BoxGeometry(10.6, 0.04, 0.05),
-          new MeshStandardMaterial({ color: 3350538, emissive: 16752720, emissiveIntensity: 1.2 })
-        );
-        strip.position.set(0, row.y + 0.02, row.z - 1.15);
-        scene.add(strip);
-      }
-      for (let ci = 0; ci < K.cols; ci++) {
-        const x = (ci - (K.cols - 1) / 2) * K.colSpacing;
-        const mat = new MeshStandardMaterial({ color: 7021616, roughness: 0.88, metalness: 0.02 });
-        const cushion = new Mesh(seatGeoC, mat);
-        cushion.position.set(x, row.y + 0.25, row.z + 0.15);
-        scene.add(cushion);
-        const back = new Mesh(seatGeoB, mat);
-        back.position.set(x, row.y + 0.82, row.z - 0.42);
-        back.rotation.x = 0.14;
-        scene.add(back);
-        seats.push({ mesh: cushion, mat, x, z: row.z, y: row.y, row: ri, col: ci });
-      }
-    });
+    const sofa = new Group();
+    sofa.position.set(K.sofa.x, 0, K.sofa.z);
+    {
+      const S = K.sofa;
+      const fabric = new MeshStandardMaterial({ color: 7021616, roughness: 0.9, metalness: 0.02 });
+      const fabricDark = new MeshStandardMaterial({ color: 5709096, roughness: 0.92 });
+      const cushion = new Mesh(new CylinderGeometry(S.r, S.r * 0.96, 0.42, 40), fabric);
+      cushion.position.y = 0.21;
+      sofa.add(cushion);
+      const back = new Mesh(new TorusGeometry(S.r - 0.28, 0.34, 12, 40), fabricDark);
+      back.rotation.x = Math.PI / 2;
+      back.position.y = 0.72;
+      sofa.add(back);
+      const base = new Mesh(
+        new CylinderGeometry(S.r * 0.96, S.r * 0.9, 0.1, 40),
+        new MeshStandardMaterial({ color: 1908518, roughness: 0.95 })
+      );
+      base.position.y = 0.05;
+      sofa.add(base);
+      const table = new Mesh(
+        new CylinderGeometry(0.5, 0.46, 0.4, 24),
+        new MeshStandardMaterial({ color: 2369331, roughness: 0.4, metalness: 0.3 })
+      );
+      table.position.y = 0.2;
+      sofa.add(table);
+    }
+    scene.add(sofa);
+    const sofaHit = sofa.children[0];
     const exitGroup = new Group();
     exitGroup.position.set(K.exitDoor.x, 0, K.halfL - 0.06);
     exitGroup.rotation.y = Math.PI;
@@ -29936,72 +29968,79 @@
     scene.add(exitGroup);
     const exitHit = exitGroup.children[1];
     const playlist = (window.BB_VIDEOS || []).slice();
-    let cur = -1;
-    let bigMode = false;
+    let focus = 0;
     const $2 = (id) => document.getElementById(id);
     const bar = $2("cinema-bar");
-    const sel = $2("cb-list");
     const status = $2("cb-status");
     const playBtn = $2("cb-play");
-    function refreshSelect() {
-      sel.innerHTML = "";
-      playlist.forEach((it, i) => {
-        const o = document.createElement("option");
-        o.value = String(i);
-        o.textContent = it.name;
-        o.selected = i === cur;
-        sel.appendChild(o);
-      });
-      sel.disabled = playlist.length === 0;
-    }
     function setStatus(t) {
       status.textContent = t;
     }
-    function loadIndex(i, autoplay) {
-      if (!playlist.length) {
-        setStatus("\u7247\u5355\u4E3A\u7A7A\uFF1A\u653E\u89C6\u9891\u8FDB video/ \u6216\u70B9\u201C\u9009\u62E9\u89C6\u9891\u201D");
-        return;
-      }
-      cur = (i % playlist.length + playlist.length) % playlist.length;
-      videoEl.src = playlist[cur].url;
-      screenMat.map = videoTex;
-      screenMat.color.setHex(16777215);
-      screenMat.needsUpdate = true;
-      refreshSelect();
-      setStatus(`\u25B6 ${playlist[cur].name}`);
-      if (autoplay) play();
+    function assignScreens(start = 0) {
+      screens.forEach((s, i) => {
+        const it = playlist[start + i];
+        s.idx = it ? start + i : -1;
+        if (it) {
+          if (s.videoEl.src !== it.url) s.videoEl.src = it.url;
+        } else {
+          s.videoEl.removeAttribute("src");
+          s.mat.map = placeholderTex;
+          s.mat.color.setHex(12108496);
+          s.mat.needsUpdate = true;
+        }
+      });
+      setStatus(playlist.length ? `\u25B6 \u5FAA\u73AF\u653E\u6620 ${Math.min(playlist.length, 4)}/${playlist.length} \u90E8 \xB7 \u70B9\u5C4F\u5E55\u5207\u6362\u51FA\u58F0` : "\u7247\u5355\u4E3A\u7A7A\uFF1A\u653E\u89C6\u9891\u8FDB video/ \u6216\u70B9\u201C\u9009\u62E9\u89C6\u9891\u201D");
     }
-    function play() {
-      videoEl.play().then(() => {
-        playBtn.textContent = "\u23F8 \u6682\u505C";
-      }).catch(() => setStatus("\u65E0\u6CD5\u64AD\u653E\uFF08\u683C\u5F0F\u4E0D\u53D7\u6D4F\u89C8\u5668\u652F\u6301\uFF1F\uFF09"));
+    function playAll() {
+      screens.forEach((s, i) => {
+        if (s.idx < 0) return;
+        s.videoEl.muted = i !== focus;
+        s.videoEl.play().catch(() => {
+        });
+      });
+      playBtn.textContent = "\u23F8 \u6682\u505C";
     }
-    function pause() {
-      videoEl.pause();
+    function pauseAll() {
+      screens.forEach((s) => s.videoEl.pause());
       playBtn.textContent = "\u25B6 \u64AD\u653E";
     }
-    videoEl.addEventListener("ended", () => loadIndex(cur + 1, true));
+    function tapScreen(i) {
+      const s = screens[i];
+      if (s.idx < 0) return;
+      focus = i;
+      screens.forEach((o, j) => {
+        o.videoEl.muted = j !== i;
+      });
+      if (s.videoEl.paused) {
+        s.videoEl.play().catch(() => {
+        });
+        setStatus(`\u{1F50A} ${playlist[s.idx].name}`);
+      } else setStatus(`\u23F8 ${playlist[s.idx].name}`);
+      playBtn.textContent = screens.some((o) => !o.videoEl.paused) ? "\u23F8 \u6682\u505C" : "\u25B6 \u64AD\u653E";
+    }
     $2("cb-play").addEventListener("click", () => {
       if (!playlist.length) {
         setStatus("\u8FD8\u6CA1\u6709\u7247\u6E90");
         return;
       }
-      if (videoEl.paused) {
-        if (cur < 0) loadIndex(0, true);
-        else play();
-      } else pause();
+      if (screens.every((s) => s.videoEl.paused || s.idx < 0)) playAll();
+      else pauseAll();
     });
-    $2("cb-prev").addEventListener("click", () => loadIndex(cur - 1, !videoEl.paused));
-    $2("cb-next").addEventListener("click", () => loadIndex(cur + 1, !videoEl.paused));
-    sel.addEventListener("change", () => loadIndex(Number(sel.value), true));
+    $2("cb-next").addEventListener("click", () => {
+      if (playlist.length <= screens.length) return;
+      assignScreens((screens[0].idx + screens.length) % playlist.length);
+      playAll();
+    });
     $2("cb-vol").addEventListener("input", (e) => {
-      videoEl.volume = Number(e.target.value);
+      const v = Number(e.target.value);
+      screens.forEach((s, i) => {
+        s.videoEl.volume = i === focus ? v : 0;
+      });
     });
-    videoEl.volume = Number($2("cb-vol").value || 0.9);
+    screens[0].videoEl.volume = Number($2("cb-vol").value || 0.9);
     $2("cb-big").addEventListener("click", () => {
-      bigMode = !bigMode;
-      document.body.classList.toggle("big-screen", bigMode);
-      $2("cb-big").textContent = bigMode ? "\u26F6 \u56DE\u5230\u5F71\u5385\u89C6\u89D2" : "\u26F6 \u653E\u5927\u89C2\u770B";
+      document.body.classList.toggle("big-screen");
+      $2("cb-big").textContent = document.body.classList.contains("big-screen") ? "\u26F6 \u56DE\u5230\u5F71\u5385\u89C6\u89D2" : "\u26F6 \u653E\u5927\u89C2\u770B";
     });
     $2("cb-stand").addEventListener("click", () => stand());
     $2("cb-file").addEventListener("click", () => $2("cb-file-in").click());
@@ -30009,14 +30048,14 @@
       const files = Array.from(e.target.files || []);
       if (!files.length) return;
       files.forEach((f) => playlist.push({ name: f.name, url: URL.createObjectURL(f) }));
-      loadIndex(playlist.length - files.length, true);
+      assignScreens(0);
+      playAll();
       e.target.value = "";
     });
-    refreshSelect();
-    let seated = null;
-    let hoverSeat = null;
+    let seated = false;
+    let hoverSofa = false;
     let hoverExit = false;
-    let hoverScreen = false;
+    let hoverScreen = -1;
     const raycaster = new Raycaster();
     const hintEl = $2("cinema-hint");
     const GYM_BOUNDS = {
@@ -30027,37 +30066,42 @@
     };
     const GYM_BLOCKERS = [{ x: 0, z: CFG.hoop.boardFaceZ - 0.95, r: 0.9 }];
     const ROOM_BOUNDS = { minX: -K.halfW + 0.8, maxX: K.halfW - 0.55, minZ: -K.halfL + 1.1, maxZ: K.halfL - 0.75 };
+    const SOFA_BLOCKER = [{ x: K.sofa.x, z: K.sofa.z, r: K.sofa.r + 0.1 }];
     function setHint(t) {
       hintEl.innerHTML = t || "";
       hintEl.classList.toggle("hidden", !t);
     }
-    function sit(seat) {
-      seated = seat;
-      player.pos.set(seat.x, 0, seat.z - 0.28);
+    function sit() {
+      seated = true;
+      const dx = player.pos.x - K.sofa.x, dz = player.pos.z - K.sofa.z;
+      const d = Math.hypot(dx, dz) || 1;
+      player.pos.set(K.sofa.x + dx / d * K.sofa.sitR, 0, K.sofa.z + dz / d * K.sofa.sitR);
       player.vel.set(0, 0, 0);
-      player.bounds = { minX: seat.x - 0.05, maxX: seat.x + 0.05, minZ: seat.z - 0.33, maxZ: seat.z - 0.23 };
+      player.bounds = {
+        minX: player.pos.x - 0.05,
+        maxX: player.pos.x + 0.05,
+        minZ: player.pos.z - 0.05,
+        maxZ: player.pos.z + 0.05
+      };
       player.blockers = [];
-      player.eyeHeight = seat.y + K.eyeSit;
+      player.eyeHeight = K.sofa.eyeSit;
       player.speed = 0;
-      const dx = 0 - seat.x, dz = K.screenZ + 0.03 - (seat.z - 0.28);
-      player.freeYaw = Math.atan2(-dx, -dz);
-      player.freePitch = Math.atan2(K.screenY - player.eyeHeight, Math.hypot(dx, dz));
       bar.classList.remove("hidden");
       setHint("");
       document.exitPointerLock?.();
-      if (cur < 0 && playlist.length) loadIndex(0, false);
+      if (playlist.length && screens.every((s) => s.idx < 0)) assignScreens(0);
+      playAll();
       sfx.play("ui", { volume: 0.4 });
     }
     function stand() {
       if (!seated) return;
-      seated = null;
+      seated = false;
       player.bounds = ROOM_BOUNDS;
-      player.blockers = [];
+      player.blockers = SOFA_BLOCKER;
       player.eyeHeight = CFG.player.eye;
       player.speed = K.walkSpeed;
       bar.classList.add("hidden");
-      if (bigMode) {
-        bigMode = false;
+      if (document.body.classList.contains("big-screen")) {
         document.body.classList.remove("big-screen");
         $2("cb-big").textContent = "\u26F6 \u653E\u5927\u89C2\u770B";
       }
@@ -30070,24 +30114,27 @@
     return {
       scene,
       get seated() {
-        return !!seated;
+        return seated;
       },
       onExitRequest: null,
       enter() {
         player.pos.set(K.exitDoor.x, 0, K.halfL - 2.6);
         player.vel.set(0, 0, 0);
         player.bounds = ROOM_BOUNDS;
-        player.blockers = [];
+        player.blockers = SOFA_BLOCKER;
         player.eyeHeight = CFG.player.eye;
         player.speed = K.walkSpeed;
         player.mode = "free";
         player.exitShotAim();
         player.freeYaw = 0;
         player.freePitch = 0;
-        setHint("\u8D70\u52A8\u9009\u4E2A\u5EA7\u4F4D\uFF1A<b>\u5DE6\u952E</b> \u70B9\u5EA7\u5165\u5EA7 \xB7 \u8D70\u5411 <b>\u51FA\u53E3\u95E8</b> \u56DE\u7403\u573A \xB7 <b>ESC</b> \u56DE\u4E3B\u83DC\u5355");
+        canvasLock();
+        if (playlist.length) assignScreens(0);
+        setHint("<b>\u5DE6\u952E</b> \u70B9\u5C4F\u5E55\u5207\u6362\u51FA\u58F0 \xB7 \u7AD9\u4E0A\u6C99\u53D1 <b>\u5DE6\u952E</b> \u5165\u5EA7 \xB7 \u8D70\u5411 <b>\u51FA\u53E3\u95E8</b> \u56DE\u7403\u573A");
       },
       exit() {
         stand();
+        pauseAll();
         player.bounds = GYM_BOUNDS;
         player.blockers = GYM_BLOCKERS;
         player.eyeHeight = CFG.player.eye;
@@ -30098,37 +30145,33 @@
       update(dt) {
         if (!seated) {
           raycaster.setFromCamera({ x: 0, y: 0 }, camera);
-          const hits = raycaster.intersectObjects([...seats.map((s) => s.mesh), exitHit, screen], false);
-          const hit = hits.find((h) => h.distance < 9) || null;
-          const newSeat = hit && seats.find((s) => s.mesh === hit.object) || null;
+          const targets = [sofaHit, exitHit, ...screens.map((s) => s.plane)];
+          const hits = raycaster.intersectObjects(targets, false);
+          const hit = hits.find((h) => h.distance < 14) || null;
+          hoverSofa = !!hit && hit.object === sofaHit;
           hoverExit = !!hit && hit.object === exitHit;
-          hoverScreen = !!hit && hit.object === screen;
-          if (hoverSeat !== newSeat) {
-            if (hoverSeat) hoverSeat.mat.emissive.setHex(0);
-            hoverSeat = newSeat;
-            if (hoverSeat) hoverSeat.mat.emissive.setHex(4002842);
-          }
+          hoverScreen = hit ? screens.findIndex((s) => s.plane === hit.object) : -1;
           const dExit = Math.hypot(player.pos.x - K.exitDoor.x, player.pos.z - K.exitDoor.z);
           if (dExit < K.exitDoor.r && this.onExitRequest) this.onExitRequest();
-          setHint(hoverSeat ? "<b>\u5DE6\u952E</b> \u5165\u5EA7" : hoverExit ? "<b>\u5DE6\u952E</b> \u6216\u8D70\u8FC7\u53BB\uFF1A\u8FD4\u56DE\u7BEE\u7403\u9986" : hoverScreen && playlist.length ? "<b>\u5DE6\u952E</b> \u64AD\u653E / \u6682\u505C" : "");
-        } else if (hoverSeat) {
-          hoverSeat.mat.emissive.setHex(0);
-          hoverSeat = null;
+          const dSofa = Math.hypot(player.pos.x - K.sofa.x, player.pos.z - K.sofa.z);
+          const nearSofa = hoverSofa || dSofa < K.sofa.r + 0.6;
+          setHint(nearSofa ? "<b>\u5DE6\u952E</b> \u5728\u6C99\u53D1\u4E0A\u5165\u5EA7\uFF08\u4EFB\u610F\u671D\u5411\uFF09" : hoverExit ? "<b>\u5DE6\u952E</b> \u6216\u8D70\u8FC7\u53BB\uFF1A\u8FD4\u56DE\u7BEE\u7403\u9986" : hoverScreen >= 0 && screens[hoverScreen].idx >= 0 ? "<b>\u5DE6\u952E</b> \u64AD\u653E/\u6682\u505C \xB7 \u5207\u6362\u8BE5\u5C4F\u58F0\u97F3" : "");
         }
       },
       onLeftDown() {
         if (seated) return;
-        if (hoverSeat) {
-          sit(hoverSeat);
+        const ray = raycaster.ray;
+        const sph = new Sphere(new Vector3(K.sofa.x, 0.4, K.sofa.z), K.sofa.r + 0.35);
+        const onSofa = ray.intersectsSphere(sph) || Math.hypot(player.pos.x - K.sofa.x, player.pos.z - K.sofa.z) < K.sofa.r + 0.6;
+        if (onSofa) {
+          sit();
           return;
         }
         if (hoverExit) {
           if (this.onExitRequest) this.onExitRequest();
           return;
         }
-        if (hoverScreen && playlist.length) {
-          videoEl.paused ? cur < 0 ? loadIndex(0, true) : play() : pause();
-        }
+        if (hoverScreen >= 0) tapScreen(hoverScreen);
       },
       onRightDown() {
         if (seated) stand();
@@ -30139,11 +30182,10 @@
       },
       /** 进入影院瞬间调用：确保有片单 */
       ensurePlaylist() {
-        if (cur < 0 && playlist.length) loadIndex(0, false);
+        if (playlist.length) assignScreens(0);
       },
       stopVideo() {
-        videoEl.pause();
-        playBtn.textContent = "\u25B6 \u64AD\u653E";
+        pauseAll();
       }
     };
   }
@@ -31512,14 +31554,20 @@
         if (k in keys) keys[k] = false;
       });
       document.addEventListener("mousemove", (e) => {
-        if (document.pointerLockElement === canvas && gameState === "playing") {
+        if (gameState !== "playing") return;
+        if (document.pointerLockElement === canvas) {
+          player.look(e.movementX, e.movementY);
+        } else if (playerLoc === "cinema" && cinema.seated && e.buttons & 1 && e.target === canvas) {
           player.look(e.movementX, e.movementY);
         }
       });
       canvas.addEventListener("mousedown", (e) => {
         if (gameState !== "playing") return;
         if (document.pointerLockElement !== canvas) {
-          if (playerLoc === "cinema" && !cinema.seated) canvas.requestPointerLock?.();
+          if (playerLoc === "cinema") {
+            if (!cinema.seated && !e.button) cinema.onLeftDown();
+            else if (!cinema.seated) canvas.requestPointerLock?.();
+          }
           return;
         }
         if (playerLoc === "cinema") {
@@ -31656,11 +31704,15 @@
         if (params.get("loc") === "cinema") setTimeout(() => enterCinema(), 1100);
         const tp = params.get("tp");
         if (tp) setTimeout(() => {
-          const [x, z, y] = tp.split(",").map(Number);
+          const [x, z, y, p] = tp.split(",").map(Number);
           GAME.teleport(x, z);
           if (!Number.isNaN(y)) {
             player.freeYaw = y;
             player.yaw = y;
+          }
+          if (!Number.isNaN(p)) {
+            player.freePitch = p;
+            player.pitch = p;
           }
         }, 2300);
         if (m && demo === "shot") {
@@ -31672,7 +31724,7 @@
           }, 2e3);
           setTimeout(() => machine.dispatch("onLeftDown"), 2900);
         }
-        if (demo === "tap" || demo === "pause") {
+        if (demo === "sit" || demo === "grid") {
           const marks2 = [];
           let dbg = document.getElementById("dbg-out");
           if (!dbg) {
@@ -31717,6 +31769,24 @@
             mark("final");
             console.log("DEMO_TAP", marks.join(" | "));
           }, 6e3);
+        }
+        if (demo === "sit" || demo === "grid") {
+          addEventListener("error", (e) => {
+            const el = document.getElementById("dbg-out");
+            if (el) el.textContent = `ERR ${e.message} @${e.filename?.split("/").pop()}:${e.lineno}`;
+          });
+          setTimeout(() => {
+            player.pos.set(0, 0, CFG.cinema.sofa.z + 1.6);
+            player.freeYaw = -Math.PI / 2;
+            player.yaw = -Math.PI / 2;
+            cinema.onLeftDown();
+            if (demo === "grid") document.getElementById("cb-big").click();
+          }, 2600);
+          setTimeout(() => {
+            const el = document.getElementById("dbg-out");
+            const vs = Array.from(document.querySelectorAll(".btv"));
+            el.textContent = `${demo.toUpperCase()} seated=${cinema.seated} bar=${document.getElementById("cinema-bar").classList.contains("hidden") ? 0 : 1} eye=${player.eyeHeight.toFixed(2)} pos=${player.pos.x.toFixed(1)},${player.pos.z.toFixed(1)} big=${document.body.classList.contains("big-screen") ? 1 : 0} n=${vs.length} src=${vs.map((v) => v.currentSrc || v.src ? 1 : 0).join("")}`;
+          }, 3400);
         }
         if (demo === "pause") {
           setTimeout(() => {

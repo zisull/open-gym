@@ -267,15 +267,22 @@ addEventListener('keyup', (e) => {
   if (k in keys) keys[k] = false;
 });
 document.addEventListener('mousemove', (e) => {
-  if (document.pointerLockElement === canvas && gameState === 'playing') {
+  if (gameState !== 'playing') return;
+  if (document.pointerLockElement === canvas) {
+    player.look(e.movementX, e.movementY);
+  } else if (playerLoc === 'cinema' && cinema.seated && (e.buttons & 1) && e.target === canvas) {
+    // 沙发上未锁指针：按住左键拖拽转向（任意角度环视四面墙）
     player.look(e.movementX, e.movementY);
   }
 });
 canvas.addEventListener('mousedown', (e) => {
   if (gameState !== 'playing') return;
   if (document.pointerLockElement !== canvas) {
-    // 影院走动中丢了锁 -> 点画面找回
-    if (playerLoc === 'cinema' && !cinema.seated) canvas.requestPointerLock?.();
+    // 影院入座时故意解锁；走动中丢了锁 -> 点画面找回
+    if (playerLoc === 'cinema') {
+      if (!cinema.seated && !e.button) cinema.onLeftDown();
+      else if (!cinema.seated) canvas.requestPointerLock?.();
+    }
     return;
   }
   if (playerLoc === 'cinema') {
@@ -428,18 +435,19 @@ try {
   const demo = params.get('demo'); // shot|result：自动演示（截图验证用）
   if (m && CFG.MODES[m]) setTimeout(() => startMode(m), 400);
   if (params.get('loc') === 'cinema') setTimeout(() => enterCinema(), 1100);
-  const tp = params.get('tp'); // tp=x,z,yaw：调试传送
+  const tp = params.get('tp'); // tp=x,z,yaw[,pitch]：调试传送
   if (tp) setTimeout(() => {
-    const [x, z, y] = tp.split(',').map(Number);
+    const [x, z, y, p] = tp.split(',').map(Number);
     GAME.teleport(x, z);
     if (!Number.isNaN(y)) { player.freeYaw = y; player.yaw = y; }
+    if (!Number.isNaN(p)) { player.freePitch = p; player.pitch = p; }
   }, 2300);
   if (m && demo === 'shot') {
     setTimeout(() => { if (machine.name === 'noBall') machine.dispatch('onLeftDown'); }, 1500); // 拾球
     setTimeout(() => { player.pos.set(0.5, 0, -8); }, 2000);  // 传送到投篮区
     setTimeout(() => machine.dispatch('onLeftDown'), 2900);   // 按住蓄力
   }
-  if (demo === 'tap' || demo === 'pause') {
+  if (demo === 'sit' || demo === 'grid') {
     // 无头断言回读通道：结果写进专用 DOM 节点，再用 --screenshot 读图
     const marks = [];
     let dbg = document.getElementById('dbg-out');
@@ -467,6 +475,28 @@ try {
     setTimeout(() => { if (machine.current) machine.current.charge = 0.8; mark('setcharge'); }, 4200);
     setTimeout(() => { machine.dispatch('onLeftUp'); mark('release'); }, 4400);
     setTimeout(() => { mark('final'); console.log('DEMO_TAP', marks.join(' | ')); }, 6000);
+  }
+  if (demo === 'sit' || demo === 'grid') {
+    // 公共：走到沙发边 + 左键入座（可选再开四宫格），供两种演示复用
+    addEventListener('error', (e) => {
+      const el = document.getElementById('dbg-out');
+      if (el) el.textContent = `ERR ${e.message} @${e.filename?.split('/').pop()}:${e.lineno}`;
+    });
+    setTimeout(() => {
+      player.pos.set(0, 0, CFG.cinema.sofa.z + 1.6);
+      player.freeYaw = -Math.PI / 2; player.yaw = -Math.PI / 2;
+      cinema.onLeftDown();
+      if (demo === 'grid') document.getElementById('cb-big').click();
+    }, 2600);
+    setTimeout(() => {
+      const el = document.getElementById('dbg-out');
+      const vs = Array.from(document.querySelectorAll('.btv'));
+      el.textContent = `${demo.toUpperCase()} seated=${cinema.seated}`
+        + ` bar=${document.getElementById('cinema-bar').classList.contains('hidden') ? 0 : 1}`
+        + ` eye=${player.eyeHeight.toFixed(2)} pos=${player.pos.x.toFixed(1)},${player.pos.z.toFixed(1)}`
+        + ` big=${document.body.classList.contains('big-screen') ? 1 : 0} n=${vs.length}`
+        + ` src=${vs.map((v) => ((v.currentSrc || v.src) ? 1 : 0)).join('')}`;
+    }, 3400);
   }
   if (demo === 'pause') {
     // 断言：解锁回调的守卫条件（历史上误用过 window.location，恒 false）。
