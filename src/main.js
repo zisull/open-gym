@@ -485,7 +485,7 @@ try {
   }
   if (demo === 'save') {
     // 两段式持久化断言：写死「环上 5 部片（第 1/3/5 有片、第 2/4 是空洞）」，
-    // 第二次启动应复原成 n=5 src=10101，且各块屏等高 6.2、槽位圆心角 69.2°。
+    // 第二次启动应复原成 n=5 src=10101，且各块屏等高 6.8、槽位圆心角 69.2°。。
     // 延迟到默认片源的 loadedmetadata（会回调 saveLayout 覆盖）之后再写，保证这条 5 槽是最后一次写入。
     setTimeout(() => {
       const L = window.BB_VIDEOS || [];
@@ -563,6 +563,37 @@ try {
       mark(`RESET n=${document.querySelectorAll('.btv').length}`
         + ` ring=${cinema.debugRing().map((r) => r.src).join('')}`);
     }, 4800);
+  }
+  if (demo === 'wall') {
+    // 大屏墙管理：入座→开墙→「＋」追加 2 部→点「✕」删 1 部→控制条收起/唤回。
+    // 断言每步的格子数（.bwkill=可删片数，.bwadd=加入格）与环上屏数同步。
+    const tiles = () => `kill=${document.querySelectorAll('.bwkill').length}`
+      + ` add=${document.querySelectorAll('.bwadd').length}`
+      + ` btv=${document.querySelectorAll('.btv').length}`
+      + ` ring=${cinema.debugRing().map((r) => r.src).join('')}`;
+    setTimeout(() => {
+      player.pos.set(0, 0, CFG.cinema.bed.z + 1.6);
+      player.freeYaw = 0; player.yaw = 0;
+      cinema.onLeftDown();
+      document.getElementById('cb-big').click();
+    }, 2600);
+    setTimeout(() => {
+      const inp = document.getElementById('cb-add-in');
+      const mk = (n) => new File([new Blob(['x'], { type: 'video/mp4' })], n, { type: 'video/mp4' });
+      Object.defineProperty(inp, 'files', { value: [mk('add-a.mp4'), mk('add-b.mp4')] });
+      inp.dispatchEvent(new Event('change'));
+    }, 3400);
+    setTimeout(() => mark(`WALL1 ${tiles()} cols=${document.querySelector('.btv')?.style.getPropertyValue('--cols')}`), 4200);
+    setTimeout(() => document.querySelector('.bwkill').click(), 5000);
+    setTimeout(() => mark(`WALL2 ${tiles()}`), 5700);
+    setTimeout(() => {
+      document.getElementById('cb-hide').click();
+      const hidden = document.getElementById('cinema-bar').classList.contains('hidden') ? 1 : 0;
+      const ghost = document.getElementById('cb-ghost').classList.contains('hidden') ? 0 : 1;
+      document.getElementById('cb-ghost').click();
+      const back = document.getElementById('cinema-bar').classList.contains('hidden') ? 0 : 1;
+      mark(`BAR hide=${hidden} ghost=${ghost} back=${back}`);
+    }, 6400);
   }
   if (demo === 'ring') {
     // 视觉验证「等高 + 铺满一整圈」：导入 ?n= 部假片（blob 解码不了 -> 银幕停在占位卡上，

@@ -22061,15 +22061,16 @@
           // 弧形银幕：**全厅只有一个高度 h，永不随片数缩放**（屏多就裁画面两侧，屏少就裁上下，
           // 绝不拉伸变形）。每块屏尽量吃满自己的等分槽位弧，最宽只到「按自身宽高比排」的
           // maxWide 倍（再宽画面就废了），剩下的才留给墙，所以片源够多就一定铺满一整圈。
+          // h 顶到接近贴天花板（厅高 7.0，屏面占 0.1~6.9，与地/顶都不共面，避免闪烁）
           // cy 为屏心离地高度，defAr 是元数据到位前用的默认宽高比
-          screen: { h: 6.2, cy: 3.35, maxWide: 1.6, defAr: 16 / 9 },
+          screen: { h: 6.8, cy: 3.5, maxWide: 1.6, defAr: 16 / 9 },
           maxScreens: 12,
           // 环形排布屏数上限（再多每块就太挤了）
           // 在床上的滚轮变焦：fov 从相机默认值线性拉到 min（越大越贴近画面）
           zoom: { min: 30, step: 0.07 },
           // 中央圆形小床（无围栏无靠背，视线全程通透）：sitR 为就坐时距心半径，eyeSit 为落座视高，
-          // lookUp 为落座仰角（弧度）——把视线抬到银幕带中心，一坐下就看到画面
-          bed: { x: 0, z: 0, r: 2.5, sitR: 1.8, eyeSit: 1.15, lookUp: 0.22 },
+          // lookUp 为落座仰角（弧度）——把视线抬到银幕带中心（屏心 3.5m），一坐下就看到画面
+          bed: { x: 0, z: 0, r: 2.5, sitR: 1.8, eyeSit: 1.15, lookUp: 0.27 },
           walkSpeed: 3
         }
       };
@@ -30097,20 +30098,64 @@
       playBtn.textContent = screens.some((o) => o.src && !o.videoEl.paused) ? "\u23F8 \u6682\u505C" : "\u25B6 \u64AD\u653E";
     }
     function layoutBigGrid(on) {
-      const n = Math.max(screens.length, 1);
-      const cols = Math.ceil(Math.sqrt(n));
-      const rows = Math.ceil(n / cols);
-      screens.forEach((s, i) => {
-        const st = s.videoEl.style;
-        if (!on) {
-          ["--col", "--row", "--cols", "--rows"].forEach((p) => st.removeProperty(p));
-          return;
+      const wall2 = $2("big-wall");
+      wall2.textContent = "";
+      const st = wall2.style;
+      if (!on) {
+        wall2.classList.add("hidden");
+        for (const s of screens) {
+          const vs = s.videoEl.style;
+          ["--col", "--row", "--cols", "--rows"].forEach((p) => vs.removeProperty(p));
         }
-        st.setProperty("--cols", String(cols));
-        st.setProperty("--rows", String(rows));
-        st.setProperty("--col", String(i % cols));
-        st.setProperty("--row", String(Math.floor(i / cols)));
+        return;
+      }
+      const canAdd = sources.length < K.maxScreens;
+      const total = screens.length + (canAdd ? 1 : 0);
+      const cols = Math.ceil(Math.sqrt(total));
+      const rows = Math.ceil(total / cols);
+      st.setProperty("--cols", String(cols));
+      st.setProperty("--rows", String(rows));
+      screens.forEach((s, i) => {
+        const vs = s.videoEl.style;
+        vs.setProperty("--cols", String(cols));
+        vs.setProperty("--rows", String(rows));
+        vs.setProperty("--col", String(i % cols));
+        vs.setProperty("--row", String(Math.floor(i / cols)));
       });
+      screens.forEach((s, i) => {
+        const cell = document.createElement("div");
+        cell.className = "bwcell";
+        if (s.src) {
+          const tag = document.createElement("span");
+          tag.className = "bwname";
+          tag.textContent = s.src.name;
+          cell.appendChild(tag);
+          const x = document.createElement("button");
+          x.className = "bwkill";
+          x.textContent = "\u2715";
+          x.title = `\u79FB\u9664\u300A${s.src.name}\u300B\uFF0C\u73AF\u4E0A\u94F6\u5E55\u4E00\u5E76\u6536\u6389`;
+          x.addEventListener("click", () => removeSource(i));
+          cell.appendChild(x);
+        }
+        wall2.appendChild(cell);
+      });
+      if (canAdd) {
+        const add = document.createElement("button");
+        add.className = "bwadd";
+        add.textContent = "\uFF0B \u52A0\u5165\u89C6\u9891";
+        add.title = `\u8FFD\u52A0\u5230\u73AF\u4E0A\uFF08\u4E0A\u9650 ${K.maxScreens} \u5757\u5C4F\uFF09`;
+        add.addEventListener("click", () => $2("cb-add-in").click());
+        wall2.appendChild(add);
+      }
+      wall2.classList.remove("hidden");
+    }
+    function removeSource(i) {
+      sources.splice(i, 1);
+      if (focus >= sources.length) focus = 0;
+      rebuild();
+      const live = sources.filter(Boolean).length;
+      setStatus(live ? `\u{1F5D1} \u5DF2\u79FB\u9664 1 \u90E8\uFF0C\u73AF\u4E0A\u8FD8\u6709 ${live} \u90E8\u5DE8\u5E55` : "\u7247\u5355\u7A7A\u4E86\uFF1A\u70B9\u300C\uFF0B \u52A0\u5165\u89C6\u9891\u300D\u6216\u300C\u{1F4C2} \u9009\u62E9\u89C6\u9891\u300D");
+      sfx.play("ui", { volume: 0.4 });
     }
     const applyVolume = () => {
       const v = Number($2("cb-vol").value);
@@ -30159,6 +30204,26 @@
       playAll();
       setStatus(`\u{1F3AC} ${sources.length} \u90E8\u5DE8\u5E55\u73AF\u7ED5\u4E2D${over ? `\uFF08\u4E0A\u9650 ${K.maxScreens} \u5757\u5C4F\uFF0C\u591A\u51FA\u7684 ${over} \u90E8\u672A\u5BFC\u5165\uFF09` : ""}`);
     });
+    $2("cb-add-in").addEventListener("change", (e) => {
+      const files = Array.from(e.target.files || []);
+      e.target.value = "";
+      if (!files.length) return;
+      const room = Math.max(0, K.maxScreens - sources.length);
+      const take = files.slice(0, room);
+      for (const f of take) sources.push({ name: f.name, url: URL.createObjectURL(f), local: true });
+      focus = screens.length ? Math.min(focus, Math.max(sources.length - 1, 0)) : 0;
+      rebuild();
+      playAll();
+      setStatus(take.length ? `\u2795 \u8FFD\u52A0 ${take.length} \u90E8\uFF0C\u73AF\u4E0A\u5171 ${sources.filter(Boolean).length} \u90E8\u5DE8\u5E55` + (files.length - take.length ? `\uFF08\u5DF2\u5230 ${K.maxScreens} \u5757\u5C4F\u4E0A\u9650\uFF0C${files.length - take.length} \u90E8\u672A\u5BFC\u5165\uFF09` : "") : `\u73AF\u4E0A\u5DF2\u6EE1 ${K.maxScreens} \u5757\u5C4F\uFF0C\u5148\u79FB\u8D70\u51E0\u90E8\u518D\u52A0`);
+    });
+    $2("cb-hide").addEventListener("click", () => {
+      bar.classList.add("hidden");
+      $2("cb-ghost").classList.remove("hidden");
+    });
+    $2("cb-ghost").addEventListener("click", () => {
+      bar.classList.remove("hidden");
+      $2("cb-ghost").classList.add("hidden");
+    });
     let seated = false;
     let hoverBed = false;
     let hoverExit = false;
@@ -30204,6 +30269,7 @@
       player.targetPitch = K.bed.lookUp;
       player.pitch = K.bed.lookUp;
       bar.classList.remove("hidden");
+      $2("cb-ghost").classList.add("hidden");
       setHint("");
       document.exitPointerLock?.();
       playAll();
@@ -30219,6 +30285,7 @@
       player.eyeHeight = CFG.player.eye;
       player.speed = K.walkSpeed;
       bar.classList.add("hidden");
+      $2("cb-ghost").classList.add("hidden");
       if (document.body.classList.contains("big-screen")) {
         document.body.classList.remove("big-screen");
         layoutBigGrid(false);
@@ -30265,6 +30332,7 @@
         player.eyeHeight = CFG.player.eye;
         setHint("");
         bar.classList.add("hidden");
+        $2("cb-ghost").classList.add("hidden");
       },
       /** 每帧（main 在 playing 且 loc==='cinema' 时调用；player.update 之后） */
       update(dt) {
@@ -32010,6 +32078,33 @@
           setTimeout(() => {
             mark(`RESET n=${document.querySelectorAll(".btv").length} ring=${cinema.debugRing().map((r) => r.src).join("")}`);
           }, 4800);
+        }
+        if (demo === "wall") {
+          const tiles = () => `kill=${document.querySelectorAll(".bwkill").length} add=${document.querySelectorAll(".bwadd").length} btv=${document.querySelectorAll(".btv").length} ring=${cinema.debugRing().map((r) => r.src).join("")}`;
+          setTimeout(() => {
+            player.pos.set(0, 0, CFG.cinema.bed.z + 1.6);
+            player.freeYaw = 0;
+            player.yaw = 0;
+            cinema.onLeftDown();
+            document.getElementById("cb-big").click();
+          }, 2600);
+          setTimeout(() => {
+            const inp = document.getElementById("cb-add-in");
+            const mk = (n) => new File([new Blob(["x"], { type: "video/mp4" })], n, { type: "video/mp4" });
+            Object.defineProperty(inp, "files", { value: [mk("add-a.mp4"), mk("add-b.mp4")] });
+            inp.dispatchEvent(new Event("change"));
+          }, 3400);
+          setTimeout(() => mark(`WALL1 ${tiles()} cols=${document.querySelector(".btv")?.style.getPropertyValue("--cols")}`), 4200);
+          setTimeout(() => document.querySelector(".bwkill").click(), 5e3);
+          setTimeout(() => mark(`WALL2 ${tiles()}`), 5700);
+          setTimeout(() => {
+            document.getElementById("cb-hide").click();
+            const hidden = document.getElementById("cinema-bar").classList.contains("hidden") ? 1 : 0;
+            const ghost = document.getElementById("cb-ghost").classList.contains("hidden") ? 0 : 1;
+            document.getElementById("cb-ghost").click();
+            const back = document.getElementById("cinema-bar").classList.contains("hidden") ? 0 : 1;
+            mark(`BAR hide=${hidden} ghost=${ghost} back=${back}`);
+          }, 6400);
         }
         if (demo === "ring") {
           const cnt = Math.max(1, Number(params.get("n")) || 5);

@@ -290,6 +290,45 @@ body.big-screen::after {
 }
 body.big-screen #cinema-bar { z-index: 62; }
 
+/* 控制条唤回小钮（隐藏放映条后留在左下角，不挡画面） */
+#cb-ghost {
+  position: fixed; left: 16px; bottom: 16px; z-index: 63;
+  padding: 7px 12px; font-size: 13px;
+  background: rgba(10, 14, 20, 0.7); color: var(--text);
+  border: 1px solid var(--glass-line); border-radius: 10px;
+}
+
+/* 大屏墙格子层：与 .btv 用同一套 --cols/--rows，格子按 DOM 顺序自动落位，
+   所以第 i 格正好盖在第 i 块片源上；容器本身不吃点击，只有里面的按钮吃 */
+#big-wall {
+  position: fixed; inset: 0; z-index: 61; pointer-events: none;
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 1), 1fr);
+  grid-template-rows: repeat(var(--rows, 1), 1fr);
+}
+.bwcell { position: relative; }
+.bwkill {
+  position: absolute; right: 10px; top: 10px; pointer-events: auto;
+  width: 30px; height: 30px; border-radius: 50%;
+  display: grid; place-items: center;
+  font-size: 14px; line-height: 1; color: #fff;
+  background: rgba(12, 16, 22, 0.5); border: 1px solid var(--glass-line);
+  opacity: 0.28; transition: opacity 0.15s, background 0.15s;
+}
+.bwkill:hover { opacity: 1; background: rgba(190, 60, 60, 0.85); }
+.bwname {
+  position: absolute; left: 10px; bottom: 10px; max-width: calc(100% - 24px);
+  padding: 3px 9px; border-radius: 8px; font-size: 12px; color: var(--dim);
+  background: rgba(8, 10, 14, 0.6); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.bwadd {
+  pointer-events: auto; margin: 8px; border-radius: 12px;
+  display: grid; place-items: center; font-size: 15px;
+  color: var(--dim); background: rgba(10, 14, 20, 0.55);
+  border: 1px dashed var(--glass-line);
+}
+.bwadd:hover { color: var(--text); border-color: var(--text); background: rgba(20, 26, 34, 0.8); }
+
 #cinema-bar {
   position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%);
   display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center;

@@ -1,9 +1,11 @@
 /**
  * cinema.js —— 电影院场景 + 圆筒环墙放映器
- * 独立 THREE.Scene：圆筒形黑匣子影厅，环墙都是银幕。**全厅统一一个银幕高度**，屏数 =
- * 片源数（3 个就 3 块、5 个就 5 块），每块吃满自己的等分槽位弧（比自身宽高比略宽时按
- * cover 等比裁剪，不拉伸变形），所以片源一多就自动铺满一整圈。中央圆形小床（无围栏，
- * 视线通透），任意角度入座、按住拖拽环视、滚轮变焦。出口门走回球场。
+ * 独立 THREE.Scene：圆筒形黑匣子影厅，环墙都是银幕。**全厅统一一个银幕高度（6.8m，近乎
+ * 贴天花板）**，屏数 = 片源数（3 个就 3 块、5 个就 5 块），每块吃满自己的等分槽位弧（比自身
+ * 宽高比略宽时按 cover 等比裁剪，不拉伸变形），所以片源一多就自动铺满一整圈。中央圆形小床
+ * （无围栏，视线通透），任意角度入座、按住拖拽环视、滚轮变焦，控制条可一键收起。
+ * 「放大观看」的大屏墙同时是片源管理器：每格右上角 ✕ 删片、末格 ＋ 加片（追加）。
+ * 出口门走回球场。
  * file:// 下本地相对路径视频会污染 WebGL 贴图，因此片源只允许
  * data:（video/manifest.js 内嵌短片）或 blob:（"选择视频"文件）两种同源形式。
  */
@@ -316,19 +318,72 @@ export function createCinema({ camera, player, sfx }) {
     playBtn.textContent = screens.some((o) => o.src && !o.videoEl.paused) ? '⏸ 暂停' : '▶ 播放';
   }
 
-  /** 放大观看：全部片源铺满屏幕的宫格，格数随屏数变，用 CSS 变量交给 style.css 排版 */
+  /**
+   * 放大观看：全部片源铺满屏幕的宫格，格数随屏数变（CSS 变量交给 style.css 排版）。
+   * 同时在 #big-wall 上盖一层同规格的格子：每片一个「✕ 移除」，末格「＋ 加入视频」，
+   * 于是这面墙既是放映墙也是片源管理器（格子按 DOM 顺序落位，天然与第 i 块片源对齐）。
+   */
   function layoutBigGrid(on) {
-    const n = Math.max(screens.length, 1);
-    const cols = Math.ceil(Math.sqrt(n));
-    const rows = Math.ceil(n / cols);
+    const wall = $('big-wall');
+    wall.textContent = ''; // 重建前清空旧格子（含事件监听）
+    const st = wall.style;
+    if (!on) {
+      wall.classList.add('hidden');
+      for (const s of screens) {
+        const vs = s.videoEl.style;
+        ['--col', '--row', '--cols', '--rows'].forEach((p) => vs.removeProperty(p));
+      }
+      return;
+    }
+    const canAdd = sources.length < K.maxScreens;
+    const total = screens.length + (canAdd ? 1 : 0);
+    const cols = Math.ceil(Math.sqrt(total));
+    const rows = Math.ceil(total / cols);
+    st.setProperty('--cols', String(cols));
+    st.setProperty('--rows', String(rows));
     screens.forEach((s, i) => {
-      const st = s.videoEl.style;
-      if (!on) { ['--col', '--row', '--cols', '--rows'].forEach((p) => st.removeProperty(p)); return; }
-      st.setProperty('--cols', String(cols));
-      st.setProperty('--rows', String(rows));
-      st.setProperty('--col', String(i % cols));
-      st.setProperty('--row', String(Math.floor(i / cols)));
+      const vs = s.videoEl.style;
+      vs.setProperty('--cols', String(cols));
+      vs.setProperty('--rows', String(rows));
+      vs.setProperty('--col', String(i % cols));
+      vs.setProperty('--row', String(Math.floor(i / cols)));
     });
+    screens.forEach((s, i) => {
+      const cell = document.createElement('div');
+      cell.className = 'bwcell';
+      if (s.src) {
+        const tag = document.createElement('span');
+        tag.className = 'bwname';
+        tag.textContent = s.src.name;
+        cell.appendChild(tag);
+        const x = document.createElement('button');
+        x.className = 'bwkill';
+        x.textContent = '✕';
+        x.title = `移除《${s.src.name}》，环上银幕一并收掉`;
+        x.addEventListener('click', () => removeSource(i));
+        cell.appendChild(x);
+      }
+      wall.appendChild(cell);
+    });
+    if (canAdd) {
+      const add = document.createElement('button');
+      add.className = 'bwadd';
+      add.textContent = '＋ 加入视频';
+      add.title = `追加到环上（上限 ${K.maxScreens} 块屏）`;
+      add.addEventListener('click', () => $('cb-add-in').click());
+      wall.appendChild(add);
+    }
+    wall.classList.remove('hidden');
+  }
+
+  /** 移除环上第 i 部片源：银幕与格子一起重排，并写回存档（空洞占位格同样可删） */
+  function removeSource(i) {
+    sources.splice(i, 1);
+    if (focus >= sources.length) focus = 0;
+    rebuild();
+    const live = sources.filter(Boolean).length;
+    setStatus(live ? `🗑 已移除 1 部，环上还有 ${live} 部巨幕` : '片单空了：点「＋ 加入视频」或「📂 选择视频」');
+    sfx.play('ui', { volume: 0.4 });
   }
 
   const applyVolume = () => {
@@ -370,6 +425,33 @@ export function createCinema({ camera, player, sfx }) {
     rebuild();
     playAll();
     setStatus(`🎬 ${sources.length} 部巨幕环绕中${over ? `（上限 ${K.maxScreens} 块屏，多出的 ${over} 部未导入）` : ''}`);
+  });
+
+  // 大屏墙上的「＋ 加入视频」：这是**追加**（与「📂 选择视频」的整条替换相对），加完立刻重排环
+  $('cb-add-in').addEventListener('change', (e) => {
+    const files = Array.from(e.target.files || []);
+    e.target.value = '';
+    if (!files.length) return;
+    const room = Math.max(0, K.maxScreens - sources.length);
+    const take = files.slice(0, room);
+    for (const f of take) sources.push({ name: f.name, url: URL.createObjectURL(f), local: true });
+    focus = screens.length ? Math.min(focus, Math.max(sources.length - 1, 0)) : 0;
+    rebuild();
+    playAll();
+    setStatus(take.length
+      ? `➕ 追加 ${take.length} 部，环上共 ${sources.filter(Boolean).length} 部巨幕`
+        + (files.length - take.length ? `（已到 ${K.maxScreens} 块屏上限，${files.length - take.length} 部未导入）` : '')
+      : `环上已满 ${K.maxScreens} 块屏，先移走几部再加`);
+  });
+
+  /* 控制条收起/唤回：观影时不想被按钮挡住，左下角留一个小钮 */
+  $('cb-hide').addEventListener('click', () => {
+    bar.classList.add('hidden');
+    $('cb-ghost').classList.remove('hidden');
+  });
+  $('cb-ghost').addEventListener('click', () => {
+    bar.classList.remove('hidden');
+    $('cb-ghost').classList.add('hidden');
   });
 
   /* ================= 入座 / 走动 ================= */
@@ -417,11 +499,12 @@ export function createCinema({ camera, player, sfx }) {
     player.blockers = [];
     player.eyeHeight = K.bed.eyeSit;
     player.speed = 0;
-    // 落座即微微仰头：银幕带在上方 14°，视线一进来就是画面而不是床面
+    // 落座即微微仰头：银幕带中心在上方约 15°，视线一进来就是画面而不是床面
     player.freePitch = K.bed.lookUp;
     player.targetPitch = K.bed.lookUp;
     player.pitch = K.bed.lookUp;
     bar.classList.remove('hidden');
+    $('cb-ghost').classList.add('hidden');
     setHint('');
     document.exitPointerLock?.(); // 解锁后用鼠标点击放映条；转向走下方 drag 兜底
     playAll();
@@ -437,6 +520,7 @@ export function createCinema({ camera, player, sfx }) {
     player.eyeHeight = CFG.player.eye;
     player.speed = K.walkSpeed;
     bar.classList.add('hidden');
+    $('cb-ghost').classList.add('hidden'); // 起身即复位「收起」状态，下次落座自然要能看到控制条
     if (document.body.classList.contains('big-screen')) {
       document.body.classList.remove('big-screen');
       layoutBigGrid(false);
@@ -481,6 +565,7 @@ export function createCinema({ camera, player, sfx }) {
       player.eyeHeight = CFG.player.eye;
       setHint('');
       bar.classList.add('hidden');
+      $('cb-ghost').classList.add('hidden');
     },
 
     /** 每帧（main 在 playing 且 loc==='cinema' 时调用；player.update 之后） */
