@@ -99,7 +99,7 @@ export function createCinema({ camera, player, sfx }) {
       mat.color.setHex(0xffffff);
       mat.needsUpdate = true;
     });
-    return { def: sc, group: g, plane, mat, videoEl, tex, fit: fitRect, idx: -1 };
+    return { def: sc, group: g, plane, mat, videoEl, tex, fit: fitRect, src: null, srcUrl: '' };
   });
 
   /* ================= 灯光（全部不投影：影院零闪烁） ================= */
@@ -177,9 +177,16 @@ export function createCinema({ camera, player, sfx }) {
   scene.add(exitGroup);
   const exitHit = exitGroup.children[1]; // 门板本体作为点击目标
 
-  /* ================= 放映单（data:/blob: 同源片源） ================= */
-  const playlist = (window.BB_VIDEOS || []).slice();
+  /* ================= 四面墙片源 =================
+     默认把 video/ 片单的前 4 部分给四面墙；之后只有一条规则：
+     「选择视频」= 把*当前朝向*那块屏换成选中的文件。每块屏放的是哪部按文件名
+     存进 localStorage，下次开机自动复原（本地临时选的大文件不在片单里，复原不了，
+     想常驻就把它放进 video/ 再跑一次 gen_videos.bat）。 */
+  const LIB = window.BB_VIDEOS || []; // video/manifest.js 内嵌片单
+  const STORE_KEY = 'bb.cinema.screens';
+  const WALL_CN = { front: '前', back: '后', left: '左', right: '右' };
   let focus = 0; // 当前出声屏索引
+  let pickTarget = -1; // 「选择视频」按下那一刻锁定的目标屏
 
   const $ = (id) => document.getElementById(id);
   const bar = $('cinema-bar');
@@ -188,29 +195,55 @@ export function createCinema({ camera, player, sfx }) {
 
   function setStatus(t) { status.textContent = t; }
 
-  /** 把片单前 4 个分给四面墙（不足 4 个的屏保留占位图） */
-  function assignScreens(start = 0) {
-    screens.forEach((s, i) => {
-      const it = playlist[start + i];
-      s.idx = it ? start + i : -1;
-      if (it) {
-        if (s.videoEl.src !== it.url) s.videoEl.src = it.url;
-      } else {
-        s.videoEl.removeAttribute('src');
-        s.fit(16 / 9); // 空位回到 16:9 满框占位，别留上一个人的比例
-        s.mat.map = placeholderTex;
-        s.mat.color.setHex(0xb8c2d0);
-        s.mat.needsUpdate = true;
-      }
-    });
-    setStatus(playlist.length
-      ? `▶ 循环放映 ${Math.min(playlist.length, 4)}/${playlist.length} 部 · 点屏幕切换出声`
-      : '片单为空：放视频进 video/ 或点“选择视频”');
+  const loadSaved = () => {
+    try { return JSON.parse(localStorage.getItem(STORE_KEY) || '[]'); } catch (e) { return []; }
+  };
+  function saveLayout() {
+    try {
+      localStorage.setItem(STORE_KEY, JSON.stringify(
+        screens.map((s) => (s.src ? { n: s.src.name, k: s.src.local ? 1 : 0 } : null))
+      ));
+    } catch (e) { /* 无痕模式下存不了，不影响放映 */ }
   }
+
+  /** 给某块屏换片源；传 null 则清空回占位图 */
+  function setSrc(s, src) {
+    s.src = src || null;
+    if (!src) {
+      s.videoEl.removeAttribute('src');
+      s.srcUrl = '';
+      s.fit(16 / 9); // 空位回到 16:9 满框占位，别留上一个人的比例
+      s.mat.map = placeholderTex;
+      s.mat.color.setHex(0xb8c2d0);
+      s.mat.needsUpdate = true;
+      return;
+    }
+    if (s.srcUrl !== src.url) { s.videoEl.src = src.url; s.srcUrl = src.url; }
+  }
+
+  /** 按存档复原每块屏：名字还在片单里就回到原位，剩下的空位顺次补默认片源 */
+  function applyLayout(saved) {
+    const byName = new Map(LIB.map((it) => [it.name, it]));
+    const taken = new Set();
+    const fixed = screens.map((s, i) => {
+      const it = saved[i] && saved[i].n && byName.get(saved[i].n);
+      if (it) { taken.add(it.name); return it; }
+      return null;
+    });
+    screens.forEach((s, i) => {
+      setSrc(s, fixed[i] || LIB.find((x) => !taken.has(x.name)) || null);
+      if (s.src) taken.add(s.src.name);
+    });
+    saveLayout();
+  }
+  applyLayout(loadSaved());
+  setStatus(screens.some((s) => s.src)
+    ? `▶ ${screens.filter((s) => s.src).length} 面墙放映中 · 面朝哪面墙点「选择视频」就换那块屏`
+    : '还没有片源：把视频放进 video/ 或面朝银幕点「选择视频」');
 
   function playAll() {
     screens.forEach((s, i) => {
-      if (s.idx < 0) return;
+      if (!s.src) return;
       s.videoEl.muted = i !== focus;
       s.videoEl.play().catch(() => { /* 未交互动前可能被拦截 */ });
     });
@@ -224,41 +257,62 @@ export function createCinema({ camera, player, sfx }) {
   /** 点屏幕：换出焦点（声音跟过去）并切换该屏播放/暂停 */
   function tapScreen(i) {
     const s = screens[i];
-    if (s.idx < 0) return;
+    if (!s.src) return;
     focus = i;
     screens.forEach((o, j) => { o.videoEl.muted = j !== i; });
-    if (s.videoEl.paused) { s.videoEl.play().catch(() => {}); setStatus(`🔊 ${playlist[s.idx].name}`); }
-    else setStatus(`⏸ ${playlist[s.idx].name}`);
-    playBtn.textContent = screens.some((o) => !o.videoEl.paused) ? '⏸ 暂停' : '▶ 播放';
+    if (s.videoEl.paused) { s.videoEl.play().catch(() => {}); setStatus(`🔊 ${s.src.name}`); }
+    else setStatus(`⏸ ${s.src.name}`);
+    playBtn.textContent = screens.some((o) => o.src && !o.videoEl.paused) ? '⏸ 暂停' : '▶ 播放';
+  }
+
+  /** 当前朝向（也就是「选择视频」要替换）的那块屏 */
+  const _fwd = new THREE.Vector3();
+  const _nrm = new THREE.Vector3();
+  const _q = new THREE.Quaternion();
+  const _ndc = new THREE.Vector2();
+  function facingScreen() {
+    if (!seated && hoverScreen >= 0) return hoverScreen; // 准星已经指着某块屏
+    camera.getWorldDirection(_fwd);
+    let best = 0, bd = -2;
+    screens.forEach((s, i) => {
+      s.group.getWorldQuaternion(_q);
+      _nrm.set(0, 0, 1).applyQuaternion(_q);
+      const d = -_nrm.dot(_fwd); // 墙面法线与视线越反向越是在看这面墙
+      if (d > bd) { bd = d; best = i; }
+    });
+    return best;
   }
 
   $('cb-play').addEventListener('click', () => {
-    if (!playlist.length) { setStatus('还没有片源'); return; }
-    if (screens.every((s) => s.videoEl.paused || s.idx < 0)) playAll(); else pauseAll();
-  });
-  $('cb-next').addEventListener('click', () => {
-    if (playlist.length <= screens.length) return;
-    assignScreens((screens[0].idx + screens.length) % playlist.length);
-    playAll();
+    if (screens.every((s) => !s.src)) { setStatus('还没有片源：把视频放进 video/ 或点「选择视频」'); return; }
+    if (screens.some((s) => s.src && !s.videoEl.paused)) pauseAll(); else playAll();
   });
   $('cb-vol').addEventListener('input', (e) => {
     const v = Number(e.target.value);
     screens.forEach((s, i) => { s.videoEl.volume = i === focus ? v : 0; });
+    try { localStorage.setItem('bb.cinema.vol', String(v)); } catch (e2) { /* 同上 */ }
   });
+  try { const v = localStorage.getItem('bb.cinema.vol'); if (v !== null) $('cb-vol').value = v; } catch (e) { /* 同上 */ }
   screens[0].videoEl.volume = Number($('cb-vol').value || 0.9);
   $('cb-big').addEventListener('click', () => {
     document.body.classList.toggle('big-screen');
     $('cb-big').textContent = document.body.classList.contains('big-screen') ? '⛶ 回到影厅视角' : '⛶ 放大观看';
   });
   $('cb-stand').addEventListener('click', () => stand());
-  $('cb-file').addEventListener('click', () => $('cb-file-in').click());
+  $('cb-file').addEventListener('click', () => {
+    pickTarget = facingScreen(); // 点按钮那一刻定住目标屏，之后文件框里选谁都只换这一块
+    $('cb-file-in').click();
+  });
   $('cb-file-in').addEventListener('change', (e) => {
-    const files = Array.from(e.target.files || []);
-    if (!files.length) return;
-    files.forEach((f) => playlist.push({ name: f.name, url: URL.createObjectURL(f) }));
-    assignScreens(0);
-    playAll();
+    const f = (e.target.files || [])[0];
     e.target.value = '';
+    if (!f || pickTarget < 0) return;
+    const s = screens[pickTarget];
+    setSrc(s, { name: f.name, url: URL.createObjectURL(f), local: true });
+    focus = pickTarget;
+    saveLayout();
+    playAll();
+    setStatus(`🎬 ${WALL_CN[s.def.id]}墙银幕 → ${f.name}`);
   });
 
   /* ================= 入座 / 走动 ================= */
@@ -299,7 +353,6 @@ export function createCinema({ camera, player, sfx }) {
     bar.classList.remove('hidden');
     setHint('');
     document.exitPointerLock?.(); // 解锁后用鼠标点击放映条；转向走下方 drag 兜底
-    if (playlist.length && screens.every((s) => s.idx < 0)) assignScreens(0);
     playAll();
     sfx.play('ui', { volume: 0.4 });
   }
@@ -341,7 +394,7 @@ export function createCinema({ camera, player, sfx }) {
       player.freeYaw = 0;           // 进门正对前墙银幕
       player.freePitch = 0;
       canvasLock();                // 走动状态锁指针（与球馆一致）
-      if (playlist.length) assignScreens(0);
+      if (screens.every((s) => !s.src)) applyLayout(loadSaved());
       setHint('<b>左键</b> 点屏幕切换出声 · 站上沙发 <b>左键</b> 入座 · 走向 <b>出口门</b> 回球场');
     },
     exit() {
@@ -371,7 +424,7 @@ export function createCinema({ camera, player, sfx }) {
         const nearSofa = hoverSofa || dSofa < K.sofa.r + 0.6;
         setHint(nearSofa ? '<b>左键</b> 在沙发上入座（任意朝向）'
           : hoverExit ? '<b>左键</b> 或走过去：返回篮球馆'
-          : hoverScreen >= 0 && screens[hoverScreen].idx >= 0 ? '<b>左键</b> 播放/暂停 · 切换该屏声音' : '');
+          : hoverScreen >= 0 && screens[hoverScreen].src ? '<b>左键</b> 播放/暂停 · 切换该屏声音' : '');
       }
     },
 
@@ -389,12 +442,22 @@ export function createCinema({ camera, player, sfx }) {
     onRightDown() {
       if (seated) stand();
     },
+    /** 入座（未锁指针）时用鼠标位置点某块银幕：切该屏出声/暂停 */
+    onClick(x, y) {
+      const rect = document.getElementById('gl').getBoundingClientRect();
+      _ndc.set((x / rect.width) * 2 - 1, -(y / rect.height) * 2 + 1);
+      raycaster.setFromCamera(_ndc, camera);
+      const hits = raycaster.intersectObjects(screens.map((s) => s.plane), false);
+      if (!hits.length) return;
+      const i = screens.findIndex((s) => s.plane === hits[0].object);
+      if (i >= 0) tapScreen(i);
+    },
     /** WASD 按下时 main 转发：坐着则起身（keydown 手势内可重新锁指针） */
     onMoveKey() {
       if (seated) stand();
     },
-    /** 进入影院瞬间调用：确保有片单 */
-    ensurePlaylist() { if (playlist.length) assignScreens(0); },
+    /** 进入影院瞬间调用：确保每块屏都排好了片源 */
+    ensurePlaylist() { if (screens.every((s) => !s.src)) applyLayout(loadSaved()); },
     stopVideo() { pauseAll(); },
   };
 }

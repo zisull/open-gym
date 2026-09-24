@@ -78,7 +78,7 @@
     </div>
     <div id="help">
       <b>操作</b>：WASD 移动（左手）· 鼠标转向（右手）· <b>左键</b> 拾球 / 投篮（按住蓄力，松手出手）· <b>右键</b> 拍球 / 取消投篮 · ESC 暂停<br>
-      🎬 球场后方（<b>+Z 端右侧红门</b>）可进入<b>电影院</b>：四面墙各一块大银幕同时循环放映 <code>video/</code> 里的影片，站上中央圆沙发左键入座
+      🎬 球场后方（<b>+Z 端右侧红门</b>）可进入<b>电影院</b>：四面墙各一块大银幕同时循环放映 <code>video/</code> 里的影片，站上中央圆沙发左键入座；<b>面朝哪面墙</b>点「选择视频」就换掉那块屏，排布会自动记住
     </div>
   </div>
 
@@ -91,12 +91,11 @@
   <div id="cinema-bar" class="hidden">
     <span id="cb-status">未选择影片</span>
     <button class="btn" id="cb-play">▶ 播放</button>
-    <button class="btn" id="cb-next" title="下一组四连播">⏭ 换一组</button>
-    <button class="btn" id="cb-file">📂 选择视频</button>
+    <button class="btn" id="cb-file" title="只替换你当前朝向那块银幕">📂 选择视频</button>
     <label class="cb-vol">音量<input type="range" id="cb-vol" min="0" max="1" step="0.05" value="0.9"></label>
     <button class="btn" id="cb-big">⛶ 四宫格大屏</button>
     <button class="btn primary" id="cb-stand">🧍 起身（或按 WASD）</button>
-    <input type="file" id="cb-file-in" accept="video/*,.mkv,.mov,.avi,.m4v,.webm,.ogg,.ogv" multiple class="hidden">
+    <input type="file" id="cb-file-in" accept="video/*,.mkv,.mov,.avi,.m4v,.webm,.ogg,.ogv" class="hidden">
   </div>
   <!-- 放映机 <video> 元素由 src/cinema.js 动态创建 4 个（离屏渲染保证解码持续），帧由 VideoTexture 贴上四面墙银幕 -->
 

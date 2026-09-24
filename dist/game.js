@@ -29467,7 +29467,8 @@
     ctx.fillText("\u226425MB \u77ED\u7247\u81EA\u52A8\u8FDB\u653E\u6620\u5355\uFF1B\u5927\u6587\u4EF6\u70B9\u201C\u9009\u62E9\u89C6\u9891\u201D", 512, 392);
     ctx.fillStyle = "#39445a";
     ctx.font = `24px 'Microsoft YaHei', system-ui`;
-    ctx.fillText("MP4 \xB7 WebM \xB7 MOV \xB7 M4V \xB7 Ogg\uFF08\u4EE5\u6D4F\u89C8\u5668\u53EF\u89E3\u7801\u4E3A\u51C6\uFF09", 512, 448);
+    ctx.fillText("\u9762\u671D\u4EFB\u610F\u4E00\u9762\u5899\u70B9\u201C\u9009\u62E9\u89C6\u9891\u201D\uFF0C\u53EA\u6362\u90A3\u5757\u5C4F \xB7 \u6392\u5E03\u81EA\u52A8\u8BB0\u4F4F", 512, 448);
+    ctx.fillText("MP4 \xB7 WebM \xB7 MOV \xB7 M4V \xB7 Ogg\uFF08\u4EE5\u6D4F\u89C8\u5668\u53EF\u89E3\u7801\u4E3A\u51C6\uFF09", 512, 486);
     const tex = new CanvasTexture(cv);
     tex.colorSpace = SRGBColorSpace;
     return tex;
@@ -29899,7 +29900,7 @@
         mat.color.setHex(16777215);
         mat.needsUpdate = true;
       });
-      return { def: sc, group: g, plane, mat, videoEl, tex, fit: fitRect, idx: -1 };
+      return { def: sc, group: g, plane, mat, videoEl, tex, fit: fitRect, src: null, srcUrl: "" };
     });
     scene.add(new HemisphereLight(3752271, 657932, 0.55));
     const proj = new PointLight(10466520, 5, 16, 1.6);
@@ -29970,8 +29971,11 @@
     }
     scene.add(exitGroup);
     const exitHit = exitGroup.children[1];
-    const playlist = (window.BB_VIDEOS || []).slice();
+    const LIB = window.BB_VIDEOS || [];
+    const STORE_KEY = "bb.cinema.screens";
+    const WALL_CN = { front: "\u524D", back: "\u540E", left: "\u5DE6", right: "\u53F3" };
     let focus = 0;
+    let pickTarget = -1;
     const $2 = (id) => document.getElementById(id);
     const bar = $2("cinema-bar");
     const status = $2("cb-status");
@@ -29979,25 +29983,59 @@
     function setStatus(t) {
       status.textContent = t;
     }
-    function assignScreens(start = 0) {
-      screens.forEach((s, i) => {
-        const it = playlist[start + i];
-        s.idx = it ? start + i : -1;
-        if (it) {
-          if (s.videoEl.src !== it.url) s.videoEl.src = it.url;
-        } else {
-          s.videoEl.removeAttribute("src");
-          s.fit(16 / 9);
-          s.mat.map = placeholderTex;
-          s.mat.color.setHex(12108496);
-          s.mat.needsUpdate = true;
-        }
-      });
-      setStatus(playlist.length ? `\u25B6 \u5FAA\u73AF\u653E\u6620 ${Math.min(playlist.length, 4)}/${playlist.length} \u90E8 \xB7 \u70B9\u5C4F\u5E55\u5207\u6362\u51FA\u58F0` : "\u7247\u5355\u4E3A\u7A7A\uFF1A\u653E\u89C6\u9891\u8FDB video/ \u6216\u70B9\u201C\u9009\u62E9\u89C6\u9891\u201D");
+    const loadSaved = () => {
+      try {
+        return JSON.parse(localStorage.getItem(STORE_KEY) || "[]");
+      } catch (e) {
+        return [];
+      }
+    };
+    function saveLayout() {
+      try {
+        localStorage.setItem(STORE_KEY, JSON.stringify(
+          screens.map((s) => s.src ? { n: s.src.name, k: s.src.local ? 1 : 0 } : null)
+        ));
+      } catch (e) {
+      }
     }
+    function setSrc(s, src) {
+      s.src = src || null;
+      if (!src) {
+        s.videoEl.removeAttribute("src");
+        s.srcUrl = "";
+        s.fit(16 / 9);
+        s.mat.map = placeholderTex;
+        s.mat.color.setHex(12108496);
+        s.mat.needsUpdate = true;
+        return;
+      }
+      if (s.srcUrl !== src.url) {
+        s.videoEl.src = src.url;
+        s.srcUrl = src.url;
+      }
+    }
+    function applyLayout(saved) {
+      const byName = new Map(LIB.map((it) => [it.name, it]));
+      const taken = /* @__PURE__ */ new Set();
+      const fixed = screens.map((s, i) => {
+        const it = saved[i] && saved[i].n && byName.get(saved[i].n);
+        if (it) {
+          taken.add(it.name);
+          return it;
+        }
+        return null;
+      });
+      screens.forEach((s, i) => {
+        setSrc(s, fixed[i] || LIB.find((x) => !taken.has(x.name)) || null);
+        if (s.src) taken.add(s.src.name);
+      });
+      saveLayout();
+    }
+    applyLayout(loadSaved());
+    setStatus(screens.some((s) => s.src) ? `\u25B6 ${screens.filter((s) => s.src).length} \u9762\u5899\u653E\u6620\u4E2D \xB7 \u9762\u671D\u54EA\u9762\u5899\u70B9\u300C\u9009\u62E9\u89C6\u9891\u300D\u5C31\u6362\u90A3\u5757\u5C4F` : "\u8FD8\u6CA1\u6709\u7247\u6E90\uFF1A\u628A\u89C6\u9891\u653E\u8FDB video/ \u6216\u9762\u671D\u94F6\u5E55\u70B9\u300C\u9009\u62E9\u89C6\u9891\u300D");
     function playAll() {
       screens.forEach((s, i) => {
-        if (s.idx < 0) return;
+        if (!s.src) return;
         s.videoEl.muted = i !== focus;
         s.videoEl.play().catch(() => {
         });
@@ -30010,7 +30048,7 @@
     }
     function tapScreen(i) {
       const s = screens[i];
-      if (s.idx < 0) return;
+      if (!s.src) return;
       focus = i;
       screens.forEach((o, j) => {
         o.videoEl.muted = j !== i;
@@ -30018,43 +30056,72 @@
       if (s.videoEl.paused) {
         s.videoEl.play().catch(() => {
         });
-        setStatus(`\u{1F50A} ${playlist[s.idx].name}`);
-      } else setStatus(`\u23F8 ${playlist[s.idx].name}`);
-      playBtn.textContent = screens.some((o) => !o.videoEl.paused) ? "\u23F8 \u6682\u505C" : "\u25B6 \u64AD\u653E";
+        setStatus(`\u{1F50A} ${s.src.name}`);
+      } else setStatus(`\u23F8 ${s.src.name}`);
+      playBtn.textContent = screens.some((o) => o.src && !o.videoEl.paused) ? "\u23F8 \u6682\u505C" : "\u25B6 \u64AD\u653E";
+    }
+    const _fwd = new Vector3();
+    const _nrm = new Vector3();
+    const _q = new Quaternion();
+    const _ndc = new Vector2();
+    function facingScreen() {
+      if (!seated && hoverScreen >= 0) return hoverScreen;
+      camera.getWorldDirection(_fwd);
+      let best = 0, bd = -2;
+      screens.forEach((s, i) => {
+        s.group.getWorldQuaternion(_q);
+        _nrm.set(0, 0, 1).applyQuaternion(_q);
+        const d = -_nrm.dot(_fwd);
+        if (d > bd) {
+          bd = d;
+          best = i;
+        }
+      });
+      return best;
     }
     $2("cb-play").addEventListener("click", () => {
-      if (!playlist.length) {
-        setStatus("\u8FD8\u6CA1\u6709\u7247\u6E90");
+      if (screens.every((s) => !s.src)) {
+        setStatus("\u8FD8\u6CA1\u6709\u7247\u6E90\uFF1A\u628A\u89C6\u9891\u653E\u8FDB video/ \u6216\u70B9\u300C\u9009\u62E9\u89C6\u9891\u300D");
         return;
       }
-      if (screens.every((s) => s.videoEl.paused || s.idx < 0)) playAll();
-      else pauseAll();
-    });
-    $2("cb-next").addEventListener("click", () => {
-      if (playlist.length <= screens.length) return;
-      assignScreens((screens[0].idx + screens.length) % playlist.length);
-      playAll();
+      if (screens.some((s) => s.src && !s.videoEl.paused)) pauseAll();
+      else playAll();
     });
     $2("cb-vol").addEventListener("input", (e) => {
       const v = Number(e.target.value);
       screens.forEach((s, i) => {
         s.videoEl.volume = i === focus ? v : 0;
       });
+      try {
+        localStorage.setItem("bb.cinema.vol", String(v));
+      } catch (e2) {
+      }
     });
+    try {
+      const v = localStorage.getItem("bb.cinema.vol");
+      if (v !== null) $2("cb-vol").value = v;
+    } catch (e) {
+    }
     screens[0].videoEl.volume = Number($2("cb-vol").value || 0.9);
     $2("cb-big").addEventListener("click", () => {
       document.body.classList.toggle("big-screen");
       $2("cb-big").textContent = document.body.classList.contains("big-screen") ? "\u26F6 \u56DE\u5230\u5F71\u5385\u89C6\u89D2" : "\u26F6 \u653E\u5927\u89C2\u770B";
     });
     $2("cb-stand").addEventListener("click", () => stand());
-    $2("cb-file").addEventListener("click", () => $2("cb-file-in").click());
+    $2("cb-file").addEventListener("click", () => {
+      pickTarget = facingScreen();
+      $2("cb-file-in").click();
+    });
     $2("cb-file-in").addEventListener("change", (e) => {
-      const files = Array.from(e.target.files || []);
-      if (!files.length) return;
-      files.forEach((f) => playlist.push({ name: f.name, url: URL.createObjectURL(f) }));
-      assignScreens(0);
-      playAll();
+      const f = (e.target.files || [])[0];
       e.target.value = "";
+      if (!f || pickTarget < 0) return;
+      const s = screens[pickTarget];
+      setSrc(s, { name: f.name, url: URL.createObjectURL(f), local: true });
+      focus = pickTarget;
+      saveLayout();
+      playAll();
+      setStatus(`\u{1F3AC} ${WALL_CN[s.def.id]}\u5899\u94F6\u5E55 \u2192 ${f.name}`);
     });
     let seated = false;
     let hoverSofa = false;
@@ -30093,7 +30160,6 @@
       bar.classList.remove("hidden");
       setHint("");
       document.exitPointerLock?.();
-      if (playlist.length && screens.every((s) => s.idx < 0)) assignScreens(0);
       playAll();
       sfx.play("ui", { volume: 0.4 });
     }
@@ -30133,7 +30199,7 @@
         player.freeYaw = 0;
         player.freePitch = 0;
         canvasLock();
-        if (playlist.length) assignScreens(0);
+        if (screens.every((s) => !s.src)) applyLayout(loadSaved());
         setHint("<b>\u5DE6\u952E</b> \u70B9\u5C4F\u5E55\u5207\u6362\u51FA\u58F0 \xB7 \u7AD9\u4E0A\u6C99\u53D1 <b>\u5DE6\u952E</b> \u5165\u5EA7 \xB7 \u8D70\u5411 <b>\u51FA\u53E3\u95E8</b> \u56DE\u7403\u573A");
       },
       exit() {
@@ -30159,7 +30225,7 @@
           if (dExit < K.exitDoor.r && this.onExitRequest) this.onExitRequest();
           const dSofa = Math.hypot(player.pos.x - K.sofa.x, player.pos.z - K.sofa.z);
           const nearSofa = hoverSofa || dSofa < K.sofa.r + 0.6;
-          setHint(nearSofa ? "<b>\u5DE6\u952E</b> \u5728\u6C99\u53D1\u4E0A\u5165\u5EA7\uFF08\u4EFB\u610F\u671D\u5411\uFF09" : hoverExit ? "<b>\u5DE6\u952E</b> \u6216\u8D70\u8FC7\u53BB\uFF1A\u8FD4\u56DE\u7BEE\u7403\u9986" : hoverScreen >= 0 && screens[hoverScreen].idx >= 0 ? "<b>\u5DE6\u952E</b> \u64AD\u653E/\u6682\u505C \xB7 \u5207\u6362\u8BE5\u5C4F\u58F0\u97F3" : "");
+          setHint(nearSofa ? "<b>\u5DE6\u952E</b> \u5728\u6C99\u53D1\u4E0A\u5165\u5EA7\uFF08\u4EFB\u610F\u671D\u5411\uFF09" : hoverExit ? "<b>\u5DE6\u952E</b> \u6216\u8D70\u8FC7\u53BB\uFF1A\u8FD4\u56DE\u7BEE\u7403\u9986" : hoverScreen >= 0 && screens[hoverScreen].src ? "<b>\u5DE6\u952E</b> \u64AD\u653E/\u6682\u505C \xB7 \u5207\u6362\u8BE5\u5C4F\u58F0\u97F3" : "");
         }
       },
       onLeftDown() {
@@ -30180,13 +30246,23 @@
       onRightDown() {
         if (seated) stand();
       },
+      /** 入座（未锁指针）时用鼠标位置点某块银幕：切该屏出声/暂停 */
+      onClick(x, y) {
+        const rect = document.getElementById("gl").getBoundingClientRect();
+        _ndc.set(x / rect.width * 2 - 1, -(y / rect.height) * 2 + 1);
+        raycaster.setFromCamera(_ndc, camera);
+        const hits = raycaster.intersectObjects(screens.map((s) => s.plane), false);
+        if (!hits.length) return;
+        const i = screens.findIndex((s) => s.plane === hits[0].object);
+        if (i >= 0) tapScreen(i);
+      },
       /** WASD 按下时 main 转发：坐着则起身（keydown 手势内可重新锁指针） */
       onMoveKey() {
         if (seated) stand();
       },
-      /** 进入影院瞬间调用：确保有片单 */
+      /** 进入影院瞬间调用：确保每块屏都排好了片源 */
       ensurePlaylist() {
-        if (playlist.length) assignScreens(0);
+        if (screens.every((s) => !s.src)) applyLayout(loadSaved());
       },
       stopVideo() {
         pauseAll();
@@ -31557,20 +31633,29 @@
         const k = e.key.toLowerCase();
         if (k in keys) keys[k] = false;
       });
+      var seatAim = { x: 0, y: 0, t: 0, moved: 0, set(x, y) {
+        this.x = x;
+        this.y = y;
+        this.t = performance.now();
+        this.moved = 0;
+      } };
       document.addEventListener("mousemove", (e) => {
         if (gameState !== "playing") return;
         if (document.pointerLockElement === canvas) {
           player.look(e.movementX, e.movementY);
         } else if (playerLoc === "cinema" && cinema.seated && e.buttons & 1 && e.target === canvas) {
           player.look(e.movementX, e.movementY);
+          if (seatAim.t) seatAim.moved += Math.abs(e.movementX) + Math.abs(e.movementY);
         }
       });
       canvas.addEventListener("mousedown", (e) => {
         if (gameState !== "playing") return;
         if (document.pointerLockElement !== canvas) {
           if (playerLoc === "cinema") {
-            if (!cinema.seated && !e.button) cinema.onLeftDown();
-            else if (!cinema.seated) canvas.requestPointerLock?.();
+            if (cinema.seated) {
+              if (!e.button) seatAim.set(e.clientX, e.clientY);
+            } else if (!e.button) cinema.onLeftDown();
+            else canvas.requestPointerLock?.();
           }
           return;
         }
@@ -31583,7 +31668,12 @@
         if (e.button === 2) machine.dispatch("onRightDown");
       });
       addEventListener("mouseup", (e) => {
-        if (gameState === "playing" && playerLoc === "gym" && e.button === 0) machine.dispatch("onLeftUp");
+        if (gameState !== "playing") return;
+        if (e.button === 0 && playerLoc === "gym") machine.dispatch("onLeftUp");
+        if (e.button === 0 && playerLoc === "cinema" && cinema.seated && seatAim.t) {
+          if (seatAim.moved < 6) cinema.onClick(e.clientX, e.clientY);
+          seatAim.t = 0;
+        }
       });
       document.addEventListener("contextmenu", (e) => e.preventDefault());
       document.addEventListener("pointerlockchange", () => {
@@ -31743,6 +31833,11 @@
             marks2.push(`${Math.round(performance.now())}:${s}(${machine.name},t${scoring.taps},s${scoring.shotTaken})${extra}`);
             dbg.textContent = marks2.join(" | ");
           };
+        }
+        if (demo === "save") {
+          const it = (window.BB_VIDEOS || [])[0];
+          localStorage.setItem("bb.cinema.screens", JSON.stringify([null, null, null, it ? { n: it.name, k: 0 } : null]));
+          mark(`SAVED ${it ? it.name : "(\u7247\u5355\u7A7A)"}`);
         }
         if (demo === "tap") {
           setTimeout(() => {

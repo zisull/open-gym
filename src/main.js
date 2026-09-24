@@ -266,6 +266,8 @@ addEventListener('keyup', (e) => {
   const k = e.key.toLowerCase();
   if (k in keys) keys[k] = false;
 });
+/* 沙发上（未锁指针）区分「点击选屏」与「拖拽转向」：按下记起点，累计位移小于 6px 才算点击 */
+const seatAim = { x: 0, y: 0, t: 0, moved: 0, set(x, y) { this.x = x; this.y = y; this.t = performance.now(); this.moved = 0; } };
 document.addEventListener('mousemove', (e) => {
   if (gameState !== 'playing') return;
   if (document.pointerLockElement === canvas) {
@@ -273,6 +275,7 @@ document.addEventListener('mousemove', (e) => {
   } else if (playerLoc === 'cinema' && cinema.seated && (e.buttons & 1) && e.target === canvas) {
     // 沙发上未锁指针：按住左键拖拽转向（任意角度环视四面墙）
     player.look(e.movementX, e.movementY);
+    if (seatAim.t) seatAim.moved += Math.abs(e.movementX) + Math.abs(e.movementY);
   }
 });
 canvas.addEventListener('mousedown', (e) => {
@@ -280,8 +283,9 @@ canvas.addEventListener('mousedown', (e) => {
   if (document.pointerLockElement !== canvas) {
     // 影院入座时故意解锁；走动中丢了锁 -> 点画面找回
     if (playerLoc === 'cinema') {
-      if (!cinema.seated && !e.button) cinema.onLeftDown();
-      else if (!cinema.seated) canvas.requestPointerLock?.();
+      if (cinema.seated) { if (!e.button) seatAim.set(e.clientX, e.clientY); } // 松手时再判定是点击还是拖拽转向
+      else if (!e.button) cinema.onLeftDown();
+      else canvas.requestPointerLock?.();
     }
     return;
   }
@@ -294,7 +298,12 @@ canvas.addEventListener('mousedown', (e) => {
   if (e.button === 2) machine.dispatch('onRightDown');
 });
 addEventListener('mouseup', (e) => {
-  if (gameState === 'playing' && playerLoc === 'gym' && e.button === 0) machine.dispatch('onLeftUp');
+  if (gameState !== 'playing') return;
+  if (e.button === 0 && playerLoc === 'gym') machine.dispatch('onLeftUp');
+  if (e.button === 0 && playerLoc === 'cinema' && cinema.seated && seatAim.t) {
+    if (seatAim.moved < 6) cinema.onClick(e.clientX, e.clientY); // 没拖动 = 点击那块银幕（切出声/暂停）
+    seatAim.t = 0;
+  }
 });
 document.addEventListener('contextmenu', (e) => e.preventDefault());
 document.addEventListener('pointerlockchange', () => {
@@ -464,6 +473,12 @@ try {
       marks.push(`${Math.round(performance.now())}:${s}(${machine.name},t${scoring.taps},s${scoring.shotTaken})${extra}`);
       dbg.textContent = marks.join(' | ');
     };
+  }
+  if (demo === 'save') {
+    // 两段式持久化断言：本钩子写死「只有右墙放片单第 1 部」，第二次启动应复原成 src=0001
+    const it = (window.BB_VIDEOS || [])[0];
+    localStorage.setItem('bb.cinema.screens', JSON.stringify([null, null, null, it ? { n: it.name, k: 0 } : null]));
+    mark(`SAVED ${it ? it.name : '(片单空)'}`);
   }
   if (demo === 'tap') {
     // 自动化：走到球边 → 左键拾球 → 右键拍球 → 左键蓄力 → 松手出手，断言计分链路
