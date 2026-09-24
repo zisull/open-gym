@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>第一视角篮球 · FIRST TOUCH HOOPS</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- WebGL 画布（Three.js 渲染目标） -->
+  <canvas id="gl"></canvas>
+
+  <!-- 准星 -->
+  <div id="crosshair" class="hidden"><i></i><b></b></div>
+
+  <!-- ================= 游戏内 HUD ================= -->
+  <div id="hud" class="hidden">
+    <!-- 左上：得分面板 -->
+    <div id="hud-left" class="glass">
+      <div class="mode-chip" id="hud-mode">自由模式</div>
+      <div class="score-big"><span id="hud-score">0</span></div>
+      <div class="score-best">历史最高 <b id="hud-best">0</b></div>
+      <div class="score-sub" id="hud-sub"></div>
+    </div>
+
+    <!-- 顶部中央：挑战倒计时 -->
+    <div id="hud-timer" class="glass hidden">
+      <div id="timer-text">90</div>
+      <div id="timer-track"><i id="timer-fill"></i></div>
+    </div>
+
+    <!-- 右上：双连击计数器（运球/投篮相互独立） -->
+    <div id="hud-right">
+      <div class="combo-chip glass" id="chip-d">
+        <span class="cl">⛹ 运球连击</span><b id="combo-d">0</b><em id="mul-d">×1</em>
+      </div>
+      <div class="combo-chip glass" id="chip-s">
+        <span class="cl">🏀 投篮连击</span><b id="combo-s">0</b><em id="mul-s">×1</em>
+      </div>
+    </div>
+
+    <!-- 底部提示文字 -->
+    <div id="hud-prompt" class="glass"></div>
+
+    <!-- 中央得分飘字 -->
+    <div id="score-popup"></div>
+
+    <!-- 运球：滚动拍球进度条 -->
+    <div id="dribble-bar" class="hidden">
+      <div class="db-track" id="db-track">
+        <div class="db-zone-good" id="db-good"></div>
+        <div class="db-zone-perfect" id="db-perfect"></div>
+        <div class="db-center-line"></div>
+        <div class="db-marker" id="db-marker"></div>
+      </div>
+      <div class="db-faildots" id="db-faildots"><i></i><i></i><i></i></div>
+    </div>
+
+    <!-- 投篮：蓄力力度条（含最佳力度段） -->
+    <div id="power-bar" class="hidden">
+      <div class="pb-label">力度</div>
+      <div class="pb-track">
+        <div class="pb-sweet" id="pb-sweet"><span>最佳</span></div>
+        <div class="pb-fill" id="pb-fill"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= 开局模式选择 ================= -->
+  <div id="menu">
+    <div class="menu-glow"></div>
+    <h1>第一视角<span>篮 球</span></h1>
+    <div class="en">FIRST&nbsp;TOUCH&nbsp;HOOPS</div>
+    <p class="sub">Three.js · cannon-es 真实物理 · 纯本地离线运行</p>
+    <div id="mode-cards">
+      <button class="card" data-mode="free">
+        <div class="ci">🏀</div>
+        <h3>自由模式</h3>
+        <p>无时间限制，自由运球投篮练习<br>运球得分与投篮得分<b>合并计算</b></p>
+        <div class="rec">最高分 <b id="rec-free">0</b></div>
+      </button>
+      <button class="card" data-mode="dribble">
+        <div class="ci">⛹</div>
+        <h3>运球限时挑战</h3>
+        <p>90 秒 · 只比运球单项得分<br>卡点越准连击越高，进度条越滚越快</p>
+        <div class="rec">最高分 <b id="rec-dribble">0</b></div>
+      </button>
+      <button class="card" data-mode="shot">
+        <div class="ci">🎯</div>
+        <h3>投篮限时挑战</h3>
+        <p>90 秒 · 只比投篮单项得分<br>踩最佳力度段出手，连击倍数封顶 ×3</p>
+        <div class="rec">最高分 <b id="rec-shot">0</b></div>
+      </button>
+    </div>
+    <div id="settings">
+      <label class="st"><input type="checkbox" id="set-shadow" checked><span>软阴影</span><small>低配电脑可关闭以提升帧率</small></label>
+      <label class="st"><span>音量</span><input type="range" id="set-volume" min="0" max="1" step="0.05" value="0.8"></label>
+    </div>
+    <div id="help">
+      <b>操作</b>：WASD 移动（左手）· 鼠标转向（右手）· <b>左键</b> 拾球 / 卡点拍球 / 按住蓄力 · <b>右键</b> 开始运球 / 结束运球 / 假投 · ESC 暂停
+    </div>
+  </div>
+
+  <!-- ================= 暂停面板 ================= -->
+  <div id="pause" class="overlay hidden">
+    <div class="panel glass">
+      <h2>暂停中</h2>
+      <div class="btnrow col">
+        <button class="btn primary" id="btn-resume">▶ 继续游戏</button>
+        <button class="btn" id="btn-restart">↻ 重新开始</button>
+        <button class="btn" id="btn-finish">🏁 结束并结算</button>
+        <button class="btn" id="btn-quit">⏏ 返回主菜单</button>
+      </div>
+      <label class="st"><input type="checkbox" id="pause-shadow" checked><span>软阴影</span></label>
+    </div>
+  </div>
+
+  <!-- ================= 结算弹窗 ================= -->
+  <div id="result" class="overlay hidden">
+    <div class="panel glass">
+      <div class="badge-new hidden" id="badge-new">★ 新纪录 ★</div>
+      <h2 id="res-title">挑战结束</h2>
+      <div class="res-score"><span id="res-score">0</span><small id="res-score-label">总分</small></div>
+      <div id="res-lines"></div>
+      <p class="share-tip" id="res-share">📸 截图分享给好友，比比谁更强！</p>
+      <div class="btnrow">
+        <button class="btn primary" id="btn-again">↻ 再来一局</button>
+        <button class="btn" id="btn-menu">☰ 返回主菜单</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 音效数据（base64 WAV，file:// 协议下唯一可靠的本地音频加载方式） -->
+  <script src="assets/audio/sfx.js"></script>
+  <!-- 游戏主程序（esbuild 打包的普通脚本，双击 index.html 即可运行） -->
+  <script src="dist/game.js"></script>
+</body>
+</html>

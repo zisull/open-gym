@@ -1,0 +1,20 @@
+{
+  "name": "first-touch-hoops",
+  "version": "1.0.0",
+  "description": "纯前端第一人称3D篮球",
+  "main": "index.js",
+  "scripts": {
+    "build": "esbuild src/main.js --bundle --format=iife --outfile=dist/game.js --target=es2020 --sourcemap",
+    "watch": "esbuild src/main.js --bundle --format=iife --outfile=dist/game.js --target=es2020 --sourcemap --watch",
+    "audio": "node tools/gen_audio.js"
+  },
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "cannon-es": "^0.20.0",
+    "three": "^0.160.1"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  }
+}
