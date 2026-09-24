@@ -6,7 +6,8 @@
   "scripts": {
     "build": "esbuild src/main.js --bundle --format=iife --outfile=dist/game.js --target=es2020 --sourcemap",
     "watch": "esbuild src/main.js --bundle --format=iife --outfile=dist/game.js --target=es2020 --sourcemap --watch",
-    "audio": "node tools/gen_audio.js"
+    "audio": "node tools/gen_audio.js",
+    "walls": "node tools/gen_wall_manifest.js"
   },
   "license": "ISC",
   "type": "commonjs",

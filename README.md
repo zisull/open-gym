@@ -23,7 +23,9 @@ src/                  ES Module 源码（开发用）
   ui.js               DOM 界面控制器
 dist/game.js          esbuild 打包产物（浏览器实际加载的普通脚本）
 assets/audio/         音效 wav 文件 + sfx.js（base64 内嵌数据包）
+imgs/wall/            墙贴画目录：把二次元图片丢进来即可自动上墙（见下）
 tools/gen_audio.js    音效合成生成器（node tools/gen_audio.js 重新生成）
+tools/gen_walls.bat   墙贴画打包器（双击 或 npm run walls）
 ```
 
 ## 玩法
@@ -47,9 +49,24 @@ tools/gen_audio.js    音效合成生成器（node tools/gen_audio.js 重新生�
 - **计分**：投篮得分 = 基础 20 × **距离倍率** × 连击倍数（1/1/2/3 封顶）。
   距离倍率从 3m 处 ×1.0 线性涨到 25m 处 ×3.0 封顶——球场之内最远也就 ×3，
   远投值钱但不离谱；HUD 实时显示当前站位的距离倍率。
+- 篮筐按比 FIBA 标准**略放大一号**（圈半径 0.26m），空心入网更容易、更爽。
 
 两项最高分分别持久化在 localStorage（`fpbb.record.*`），刷新不丢；
 挑战结束弹窗附截图分享提示，方便和好友比拼。
+
+## 墙面二次元贴画
+
+球馆四面墙会自动挂载海报框，展示 `imgs/wall/` 里的图片。放图流程：
+
+1. 把 JPG / PNG（也支持 webp/gif/bmp）图片丢进 `imgs/wall/` 目录；
+2. 双击 `tools/gen_walls.bat`（或 `npm run walls`）——它把图片打包成
+   base64 内嵌的 `imgs/wall/manifest.js`；
+3. 刷新游戏，贴画自动均匀分布到四面墙（多张图轮转排布，按宽高等比缩放）。
+
+> 为什么需要打包那一步：`file://` 下浏览器会把本地 `<img>` 视为污染源，
+> 直接贴进 WebGL 会抛 SecurityError（实测于 Edge/Chromium）。因此图片必须
+> 以 `data:` URL 内嵌，`manifest.js` 就是这一步的产物。目录为空时游戏静默
+> 跳过，正常运行。示例图 `sample-anime-girl.png` 可随意删除或替换。
 
 ## 开发构建
 
@@ -68,3 +85,5 @@ npm run audio        # 重新合成 assets/audio 音效
 
 主菜单/暂停面板均有 **软阴影开关**，低配电脑关闭后仅损失阴影，帧率明显提升。
 Bloom 泛光固定开启（强度低），进球瞬间自动增强。
+阴影已针对地板闪烁做过调优：灯源近乎顶光、投影相机收紧到场地范围、
+4096 阴影贴图 + normalBias，地板高光反射降为低强度，画面稳定不拉丝。

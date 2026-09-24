@@ -18,10 +18,10 @@ export const CFG = {
     playerMinX: -9.0, playerMaxX: 9.0,
     playerMinZ: -15.0, playerMaxZ: 15.8,
   },
-  /* ---------- 篮筐（FIBA 标准） ---------- */
+  /* ---------- 篮筐（比 FIBA 标准略放大一号，休闲友好） ---------- */
   hoop: {
     rimHeight: 3.05,     // 筐沿高度
-    rimRadius: 0.228,    // 篮圈半径
+    rimRadius: 0.26,     // 篮圈半径（标准 0.2286，加大让"擦筐进"更常见）
     rimTube: 0.017,      // 篮圈钢管半径
     boardFaceZ: -12.8,   // 篮板正面 z 坐标（距端线 1.2m）
     rimOffset: 0.375,    // 圈心到篮板面的距离
@@ -29,7 +29,7 @@ export const CFG = {
     boardBottomY: 2.9,   // 篮板下沿高度
     netDepth: 0.45,      // 篮网深度
     // 判定进球：球心自上而下穿过筐平面的水平半径阈值
-    scoreRadius: 0.19,
+    scoreRadius: 0.225,
   },
   /* ---------- 篮球 ---------- */
   ball: {

@@ -12,7 +12,7 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
 import { CFG } from './config.js';
 import { createPhysics } from './physics.js';
-import { buildCourt, setupLights, applyBackground, RIM_POS } from './court.js';
+import { buildCourt, setupLights, applyBackground, addWallArt, RIM_POS } from './court.js';
 import { GameBall } from './ball.js';
 import { Player } from './player.js';
 import { Effects } from './effects.js';
@@ -57,6 +57,7 @@ composer.addPass(new OutputPass());
 
 /* ================= 世界搭建 ================= */
 const courtRefs = buildCourt(scene);
+addWallArt(scene);              // imgs/wall 二次元墙贴画（自动生成清单）
 const lights = setupLights(scene);
 const { world, ballBody, matRim, matBoard } = createPhysics();
 

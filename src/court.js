@@ -13,14 +13,14 @@ export const RIM_POS = new THREE.Vector3(0, CFG.hoop.rimHeight, CFG.hoop.boardFa
 export function buildCourt(scene) {
   /* ================= 材质 ================= */
   const floorTex = makeCourtTexture();
-  // 上漆硬木地板：clearcoat 层模拟漆面镜面反射（配合 scene.environment 出高光）
+  // 上漆硬木地板：clearcoat 只做轻微漆面润色（过强会在斜视角下随相机闪烁）
   const floorMat = new THREE.MeshPhysicalMaterial({
     map: floorTex,
-    roughness: 0.42,
-    metalness: 0.05,
-    clearcoat: 0.3,
-    clearcoatRoughness: 0.22,
-    envMapIntensity: 0.55,
+    roughness: 0.45,
+    metalness: 0.04,
+    clearcoat: 0.15,
+    clearcoatRoughness: 0.3,
+    envMapIntensity: 0.4,
   });
   const paintedWood = (color, rough = 0.6) => new THREE.MeshStandardMaterial({ color, roughness: rough, metalness: 0.05, envMapIntensity: 0.4 });
 
@@ -253,6 +253,56 @@ export function buildCourt(scene) {
 }
 
 /**
+ * 墙面二次元贴画：读取 tools/gen_wall_manifest.js 生成的 window.BB_WALLS
+ * （data:URL 图片集），自动均匀挂到四面墙的海报框上。
+ * 在 buildCourt 之后调用；图片数量为 0 时静默跳过。
+ */
+export function addWallArt(scene) {
+  const list = (typeof window !== 'undefined' && window.BB_WALLS) || [];
+  if (!list.length) return;
+  const loader = new THREE.TextureLoader();
+  const frameMat = new THREE.MeshStandardMaterial({ color: 0x14181f, roughness: 0.45, metalness: 0.5, envMapIntensity: 0.6 });
+  const planeGeo = new THREE.PlaneGeometry(1, 1);
+  // 四面墙：位置取墙面内侧 5cm，len 为该墙可用长度
+  const walls = [
+    { x: 0, z: -CFG.gym.halfL + 0.05, ry: 0, len: CFG.gym.halfW * 2, alongX: true },
+    { x: 0, z: CFG.gym.halfL - 0.05, ry: Math.PI, len: CFG.gym.halfW * 2, alongX: true },
+    { x: -CFG.gym.halfW + 0.05, z: 0, ry: Math.PI / 2, len: CFG.gym.halfL * 2, alongX: false },
+    { x: CFG.gym.halfW - 0.05, z: 0, ry: -Math.PI / 2, len: CFG.gym.halfL * 2, alongX: false },
+  ];
+  const groups = walls.map(() => []);
+  list.forEach((it, i) => groups[i % walls.length].push(it));
+
+  groups.forEach((g, wi) => {
+    const W = walls[wi];
+    g.forEach((it, k) => {
+      const t = (k + 0.5) / g.length - 0.5;           // -0.5 ~ 0.5 沿墙均布
+      const off = t * W.len * 0.78;
+      const holder = new THREE.Group();
+      const frame = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 0.05), frameMat);
+      const mesh = new THREE.Mesh(planeGeo, new THREE.MeshStandardMaterial({ roughness: 0.6, metalness: 0, envMapIntensity: 0.3 }));
+      mesh.position.z = 0.032;                        // 贴在画框玻璃面前
+      holder.add(frame, mesh);
+      holder.position.set(W.alongX ? W.x + off : W.x, 2.55, W.alongX ? W.z : W.z + off);
+      holder.rotation.y = W.ry;
+      scene.add(holder);
+      loader.load(it.url, (tex) => {
+        tex.colorSpace = THREE.SRGBColorSpace;
+        tex.anisotropy = 8;
+        mesh.material.map = tex;
+        mesh.material.needsUpdate = true;
+        const ar = tex.image.width / tex.image.height; // 保持图片原始宽高比
+        const slotW = Math.max(1.2, (W.len * 0.78) / g.length - 0.35); // 不挤占邻居
+        const hh = Math.min(2.5, Math.min(3.1, slotW) / Math.max(ar, 0.01));
+        const w = hh * ar;
+        mesh.scale.set(w, hh, 1);
+        frame.scale.set(w + 0.14, hh + 0.14, 1);
+      });
+    });
+  });
+}
+
+/**
  * 灯光：主方向光（软阴影）+ 半球环境光。
  * 返回引用供阴影开关使用。
  */
@@ -261,17 +311,19 @@ export function setupLights(scene) {
   scene.add(hemi);
 
   const dir = new THREE.DirectionalLight(0xfff3e0, 2.4);
-  dir.position.set(6, 11, -4);
+  dir.position.set(4, 14, -2);            // 更接近顶光：地板掠射阴影面积大幅缩小
   dir.castShadow = true;
-  dir.shadow.mapSize.set(2048, 2048);
-  dir.shadow.camera.left = -16;
-  dir.shadow.camera.right = 16;
-  dir.shadow.camera.top = 18;
-  dir.shadow.camera.bottom = -18;
-  dir.shadow.camera.near = 1;
+  dir.shadow.mapSize.set(4096, 4096);
+  // 收紧阴影相机到"半场+篮架"区域：同样的贴图分辨率下像素密度翻倍以上，
+  // 是消除地板阴影条纹闪烁最有效的一招
+  dir.shadow.camera.left = -12;
+  dir.shadow.camera.right = 12;
+  dir.shadow.camera.top = 14;
+  dir.shadow.camera.bottom = -14;
+  dir.shadow.camera.near = 2;
   dir.shadow.camera.far = 40;
-  dir.shadow.bias = -0.0002;
-  dir.shadow.normalBias = 0.05;   // 消除斜视角下地板的阴影条纹闪烁
+  dir.shadow.bias = -0.0001;
+  dir.shadow.normalBias = 0.09;   // 消除斜视角下地板的阴影条纹闪烁
   scene.add(dir);
   scene.add(dir.target);
   dir.target.position.set(0, 0, -8);
