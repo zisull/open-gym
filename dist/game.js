@@ -22058,13 +22058,18 @@
           // 出口门开在 theta = 0（+z）处；gapDeg 是门洞占的圆心角，银幕只在剩下的弧上排布，
           // trigR 为"走到门口就自动传送回去"的判定半径
           door: { gapDeg: 14, trigR: 1.3 },
-          // 弧形银幕：所有屏一律同高。h 取 hMax 与「按最宽的 16:9 排也不重叠」算出的值中较小者，
-          // 所以竖屏片只是弧窄一点、留些空隙，高度永远和横屏齐平；cy 为屏心离地高度
-          screen: { hMax: 5.6, cy: 3.3 },
+          // 弧形银幕：**全厅只有一个高度 h，永不随片数缩放**（屏多就裁画面两侧，屏少就裁上下，
+          // 绝不拉伸变形）。每块屏尽量吃满自己的等分槽位弧，最宽只到「按自身宽高比排」的
+          // maxWide 倍（再宽画面就废了），剩下的才留给墙，所以片源够多就一定铺满一整圈。
+          // cy 为屏心离地高度，defAr 是元数据到位前用的默认宽高比
+          screen: { h: 6.2, cy: 3.35, maxWide: 1.6, defAr: 16 / 9 },
           maxScreens: 12,
           // 环形排布屏数上限（再多每块就太挤了）
-          // 中央圆形大沙发：入座后坐在「座垫环」上（距心 sitR），eyeSit 为落座视高
-          sofa: { x: 0, z: 0, r: 2.6, sitR: 1.9, eyeSit: 1.28 },
+          // 在床上的滚轮变焦：fov 从相机默认值线性拉到 min（越大越贴近画面）
+          zoom: { min: 30, step: 0.07 },
+          // 中央圆形小床（无围栏无靠背，视线全程通透）：sitR 为就坐时距心半径，eyeSit 为落座视高，
+          // lookUp 为落座仰角（弧度）——把视线抬到银幕带中心，一坐下就看到画面
+          bed: { x: 0, z: 0, r: 2.5, sitR: 1.8, eyeSit: 1.15, lookUp: 0.22 },
           walkSpeed: 3
         }
       };
@@ -29463,7 +29468,7 @@
     ctx.fillText("\u226425MB \u77ED\u7247\u81EA\u52A8\u8FDB\u653E\u6620\u5355\uFF1B\u5927\u6587\u4EF6\u70B9\u201C\u9009\u62E9\u89C6\u9891\u201D", 512, 392);
     ctx.fillStyle = "#39445a";
     ctx.font = `24px 'Microsoft YaHei', system-ui`;
-    ctx.fillText("\u201C\u9009\u62E9\u89C6\u9891\u201D\u53EF\u591A\u9009\uFF1A\u4E00\u90E8\u7247\u4E00\u5757\u94F6\u5E55\uFF0C\u73AF\u7ED5\u6392\u5E03\u81EA\u52A8\u8BB0\u4F4F", 512, 448);
+    ctx.fillText("\u201C\u9009\u62E9\u89C6\u9891\u201D\u53EF\u591A\u9009\uFF1A\u8FD9\u6B21\u9009\u51E0\u90E8\u5C31\u73AF\u7ED5\u653E\u51E0\u90E8\uFF08\u66FF\u6362\u65E7\u7247\u5355\uFF09", 512, 448);
     ctx.fillText("MP4 \xB7 WebM \xB7 MOV \xB7 M4V \xB7 Ogg\uFF08\u4EE5\u6D4F\u89C8\u5668\u53EF\u89E3\u7801\u4E3A\u51C6\uFF09", 512, 486);
     const tex = new CanvasTexture(cv);
     tex.colorSpace = SRGBColorSpace;
@@ -29853,39 +29858,56 @@
     carpet.rotation.x = -Math.PI / 2;
     carpet.position.y = 0.01;
     scene.add(carpet);
+    const SH = K.screen.h;
+    const PR = R - 0.1;
     const placeholderTex = makeScreenPlaceholderTexture();
     placeholderTex.repeat.x = -1;
     placeholderTex.offset.x = 1;
+    const PH_ARC = SH * K.screen.defAr / PR;
     function patchGeo(radius, h, theta) {
       const seg = Math.max(8, Math.ceil(theta / 0.045));
       const g = new CylinderGeometry(radius, radius, h, seg, 1, true, -theta / 2, theta);
       g.translate(0, K.screen.cy, 0);
       return g;
     }
+    function applyCover(tex, patchAr, srcAr) {
+      if (patchAr >= srcAr) {
+        const f = srcAr / patchAr;
+        tex.repeat.set(-1, f);
+        tex.offset.set(1, (1 - f) / 2);
+      } else {
+        const f = patchAr / srcAr;
+        tex.repeat.set(-f, 1);
+        tex.offset.set((1 + f) / 2, 0);
+      }
+    }
     const screens = [];
     let focus = 0;
-    function makeScreen(src, a2, slot, h) {
+    function makeScreen(src, a2, slot) {
       const videoEl = makeVideoEl();
       const tex = new VideoTexture(videoEl);
       tex.colorSpace = SRGBColorSpace;
       tex.minFilter = LinearFilter;
       tex.magFilter = LinearFilter;
-      tex.repeat.x = -1;
-      tex.offset.x = 1;
+      const arc = Math.min(slot, PH_ARC);
       const mat = new MeshBasicMaterial({ map: placeholderTex, color: 12108496, side: BackSide });
-      const mesh = new Mesh(patchGeo(R - 0.1, h, Math.min(h * (16 / 9) / R, slot)), mat);
+      const mesh = new Mesh(patchGeo(PR, SH, arc), mat);
       mesh.rotation.y = a2;
       scene.add(mesh);
-      const s = { src, mesh, mat, tex, videoEl, slot, h };
+      const s = { src, mesh, mat, tex, videoEl, slot, arc };
       if (src) {
         videoEl.src = src.url;
         videoEl.addEventListener("loadedmetadata", () => {
-          const ar = (videoEl.videoWidth || 16) / (videoEl.videoHeight || 9);
+          src.ar = (videoEl.videoWidth || 16) / (videoEl.videoHeight || 9);
+          const na = Math.min(s.slot, SH * src.ar / PR * K.screen.maxWide);
+          s.arc = na;
           mesh.geometry.dispose();
-          mesh.geometry = patchGeo(R - 0.1, h, Math.min(h * ar / R, slot));
+          mesh.geometry = patchGeo(PR, SH, na);
+          applyCover(tex, na * PR / SH, src.ar);
           mat.map = tex;
           mat.color.setHex(16777215);
           mat.needsUpdate = true;
+          saveLayout();
         });
       }
       return s;
@@ -29901,8 +29923,7 @@
       screens.length = 0;
       const n = Math.max(sources.length, 1);
       const slot = SPAN / n;
-      const h = Math.min(K.screen.hMax, slot * R / (16 / 9));
-      for (let i = 0; i < n; i++) screens.push(makeScreen(sources[i] || null, GAP / 2 + slot * (i + 0.5), slot, h));
+      for (let i = 0; i < n; i++) screens.push(makeScreen(sources[i] || null, GAP / 2 + slot * (i + 0.5), slot));
       if (focus >= screens.length) focus = 0;
       const vv = Number($2("cb-vol").value);
       screens.forEach((s, i) => {
@@ -29912,50 +29933,73 @@
       saveLayout();
     }
     scene.add(new HemisphereLight(3752271, 657932, 0.55));
-    const proj = new PointLight(10466520, 5, 22, 1.6);
-    proj.position.set(0, K.screen.cy + 2.2, 0);
+    const proj = new PointLight(10466520, 2.6, 20, 1.8);
+    proj.position.set(0, H - 0.7, 0);
     scene.add(proj);
-    const sconceMat = new MeshStandardMaterial({ color: 2757640, emissive: 16742959, emissiveIntensity: 1.6 });
+    const sconceMat = new MeshStandardMaterial({ color: 1708551, emissive: 16758903, emissiveIntensity: 2.2 });
+    const cove = new Mesh(new TorusGeometry(R - 0.42, 0.055, 8, 96), sconceMat);
+    cove.rotation.x = Math.PI / 2;
+    cove.position.y = H - 0.28;
+    scene.add(cove);
     for (const deg of [62, 118, 242, 298]) {
-      const a2 = deg * DEG;
-      const p = ringAt(a2, R - 0.14);
-      const s = new Mesh(new BoxGeometry(0.1, 0.5, 0.24), sconceMat);
-      s.position.set(p.x, 3.1, p.z);
-      s.rotation.y = a2;
-      scene.add(s);
-      const l = ringAt(a2, R - 0.5);
-      const lp = new PointLight(16746564, 2.2, 9, 1.8);
-      lp.position.set(l.x, 3.1, l.z);
+      const l = ringAt(deg * DEG, R - 0.6);
+      const lp = new PointLight(16751189, 2, 10, 1.9);
+      lp.position.set(l.x, H - 0.5, l.z);
       scene.add(lp);
     }
-    const sofa = new Group();
-    sofa.position.set(K.sofa.x, 0, K.sofa.z);
+    const bed = new Group();
+    bed.position.set(K.bed.x, 0, K.bed.z);
     {
-      const S = K.sofa;
-      const fabric = new MeshStandardMaterial({ color: 7021616, roughness: 0.9, metalness: 0.02 });
-      const fabricDark = new MeshStandardMaterial({ color: 5709096, roughness: 0.92 });
-      const cushion = new Mesh(new CylinderGeometry(S.r, S.r * 0.96, 0.42, 40), fabric);
-      cushion.position.y = 0.21;
-      sofa.add(cushion);
-      const back = new Mesh(new TorusGeometry(S.r - 0.28, 0.34, 12, 40), fabricDark);
-      back.rotation.x = Math.PI / 2;
-      back.position.y = 0.72;
-      sofa.add(back);
-      const base = new Mesh(
-        new CylinderGeometry(S.r * 0.96, S.r * 0.9, 0.1, 40),
-        new MeshStandardMaterial({ color: 1908518, roughness: 0.95 })
+      const B = K.bed;
+      const velvet = new MeshPhysicalMaterial({
+        color: 3881011,
+        roughness: 0.9,
+        metalness: 0,
+        sheen: 1,
+        sheenRoughness: 0.5,
+        sheenColor: new Color(12165747)
+      });
+      const champagne = new MeshPhysicalMaterial({
+        color: 9335881,
+        roughness: 0.72,
+        metalness: 0.14,
+        sheen: 1,
+        sheenRoughness: 0.4,
+        sheenColor: new Color(16771520)
+      });
+      const brass = new MeshStandardMaterial({ color: 13215850, roughness: 0.28, metalness: 0.9 });
+      const plinth = new Mesh(
+        new CylinderGeometry(B.r * 0.84, B.r * 0.74, 0.16, 56),
+        new MeshStandardMaterial({ color: 1184535, roughness: 0.92 })
       );
-      base.position.y = 0.05;
-      sofa.add(base);
-      const table = new Mesh(
-        new CylinderGeometry(0.5, 0.46, 0.4, 24),
-        new MeshStandardMaterial({ color: 2369331, roughness: 0.4, metalness: 0.3 })
-      );
-      table.position.y = 0.2;
-      sofa.add(table);
+      plinth.position.y = 0.08;
+      bed.add(plinth);
+      const inlay = new Mesh(new TorusGeometry(B.r * 0.84, 0.022, 8, 72), brass);
+      inlay.rotation.x = Math.PI / 2;
+      inlay.position.y = 0.165;
+      bed.add(inlay);
+      const mattress = new Mesh(new CylinderGeometry(B.r, B.r * 0.99, 0.36, 64), velvet);
+      mattress.position.y = 0.34;
+      bed.add(mattress);
+      const piping = new Mesh(new TorusGeometry(B.r * 0.99, 0.15, 12, 64), velvet);
+      piping.rotation.x = Math.PI / 2;
+      piping.position.y = 0.52;
+      bed.add(piping);
+      const medallion = new Mesh(new TorusGeometry(B.r * 0.34, 0.014, 6, 64), brass);
+      medallion.rotation.x = Math.PI / 2;
+      medallion.position.y = 0.525;
+      bed.add(medallion);
+      for (let i = 0; i < 5; i++) {
+        const a2 = i / 5 * Math.PI * 2 + 0.3;
+        const p = new Mesh(new SphereGeometry(0.3, 22, 14), i % 2 ? velvet : champagne);
+        p.scale.set(1.35, 0.36, 1);
+        p.position.set(Math.sin(a2) * B.r * 0.78, 0.62, Math.cos(a2) * B.r * 0.78);
+        p.rotation.y = a2;
+        bed.add(p);
+      }
     }
-    scene.add(sofa);
-    const sofaHit = sofa.children[0];
+    scene.add(bed);
+    const bedHit = bed.children[2];
     const exitGroup = new Group();
     exitGroup.position.set(0, 0, R - 0.06);
     exitGroup.rotation.y = Math.PI;
@@ -29995,7 +30039,7 @@
     function saveLayout() {
       try {
         localStorage.setItem(STORE_KEY, JSON.stringify(
-          sources.map((s) => s ? { n: s.name, k: s.local ? 1 : 0 } : null)
+          sources.map((s) => s ? { n: s.name, k: s.local ? 1 : 0, a: s.ar ? +s.ar.toFixed(3) : void 0 } : null)
         ));
       } catch (e) {
       }
@@ -30008,12 +30052,15 @@
       } catch (e) {
         saved = [];
       }
-      const list = (Array.isArray(saved) ? saved : []).slice(0, K.maxScreens).map((rec) => rec && rec.n ? LIB.find((x) => x.name === rec.n) || null : null);
+      const list = (Array.isArray(saved) ? saved : []).slice(0, K.maxScreens).map((rec) => {
+        const it = rec && rec.n ? LIB.find((x) => x.name === rec.n) : null;
+        return it ? { name: it.name, url: it.url, ar: rec.a > 0 ? rec.a : 0 } : null;
+      });
       return list.some(Boolean) ? list : defaultSources();
     }
     function refreshStatus() {
       const live = sources.filter(Boolean).length;
-      setStatus(live ? `\u25B6 ${live} \u5757\u94F6\u5E55\u540C\u9AD8\u73AF\u7ED5 \xB7 \u70B9\u5C4F\u5207\u58F0\u97F3 \xB7 \u9762\u671D\u4EFB\u610F\u65B9\u5411\u70B9\u300C\u9009\u62E9\u89C6\u9891\u300D\u52A0\u7247` : "\u8FD8\u6CA1\u6709\u7247\u6E90\uFF1A\u628A\u89C6\u9891\u653E\u8FDB video/ \u6216\u70B9\u300C\u9009\u62E9\u89C6\u9891\u300D");
+      setStatus(live ? `\u25B6 ${live} \u5757 ${SH}m \u9AD8\u5DE8\u5E55\u73AF\u7ED5 \xB7 \u70B9\u5C4F\u5207\u58F0\u97F3 \xB7 \u6EDA\u8F6E\u62C9\u8FD1\u62C9\u8FDC` : "\u8FD8\u6CA1\u6709\u7247\u6E90\uFF1A\u628A\u89C6\u9891\u653E\u8FDB video/ \u6216\u70B9\u300C\u9009\u62E9\u89C6\u9891\u300D");
     }
     sources = loadSources();
     try {
@@ -30105,20 +30152,15 @@
       const files = Array.from(e.target.files || []);
       e.target.value = "";
       if (!files.length) return;
-      let over = 0;
-      for (const f of files) {
-        const src = { name: f.name, url: URL.createObjectURL(f), local: true };
-        const at = sources.findIndex((s) => s && s.name === f.name);
-        if (at >= 0) sources[at] = src;
-        else if (sources.length < K.maxScreens) sources.push(src);
-        else over++;
-      }
+      const over = Math.max(0, files.length - K.maxScreens);
+      sources = files.slice(0, K.maxScreens).map((f) => ({ name: f.name, url: URL.createObjectURL(f), local: true }));
+      focus = 0;
       rebuild();
       playAll();
-      setStatus(`\u{1F3AC} \u5DF2\u5BFC\u5165 ${files.length} \u90E8${over ? `\uFF0C\u8D85\u51FA ${K.maxScreens} \u5757\u5C4F\u4E0A\u9650\u5FFD\u7565 ${over} \u90E8` : ""}`);
+      setStatus(`\u{1F3AC} ${sources.length} \u90E8\u5DE8\u5E55\u73AF\u7ED5\u4E2D${over ? `\uFF08\u4E0A\u9650 ${K.maxScreens} \u5757\u5C4F\uFF0C\u591A\u51FA\u7684 ${over} \u90E8\u672A\u5BFC\u5165\uFF09` : ""}`);
     });
     let seated = false;
-    let hoverSofa = false;
+    let hoverBed = false;
     let hoverExit = false;
     let hoverScreen = -1;
     const raycaster = new Raycaster();
@@ -30132,16 +30174,22 @@
     };
     const GYM_BLOCKERS = [{ x: 0, z: CFG.hoop.boardFaceZ - 0.95, r: 0.9 }];
     const ROOM_BOUNDS = { minX: -(R - 0.7), maxX: R - 0.7, minZ: -(R - 0.7), maxZ: R - 0.7 };
-    const SOFA_BLOCKER = [{ x: K.sofa.x, z: K.sofa.z, r: K.sofa.r + 0.1 }];
+    const BED_BLOCKER = [{ x: K.bed.x, z: K.bed.z, r: K.bed.r + 0.1 }];
+    const fovBase = camera.fov;
+    let zoomT = 0;
+    function applyZoom() {
+      camera.fov = fovBase - (fovBase - K.zoom.min) * zoomT;
+      camera.updateProjectionMatrix();
+    }
     function setHint(t) {
       hintEl.innerHTML = t || "";
       hintEl.classList.toggle("hidden", !t);
     }
     function sit() {
       seated = true;
-      const dx = player.pos.x - K.sofa.x, dz = player.pos.z - K.sofa.z;
+      const dx = player.pos.x - K.bed.x, dz = player.pos.z - K.bed.z;
       const d = Math.hypot(dx, dz) || 1;
-      player.pos.set(K.sofa.x + dx / d * K.sofa.sitR, 0, K.sofa.z + dz / d * K.sofa.sitR);
+      player.pos.set(K.bed.x + dx / d * K.bed.sitR, 0, K.bed.z + dz / d * K.bed.sitR);
       player.vel.set(0, 0, 0);
       player.bounds = {
         minX: player.pos.x - 0.05,
@@ -30150,8 +30198,11 @@
         maxZ: player.pos.z + 0.05
       };
       player.blockers = [];
-      player.eyeHeight = K.sofa.eyeSit;
+      player.eyeHeight = K.bed.eyeSit;
       player.speed = 0;
+      player.freePitch = K.bed.lookUp;
+      player.targetPitch = K.bed.lookUp;
+      player.pitch = K.bed.lookUp;
       bar.classList.remove("hidden");
       setHint("");
       document.exitPointerLock?.();
@@ -30161,8 +30212,10 @@
     function stand() {
       if (!seated) return;
       seated = false;
+      zoomT = 0;
+      applyZoom();
       player.bounds = ROOM_BOUNDS;
-      player.blockers = SOFA_BLOCKER;
+      player.blockers = BED_BLOCKER;
       player.eyeHeight = CFG.player.eye;
       player.speed = K.walkSpeed;
       bar.classList.add("hidden");
@@ -30187,20 +30240,22 @@
         player.pos.set(0, 0, R - 2.6);
         player.vel.set(0, 0, 0);
         player.bounds = ROOM_BOUNDS;
-        player.blockers = SOFA_BLOCKER;
+        player.blockers = BED_BLOCKER;
         player.eyeHeight = CFG.player.eye;
         player.speed = K.walkSpeed;
         player.mode = "free";
         player.exitShotAim();
         player.freeYaw = 0;
         player.freePitch = 0;
+        zoomT = 0;
+        applyZoom();
         canvasLock();
         if (!sources.some(Boolean)) {
           sources = loadSources();
           rebuild();
           refreshStatus();
         }
-        setHint("<b>\u5DE6\u952E</b> \u70B9\u5C4F\u5E55\u5207\u6362\u51FA\u58F0 \xB7 \u7AD9\u4E0A\u6C99\u53D1 <b>\u5DE6\u952E</b> \u5165\u5EA7 \xB7 \u8D70\u5411 <b>\u51FA\u53E3\u95E8</b> \u56DE\u7403\u573A");
+        setHint("<b>\u5DE6\u952E</b> \u70B9\u5C4F\u5E55\u5207\u6362\u51FA\u58F0 \xB7 \u9760\u8FD1\u5706\u5E8A <b>\u5DE6\u952E</b> \u5165\u5EA7 \xB7 \u8D70\u5411 <b>\u51FA\u53E3\u95E8</b> \u56DE\u7403\u573A");
       },
       exit() {
         stand();
@@ -30215,31 +30270,31 @@
       update(dt) {
         if (seated) return;
         const rr = R - 0.75;
-        const d = Math.hypot(player.pos.x - K.sofa.x, player.pos.z - K.sofa.z);
+        const d = Math.hypot(player.pos.x - K.bed.x, player.pos.z - K.bed.z);
         if (d > rr) {
           const k = rr / d;
-          player.pos.x = K.sofa.x + (player.pos.x - K.sofa.x) * k;
-          player.pos.z = K.sofa.z + (player.pos.z - K.sofa.z) * k;
+          player.pos.x = K.bed.x + (player.pos.x - K.bed.x) * k;
+          player.pos.z = K.bed.z + (player.pos.z - K.bed.z) * k;
         }
         raycaster.setFromCamera({ x: 0, y: 0 }, camera);
-        const targets = [sofaHit, exitHit, ...screens.map((s) => s.mesh)];
+        const targets = [bedHit, exitHit, ...screens.map((s) => s.mesh)];
         const hits = raycaster.intersectObjects(targets, false);
         const hit = hits.find((h) => h.distance < 20) || null;
-        hoverSofa = !!hit && hit.object === sofaHit;
+        hoverBed = !!hit && hit.object === bedHit;
         hoverExit = !!hit && hit.object === exitHit;
         hoverScreen = hit ? screens.findIndex((s) => s.mesh === hit.object) : -1;
         const dp = ringAt(0, R);
         if (Math.hypot(player.pos.x - dp.x, player.pos.z - dp.z) < K.door.trigR && this.onExitRequest) this.onExitRequest();
-        const dSofa = Math.hypot(player.pos.x - K.sofa.x, player.pos.z - K.sofa.z);
-        const nearSofa = hoverSofa || dSofa < K.sofa.r + 0.6;
-        setHint(nearSofa ? "<b>\u5DE6\u952E</b> \u5728\u6C99\u53D1\u4E0A\u5165\u5EA7\uFF08\u4EFB\u610F\u671D\u5411\uFF09" : hoverExit ? "<b>\u5DE6\u952E</b> \u6216\u8D70\u8FC7\u53BB\uFF1A\u8FD4\u56DE\u7BEE\u7403\u9986" : hoverScreen >= 0 && screens[hoverScreen].src ? "<b>\u5DE6\u952E</b> \u64AD\u653E/\u6682\u505C \xB7 \u5207\u6362\u8BE5\u5C4F\u58F0\u97F3" : "");
+        const dBed = Math.hypot(player.pos.x - K.bed.x, player.pos.z - K.bed.z);
+        const nearBed = hoverBed || dBed < K.bed.r + 0.6;
+        setHint(nearBed ? "<b>\u5DE6\u952E</b> \u5728\u5706\u5E8A\u4E0A\u5165\u5EA7\uFF08\u4EFB\u610F\u671D\u5411\uFF09" : hoverExit ? "<b>\u5DE6\u952E</b> \u6216\u8D70\u8FC7\u53BB\uFF1A\u8FD4\u56DE\u7BEE\u7403\u9986" : hoverScreen >= 0 && screens[hoverScreen].src ? "<b>\u5DE6\u952E</b> \u64AD\u653E/\u6682\u505C \xB7 \u5207\u6362\u8BE5\u5C4F\u58F0\u97F3" : "");
       },
       onLeftDown() {
         if (seated) return;
         const ray = raycaster.ray;
-        const sph = new Sphere(new Vector3(K.sofa.x, 0.4, K.sofa.z), K.sofa.r + 0.35);
-        const onSofa = ray.intersectsSphere(sph) || Math.hypot(player.pos.x - K.sofa.x, player.pos.z - K.sofa.z) < K.sofa.r + 0.6;
-        if (onSofa) {
+        const sph = new Sphere(new Vector3(K.bed.x, 0.4, K.bed.z), K.bed.r + 0.35);
+        const onBed = ray.intersectsSphere(sph) || Math.hypot(player.pos.x - K.bed.x, player.pos.z - K.bed.z) < K.bed.r + 0.6;
+        if (onBed) {
           sit();
           return;
         }
@@ -30251,6 +30306,14 @@
       },
       onRightDown() {
         if (seated) stand();
+      },
+      /** 床上滚轮：上滚拉近巨幕、下滚拉远（main 转发，仅入座时生效） */
+      onWheel(deltaY) {
+        if (!seated) return false;
+        zoomT = Math.max(0, Math.min(1, zoomT - Math.sign(deltaY) * K.zoom.step));
+        applyZoom();
+        setHint("");
+        return true;
       },
       /** 入座（未锁指针）时用鼠标位置点某块银幕：切该屏出声/暂停 */
       onClick(x, y) {
@@ -30273,12 +30336,13 @@
         rebuild();
         refreshStatus();
       },
-      /** 无头验证用：当前环上每块屏的几何（高度 / 槽位圆心角 / 中心角 / 是否有片源） */
+      /** 无头验证用：当前环上每块屏的几何（高度 / 槽位圆心角 / 实占弧 / 宽高比 / 是否有片源） */
       debugRing() {
         return screens.map((s) => ({
-          h: +s.h.toFixed(2),
+          h: SH,
           slotDeg: +(s.slot / DEG % 360).toFixed(1),
-          arcDeg: +((s.mesh.geometry.parameters?.thetaLength ?? 0) / DEG).toFixed(1),
+          arcDeg: +(s.arc / DEG).toFixed(1),
+          ar: +(s.src?.ar ? s.src.ar.toFixed(2) : 0),
           src: s.src ? 1 : 0
         }));
       },
@@ -31672,6 +31736,11 @@
           if (seatAim.t) seatAim.moved += Math.abs(e.movementX) + Math.abs(e.movementY);
         }
       });
+      addEventListener("wheel", (e) => {
+        if (gameState !== "playing" || playerLoc !== "cinema" || !cinema.seated) return;
+        e.preventDefault();
+        cinema.onWheel(e.deltaY);
+      }, { passive: false });
       canvas.addEventListener("mousedown", (e) => {
         if (gameState !== "playing") return;
         if (document.pointerLockElement !== canvas) {
@@ -31824,11 +31893,11 @@
         if (tp) setTimeout(() => {
           const [x, z, y, p] = tp.split(",").map(Number);
           GAME.teleport(x, z);
-          if (!Number.isNaN(y)) {
+          if (Number.isFinite(y)) {
             player.freeYaw = y;
             player.yaw = y;
           }
-          if (!Number.isNaN(p)) {
+          if (Number.isFinite(p)) {
             player.freePitch = p;
             player.pitch = p;
           }
@@ -31857,13 +31926,16 @@
             marks2.push(`${Math.round(performance.now())}:${s}(${machine.name},t${scoring.taps},s${scoring.shotTaken})${extra}`);
             dbg.textContent = marks2.join(" | ");
           };
+          addEventListener("error", (e) => mark(`ERR ${e.message} @${e.filename?.split("/").pop()}:${e.lineno}`));
         }
         if (demo === "save") {
-          const L = window.BB_VIDEOS || [];
-          const rec = (i) => L[i % L.length] ? { n: L[i % L.length].name, k: 0 } : null;
-          const list = L.length ? [rec(0), null, rec(1), null, rec(2)] : [];
-          localStorage.setItem("bb.cinema.screens", JSON.stringify(list));
-          mark(`SAVED n=${list.length} ${L.map((x) => x.name).join(",") || "(\u7247\u5355\u7A7A)"}`);
+          setTimeout(() => {
+            const L = window.BB_VIDEOS || [];
+            const rec = (i) => L[i % L.length] ? { n: L[i % L.length].name, k: 0 } : null;
+            const list = L.length ? [rec(0), null, rec(1), null, rec(2)] : [];
+            localStorage.setItem("bb.cinema.screens", JSON.stringify(list));
+            mark(`SAVED n=${list.length} ${L.map((x) => x.name).join(",") || "(\u7247\u5355\u7A7A)"}`);
+          }, 2e3);
         }
         if (demo === "tap") {
           setTimeout(() => {
@@ -31902,17 +31974,23 @@
             if (el) el.textContent = `ERR ${e.message} @${e.filename?.split("/").pop()}:${e.lineno}`;
           });
           setTimeout(() => {
-            player.pos.set(0, 0, CFG.cinema.sofa.z + 1.6);
-            player.freeYaw = -Math.PI / 2;
-            player.yaw = -Math.PI / 2;
+            player.pos.set(0, 0, CFG.cinema.bed.z + 1.6);
+            player.freeYaw = 0;
+            player.yaw = 0;
             cinema.onLeftDown();
             if (demo === "grid") document.getElementById("cb-big").click();
           }, 2600);
           setTimeout(() => {
+            const fov0 = camera.fov;
+            cinema.onWheel(-120);
+            cinema.onWheel(-120);
+            cinema.onWheel(-120);
+            const fovIn = camera.fov;
+            cinema.onWheel(120);
             const el = document.getElementById("dbg-out");
             const vs = Array.from(document.querySelectorAll(".btv"));
             const vs0 = vs[0]?.style;
-            el.textContent = `${demo.toUpperCase()} seated=${cinema.seated} bar=${document.getElementById("cinema-bar").classList.contains("hidden") ? 0 : 1} eye=${player.eyeHeight.toFixed(2)} pos=${player.pos.x.toFixed(1)},${player.pos.z.toFixed(1)} big=${document.body.classList.contains("big-screen") ? 1 : 0} n=${vs.length} src=${vs.map((v) => v.currentSrc || v.src ? 1 : 0).join("")} ring=${cinema.debugRing().map((r) => `h${r.h}/a${r.arcDeg}${r.src}`).join(",")} grid=${vs0?.getPropertyValue("--cols") || "-"}x${vs0?.getPropertyValue("--rows") || "-"}`;
+            el.textContent = `${demo.toUpperCase()} seated=${cinema.seated} bar=${document.getElementById("cinema-bar").classList.contains("hidden") ? 0 : 1} eye=${player.eyeHeight.toFixed(2)} pos=${player.pos.x.toFixed(1)},${player.pos.z.toFixed(1)} big=${document.body.classList.contains("big-screen") ? 1 : 0} n=${vs.length} src=${vs.map((v) => v.currentSrc || v.src ? 1 : 0).join("")} ring=${cinema.debugRing().map((r) => `h${r.h}/a${r.arcDeg}${r.src}`).join(",")} zoom=${fov0.toFixed(1)}>${fovIn.toFixed(1)}>${camera.fov.toFixed(1)} grid=${vs0?.getPropertyValue("--cols") || "-"}x${vs0?.getPropertyValue("--rows") || "-"}`;
           }, 3400);
         }
         if (demo === "import") {
@@ -31932,6 +32010,22 @@
           setTimeout(() => {
             mark(`RESET n=${document.querySelectorAll(".btv").length} ring=${cinema.debugRing().map((r) => r.src).join("")}`);
           }, 4800);
+        }
+        if (demo === "ring") {
+          const cnt = Math.max(1, Number(params.get("n")) || 5);
+          setTimeout(() => {
+            const inp = document.getElementById("cb-file-in");
+            const files = Array.from({ length: cnt }, (_, i) => new File([new Blob(["x"], { type: "video/mp4" })], `demo-${i}.mp4`, { type: "video/mp4" }));
+            Object.defineProperty(inp, "files", { value: files });
+            inp.dispatchEvent(new Event("change"));
+            player.pos.set(0, 0, CFG.cinema.bed.z + 1.6);
+            player.freeYaw = 0;
+            player.yaw = 0;
+            cinema.onLeftDown();
+          }, 2600);
+          setTimeout(() => {
+            mark(`RING n=${cnt} arc=${cinema.debugRing().map((r) => r.arcDeg).join("/")} sum=${cinema.debugRing().reduce((a2, r) => a2 + r.arcDeg, 0).toFixed(1)}`);
+          }, 3600);
         }
         if (demo === "exit") {
           const step = () => {

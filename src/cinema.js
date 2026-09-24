@@ -1,9 +1,9 @@
 /**
  * cinema.js —— 电影院场景 + 圆筒环墙放映器
- * 独立 THREE.Scene：圆筒形黑匣子影厅，环墙都是银幕。**所有银幕同高**，每块的弧长
- * = 高 × 自己的宽高比（按 CylinderGeometry 取一截柱面），所以横屏占的圆心角大、竖屏占
- * 的小，但头顶脚底永远齐平；屏数 = 片源数（3 个就 3 块、5 个就 5 块），在剩下的圆弧上
- * 均匀分布。中央圆形大沙发，任意角度入座、按住拖拽环视。出口门走回球场。
+ * 独立 THREE.Scene：圆筒形黑匣子影厅，环墙都是银幕。**全厅统一一个银幕高度**，屏数 =
+ * 片源数（3 个就 3 块、5 个就 5 块），每块吃满自己的等分槽位弧（比自身宽高比略宽时按
+ * cover 等比裁剪，不拉伸变形），所以片源一多就自动铺满一整圈。中央圆形小床（无围栏，
+ * 视线通透），任意角度入座、按住拖拽环视、滚轮变焦。出口门走回球场。
  * file:// 下本地相对路径视频会污染 WebGL 贴图，因此片源只允许
  * data:（video/manifest.js 内嵌短片）或 blob:（"选择视频"文件）两种同源形式。
  */
@@ -59,9 +59,12 @@ export function createCinema({ camera, player, sfx }) {
   scene.add(carpet);
 
   /* ================= 弧形银幕 ================= */
+  const SH = K.screen.h; // 全厅唯一的银幕高度：片多片少都不缩放
+  const PR = R - 0.1;    // 银幕柱面半径（离墙留 10cm，避免与墙共面闪烁）
   const placeholderTex = makeScreenPlaceholderTexture();
   placeholderTex.repeat.x = -1; // 从筒内壁看是镜像的，横向翻回来
   placeholderTex.offset.x = 1;
+  const PH_ARC = (SH * K.screen.defAr) / PR; // 占位图就按它自己的 16:9 取弧，永不拉伸
 
   /** 截一柱面：半径 radius、高 h、圆心角 theta，中心已抬到屏心高度 */
   function patchGeo(radius, h, theta) {
@@ -71,41 +74,56 @@ export function createCinema({ camera, player, sfx }) {
     return g;
   }
 
+  /** cover 适配：画面等比放大到铺满屏面，多出来的裁掉，所以永不拉伸变形。
+   *  从筒内壁看贴图是左右反的，故水平方向用负的 repeat.x + 补 offset 翻回正像。 */
+  function applyCover(tex, patchAr, srcAr) {
+    if (patchAr >= srcAr) { // 屏比画面宽 -> 裁上下
+      const f = srcAr / patchAr;
+      tex.repeat.set(-1, f);
+      tex.offset.set(1, (1 - f) / 2);
+    } else {                // 画面比屏宽 -> 裁左右
+      const f = patchAr / srcAr;
+      tex.repeat.set(-f, 1);
+      tex.offset.set((1 + f) / 2, 0);
+    }
+  }
+
   const screens = []; // 与 sources 一一对应，rebuild() 重建
   let focus = 0;      // 当前出声屏索引
 
-  /** 建一块屏：src 为 null 时是占位空洞（比如上次用本地文件放的，重开复原不了） */
-  function makeScreen(src, a, slot, h) {
+  /** 建一块屏：src 为 null 时是永久占位空洞（比如上次用本地文件放的，重开复原不了） */
+  function makeScreen(src, a, slot) {
     const videoEl = makeVideoEl();
     const tex = new THREE.VideoTexture(videoEl);
     tex.colorSpace = THREE.SRGBColorSpace;
     tex.minFilter = THREE.LinearFilter;
     tex.magFilter = THREE.LinearFilter;
-    tex.repeat.x = -1; // 同上：内壁观看要横向翻回正像
-    tex.offset.x = 1;
+    const arc = Math.min(slot, PH_ARC); // 元数据到位前先按占位图的比例挂上去
     const mat = new THREE.MeshBasicMaterial({ map: placeholderTex, color: 0xb8c2d0, side: THREE.BackSide });
-    // 初始先按 16:9 取弧（元数据到位后再按真实比例收窄）：只用槽位全宽的话，
-    // 片源少的时候一块占位图能绕墙一整圈，很滑稽
-    const mesh = new THREE.Mesh(patchGeo(R - 0.1, h, Math.min((h * (16 / 9)) / R, slot)), mat);
+    const mesh = new THREE.Mesh(patchGeo(PR, SH, arc), mat);
     mesh.rotation.y = a;
     scene.add(mesh);
-    const s = { src, mesh, mat, tex, videoEl, slot, h };
+    const s = { src, mesh, mat, tex, videoEl, slot, arc };
     if (src) {
       videoEl.src = src.url;
-      // 元数据到位 -> 弧长按自身宽高比收（高度不变），并揭开占位图
+      // 元数据到位 -> 记下真实宽高比，把弧吃满槽位（上限 maxWide 倍）并按 cover 裁剪画面
       videoEl.addEventListener('loadedmetadata', () => {
-        const ar = (videoEl.videoWidth || 16) / (videoEl.videoHeight || 9);
+        src.ar = (videoEl.videoWidth || 16) / (videoEl.videoHeight || 9);
+        const na = Math.min(s.slot, ((SH * src.ar) / PR) * K.screen.maxWide);
+        s.arc = na;
         mesh.geometry.dispose();
-        mesh.geometry = patchGeo(R - 0.1, h, Math.min((h * ar) / R, slot));
+        mesh.geometry = patchGeo(PR, SH, na);
+        applyCover(tex, (na * PR) / SH, src.ar);
         mat.map = tex;
         mat.color.setHex(0xffffff);
         mat.needsUpdate = true;
+        saveLayout(); // 宽高比一并存档，下次开机不用等元数据再重排
       });
     }
     return s;
   }
 
-  /** 按当前片源列表重排圆环：屏数=源数，同高，弧上均匀分布 */
+  /** 按当前片源列表重排圆环：屏数=源数，高度恒定，等分槽位吃到满 */
   function rebuild() {
     for (const s of screens) {
       scene.remove(s.mesh);
@@ -117,9 +135,7 @@ export function createCinema({ camera, player, sfx }) {
     screens.length = 0;
     const n = Math.max(sources.length, 1);
     const slot = SPAN / n;
-    // 高度按"最宽的 16:9 排在各自的槽里也不重叠"来定，竖屏只是两侧留些空隙
-    const h = Math.min(K.screen.hMax, (slot * R) / (16 / 9));
-    for (let i = 0; i < n; i++) screens.push(makeScreen(sources[i] || null, GAP / 2 + slot * (i + 0.5), slot, h));
+    for (let i = 0; i < n; i++) screens.push(makeScreen(sources[i] || null, GAP / 2 + slot * (i + 0.5), slot));
     if (focus >= screens.length) focus = 0;
     // 新建的 <video> 音量要重新按滑块分配（只有焦点屏出声），否则多路音轨叠加
     const vv = Number($('cb-vol').value);
@@ -130,52 +146,72 @@ export function createCinema({ camera, player, sfx }) {
 
   /* ================= 灯光（全部不投影：影院零闪烁） ================= */
   scene.add(new THREE.HemisphereLight(0x39414f, 0x0a0a0c, 0.55));
-  const proj = new THREE.PointLight(0x9fb4d8, 5, 22, 1.6);
-  proj.position.set(0, K.screen.cy + 2.2, 0);
+  // 顶心的柔光只打天花板与床沿，压得很低：影厅的黑是银幕亮起来的地方之外该有的黑
+  const proj = new THREE.PointLight(0x9fb4d8, 2.6, 20, 1.8);
+  proj.position.set(0, H - 0.7, 0);
   scene.add(proj);
-  const sconceMat = new THREE.MeshStandardMaterial({ color: 0x2a1408, emissive: 0xff7a2f, emissiveIntensity: 1.6 });
+  const sconceMat = new THREE.MeshStandardMaterial({ color: 0x1a1207, emissive: 0xffb877, emissiveIntensity: 2.2 });
+  // 天花凹槽灯带：一整圈暖光条，把「银幕上方的黑洞」变成有层次的顶棚（不投影，零闪烁风险）
+  const cove = new THREE.Mesh(new THREE.TorusGeometry(R - 0.42, 0.055, 8, 96), sconceMat);
+  cove.rotation.x = Math.PI / 2;
+  cove.position.y = H - 0.28;
+  scene.add(cove);
   for (const deg of [62, 118, 242, 298]) {
-    const a = deg * DEG;
-    const p = ringAt(a, R - 0.14);
-    const s = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.5, 0.24), sconceMat);
-    s.position.set(p.x, 3.1, p.z);
-    s.rotation.y = a;
-    scene.add(s);
-    const l = ringAt(a, R - 0.5);
-    const lp = new THREE.PointLight(0xff8844, 2.2, 9, 1.8);
-    lp.position.set(l.x, 3.1, l.z);
+    const l = ringAt(deg * DEG, R - 0.6);
+    const lp = new THREE.PointLight(0xff9a55, 2.0, 10, 1.9); // 灯带投出的暖光，位置与灯带一致
+    lp.position.set(l.x, H - 0.5, l.z);
     scene.add(lp);
   }
 
-  /* ================= 中央圆形大沙发 ================= */
-  const sofa = new THREE.Group();
-  sofa.position.set(K.sofa.x, 0, K.sofa.z);
+  /* ================= 中央圆形小床（无围栏无靠背：环视零遮挡） ================= */
+  const bed = new THREE.Group();
+  bed.position.set(K.bed.x, 0, K.bed.z);
   {
-    const S = K.sofa;
-    const fabric = new THREE.MeshStandardMaterial({ color: 0x6b2430, roughness: 0.9, metalness: 0.02 });
-    const fabricDark = new THREE.MeshStandardMaterial({ color: 0x571d28, roughness: 0.92 });
-    // 座垫：扁圆柱
-    const cushion = new THREE.Mesh(new THREE.CylinderGeometry(S.r, S.r * 0.96, 0.42, 40), fabric);
-    cushion.position.y = 0.21;
-    sofa.add(cushion);
-    // 环形靠背：半圆截面的环（朝向随意，360° 都能靠）
-    const back = new THREE.Mesh(new THREE.TorusGeometry(S.r - 0.28, 0.34, 12, 40), fabricDark);
-    back.rotation.x = Math.PI / 2;
-    back.position.y = 0.72;
-    sofa.add(back);
-    // 底座圈沿
-    const base = new THREE.Mesh(new THREE.CylinderGeometry(S.r * 0.96, S.r * 0.9, 0.1, 40),
-      new THREE.MeshStandardMaterial({ color: 0x1d1f26, roughness: 0.95 }));
-    base.position.y = 0.05;
-    sofa.add(base);
-    // 中央小圆几
-    const table = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.46, 0.4, 24),
-      new THREE.MeshStandardMaterial({ color: 0x242733, roughness: 0.4, metalness: 0.3 }));
-    table.position.y = 0.2;
-    sofa.add(table);
+    const B = K.bed;
+    // 石墨色丝绒：sheen 给丝绒特有的柔光绒毛边；压暗是为了在黑厅里不糊成一片白
+    const velvet = new THREE.MeshPhysicalMaterial({
+      color: 0x3b3833, roughness: 0.9, metalness: 0,
+      sheen: 1.0, sheenRoughness: 0.5, sheenColor: new THREE.Color(0xb9a273),
+    });
+    const champagne = new THREE.MeshPhysicalMaterial({
+      color: 0x8e7449, roughness: 0.72, metalness: 0.14,
+      sheen: 1.0, sheenRoughness: 0.4, sheenColor: new THREE.Color(0xffe9c0),
+    });
+    const brass = new THREE.MeshStandardMaterial({ color: 0xc9a86a, roughness: 0.28, metalness: 0.9 });
+    // 悬浮底座：比床垫小一圈 + 一道黄铜嵌线，视觉上像床浮在地毯上
+    const plinth = new THREE.Mesh(new THREE.CylinderGeometry(B.r * 0.84, B.r * 0.74, 0.16, 56),
+      new THREE.MeshStandardMaterial({ color: 0x121317, roughness: 0.92 }));
+    plinth.position.y = 0.08;
+    bed.add(plinth);
+    const inlay = new THREE.Mesh(new THREE.TorusGeometry(B.r * 0.84, 0.022, 8, 72), brass);
+    inlay.rotation.x = Math.PI / 2;
+    inlay.position.y = 0.165;
+    bed.add(inlay);
+    // 床垫：整块圆柱 + 一圈鼓起的滚边，边缘软过去才有高级感
+    const mattress = new THREE.Mesh(new THREE.CylinderGeometry(B.r, B.r * 0.99, 0.36, 64), velvet);
+    mattress.position.y = 0.34;
+    bed.add(mattress);
+    const piping = new THREE.Mesh(new THREE.TorusGeometry(B.r * 0.99, 0.15, 12, 64), velvet);
+    piping.rotation.x = Math.PI / 2;
+    piping.position.y = 0.52;
+    bed.add(piping);
+    // 床心一道黄铜细镶线（俯视才有层次，坐着完全不挡视线）
+    const medallion = new THREE.Mesh(new THREE.TorusGeometry(B.r * 0.34, 0.014, 6, 64), brass);
+    medallion.rotation.x = Math.PI / 2;
+    medallion.position.y = 0.525;
+    bed.add(medallion);
+    // 一圈靠枕：压扁的球，均匀摆在半径 0.78 处（贴着外沿，中间留空）
+    for (let i = 0; i < 5; i++) {
+      const a = (i / 5) * Math.PI * 2 + 0.3;
+      const p = new THREE.Mesh(new THREE.SphereGeometry(0.3, 22, 14), i % 2 ? velvet : champagne);
+      p.scale.set(1.35, 0.36, 1);
+      p.position.set(Math.sin(a) * B.r * 0.78, 0.62, Math.cos(a) * B.r * 0.78);
+      p.rotation.y = a;
+      bed.add(p);
+    }
   }
-  scene.add(sofa);
-  const sofaHit = sofa.children[0]; // 座垫作为点击目标
+  scene.add(bed);
+  const bedHit = bed.children[2]; // 床垫作为点击目标
 
   /* ================= 出口门（开在 theta=0 的门洞里，走回球场） ================= */
   const exitGroup = new THREE.Group();
@@ -206,9 +242,9 @@ export function createCinema({ camera, player, sfx }) {
   const exitHit = exitGroup.children[1]; // 门板本体作为点击目标
 
   /* ================= 片源列表与持久化 =================
-     一条规则：环上有几块屏 = 列表里有几部片。「选择视频」支持多选，同名就地换、
-     新名追加到环尾。列表按文件名存 localStorage，下次开机自动复原；本地临时选的
-     blob 文件重开拿不到句柄，那个位置留成空洞（显示占位图），环的排布不变。 */
+     一条规则：环上有几块屏 = 列表里有几部片。「选择视频」支持多选，**这次选的就是全部
+     片源**，旧片单整条替换掉；选几部就环绕放几部。列表按文件名 + 实测宽高比存 localStorage，
+     下次开机自动复原；本地临时选的 blob 文件重开拿不到句柄，那个位置留成空洞（显示占位图）。 */
   const LIB = window.BB_VIDEOS || []; // video/manifest.js 内嵌片单
   const STORE_KEY = 'bb.cinema.screens';
   let sources = []; // (src|null)[]
@@ -223,7 +259,7 @@ export function createCinema({ camera, player, sfx }) {
   function saveLayout() {
     try {
       localStorage.setItem(STORE_KEY, JSON.stringify(
-        sources.map((s) => (s ? { n: s.name, k: s.local ? 1 : 0 } : null))
+        sources.map((s) => (s ? { n: s.name, k: s.local ? 1 : 0, a: s.ar ? +s.ar.toFixed(3) : undefined } : null))
       ));
     } catch (e) { /* 无痕模式下存不了，不影响放映 */ }
   }
@@ -233,15 +269,17 @@ export function createCinema({ camera, player, sfx }) {
   function loadSources() {
     let saved = [];
     try { saved = JSON.parse(localStorage.getItem(STORE_KEY) || '[]'); } catch (e) { saved = []; }
-    const list = (Array.isArray(saved) ? saved : []).slice(0, K.maxScreens)
-      .map((rec) => (rec && rec.n ? LIB.find((x) => x.name === rec.n) || null : null));
+    const list = (Array.isArray(saved) ? saved : []).slice(0, K.maxScreens).map((rec) => {
+      const it = rec && rec.n ? LIB.find((x) => x.name === rec.n) : null;
+      return it ? { name: it.name, url: it.url, ar: rec.a > 0 ? rec.a : 0 } : null;
+    });
     return list.some(Boolean) ? list : defaultSources();
   }
 
   function refreshStatus() {
     const live = sources.filter(Boolean).length;
     setStatus(live
-      ? `▶ ${live} 块银幕同高环绕 · 点屏切声音 · 面朝任意方向点「选择视频」加片`
+      ? `▶ ${live} 块 ${SH}m 高巨幕环绕 · 点屏切声音 · 滚轮拉近拉远`
       : '还没有片源：把视频放进 video/ 或点「选择视频」');
   }
 
@@ -325,22 +363,18 @@ export function createCinema({ camera, player, sfx }) {
     const files = Array.from(e.target.files || []);
     e.target.value = '';
     if (!files.length) return;
-    let over = 0;
-    for (const f of files) {
-      const src = { name: f.name, url: URL.createObjectURL(f), local: true };
-      const at = sources.findIndex((s) => s && s.name === f.name);
-      if (at >= 0) sources[at] = src; // 同名 = 就地换掉那块屏
-      else if (sources.length < K.maxScreens) sources.push(src);
-      else over++;
-    }
+    // 多选即全量替换：这一次选了几部，环上就放这几部，旧片单不再保留
+    const over = Math.max(0, files.length - K.maxScreens);
+    sources = files.slice(0, K.maxScreens).map((f) => ({ name: f.name, url: URL.createObjectURL(f), local: true }));
+    focus = 0;
     rebuild();
     playAll();
-    setStatus(`🎬 已导入 ${files.length} 部${over ? `，超出 ${K.maxScreens} 块屏上限忽略 ${over} 部` : ''}`);
+    setStatus(`🎬 ${sources.length} 部巨幕环绕中${over ? `（上限 ${K.maxScreens} 块屏，多出的 ${over} 部未导入）` : ''}`);
   });
 
   /* ================= 入座 / 走动 ================= */
   let seated = false;
-  let hoverSofa = false;
+  let hoverBed = false;
   let hoverExit = false;
   let hoverScreen = -1;
   const raycaster = new THREE.Raycaster();
@@ -354,27 +388,39 @@ export function createCinema({ camera, player, sfx }) {
   const GYM_BLOCKERS = [{ x: 0, z: CFG.hoop.boardFaceZ - 0.95, r: 0.9 }];
   // 圆筒用方形 AABB 只能兜住内接正方形，所以再在 update() 里做一次径向夹取
   const ROOM_BOUNDS = { minX: -(R - 0.7), maxX: R - 0.7, minZ: -(R - 0.7), maxZ: R - 0.7 };
-  const SOFA_BLOCKER = [{ x: K.sofa.x, z: K.sofa.z, r: K.sofa.r + 0.1 }];
+  const BED_BLOCKER = [{ x: K.bed.x, z: K.bed.z, r: K.bed.r + 0.1 }];
+
+  /* ---- 床上滚轮变焦：只调相机 fov，起身/回球场立刻复原 ---- */
+  const fovBase = camera.fov;
+  let zoomT = 0; // 0=默认视野 1=拉到最近
+  function applyZoom() {
+    camera.fov = fovBase - (fovBase - K.zoom.min) * zoomT;
+    camera.updateProjectionMatrix();
+  }
 
   function setHint(t) {
     hintEl.innerHTML = t || '';
     hintEl.classList.toggle('hidden', !t);
   }
 
-  /** 在座垫环上就近入座（保持当前朝向，任意角度都能看） */
+  /** 在床垫上就近入座（保持当前朝向，任意角度都能看） */
   function sit() {
     seated = true;
-    const dx = player.pos.x - K.sofa.x, dz = player.pos.z - K.sofa.z;
+    const dx = player.pos.x - K.bed.x, dz = player.pos.z - K.bed.z;
     const d = Math.hypot(dx, dz) || 1;
-    player.pos.set(K.sofa.x + (dx / d) * K.sofa.sitR, 0, K.sofa.z + (dz / d) * K.sofa.sitR);
+    player.pos.set(K.bed.x + (dx / d) * K.bed.sitR, 0, K.bed.z + (dz / d) * K.bed.sitR);
     player.vel.set(0, 0, 0);
     player.bounds = {
       minX: player.pos.x - 0.05, maxX: player.pos.x + 0.05,
       minZ: player.pos.z - 0.05, maxZ: player.pos.z + 0.05,
     };
     player.blockers = [];
-    player.eyeHeight = K.sofa.eyeSit;
+    player.eyeHeight = K.bed.eyeSit;
     player.speed = 0;
+    // 落座即微微仰头：银幕带在上方 14°，视线一进来就是画面而不是床面
+    player.freePitch = K.bed.lookUp;
+    player.targetPitch = K.bed.lookUp;
+    player.pitch = K.bed.lookUp;
     bar.classList.remove('hidden');
     setHint('');
     document.exitPointerLock?.(); // 解锁后用鼠标点击放映条；转向走下方 drag 兜底
@@ -384,8 +430,10 @@ export function createCinema({ camera, player, sfx }) {
   function stand() {
     if (!seated) return;
     seated = false;
+    zoomT = 0;
+    applyZoom();
     player.bounds = ROOM_BOUNDS;
-    player.blockers = SOFA_BLOCKER;
+    player.blockers = BED_BLOCKER;
     player.eyeHeight = CFG.player.eye;
     player.speed = K.walkSpeed;
     bar.classList.add('hidden');
@@ -412,16 +460,18 @@ export function createCinema({ camera, player, sfx }) {
       player.pos.set(0, 0, R - 2.6); // 刚进门，站在出口门内侧
       player.vel.set(0, 0, 0);
       player.bounds = ROOM_BOUNDS;
-      player.blockers = SOFA_BLOCKER;
+      player.blockers = BED_BLOCKER;
       player.eyeHeight = CFG.player.eye;
       player.speed = K.walkSpeed;
       player.mode = 'free';
       player.exitShotAim();
       player.freeYaw = 0;           // 正对圆心，也就是正对环墙银幕
       player.freePitch = 0;
+      zoomT = 0;
+      applyZoom();
       canvasLock();                 // 走动状态锁指针（与球馆一致）
       if (!sources.some(Boolean)) { sources = loadSources(); rebuild(); refreshStatus(); }
-      setHint('<b>左键</b> 点屏幕切换出声 · 站上沙发 <b>左键</b> 入座 · 走向 <b>出口门</b> 回球场');
+      setHint('<b>左键</b> 点屏幕切换出声 · 靠近圆床 <b>左键</b> 入座 · 走向 <b>出口门</b> 回球场');
     },
     exit() {
       stand();
@@ -438,42 +488,50 @@ export function createCinema({ camera, player, sfx }) {
       if (seated) return;
       // 径向夹取：方形 AABB 兜不住圆筒，靠这一步把玩家拉回半径内
       const rr = R - 0.75;
-      const d = Math.hypot(player.pos.x - K.sofa.x, player.pos.z - K.sofa.z);
+      const d = Math.hypot(player.pos.x - K.bed.x, player.pos.z - K.bed.z);
       if (d > rr) {
         const k = rr / d;
-        player.pos.x = K.sofa.x + (player.pos.x - K.sofa.x) * k;
-        player.pos.z = K.sofa.z + (player.pos.z - K.sofa.z) * k;
+        player.pos.x = K.bed.x + (player.pos.x - K.bed.x) * k;
+        player.pos.z = K.bed.z + (player.pos.z - K.bed.z) * k;
       }
-      // 准星射线：沙发 / 出口门 / 环上所有银幕
+      // 准星射线：圆床 / 出口门 / 环上所有银幕
       raycaster.setFromCamera({ x: 0, y: 0 }, camera);
-      const targets = [sofaHit, exitHit, ...screens.map((s) => s.mesh)];
+      const targets = [bedHit, exitHit, ...screens.map((s) => s.mesh)];
       const hits = raycaster.intersectObjects(targets, false);
       const hit = hits.find((h) => h.distance < 20) || null;
-      hoverSofa = !!hit && hit.object === sofaHit;
+      hoverBed = !!hit && hit.object === bedHit;
       hoverExit = !!hit && hit.object === exitHit;
       hoverScreen = hit ? screens.findIndex((s) => s.mesh === hit.object) : -1;
       const dp = ringAt(0, R);
       if (Math.hypot(player.pos.x - dp.x, player.pos.z - dp.z) < K.door.trigR && this.onExitRequest) this.onExitRequest();
-      const dSofa = Math.hypot(player.pos.x - K.sofa.x, player.pos.z - K.sofa.z);
-      const nearSofa = hoverSofa || dSofa < K.sofa.r + 0.6;
-      setHint(nearSofa ? '<b>左键</b> 在沙发上入座（任意朝向）'
+      const dBed = Math.hypot(player.pos.x - K.bed.x, player.pos.z - K.bed.z);
+      const nearBed = hoverBed || dBed < K.bed.r + 0.6;
+      setHint(nearBed ? '<b>左键</b> 在圆床上入座（任意朝向）'
         : hoverExit ? '<b>左键</b> 或走过去：返回篮球馆'
         : hoverScreen >= 0 && screens[hoverScreen].src ? '<b>左键</b> 播放/暂停 · 切换该屏声音' : '');
     },
 
     onLeftDown() {
       if (seated) return;
-      // 沙发：点击时实时测距（准星命中或站得够近都算），落到座垫环上入座
+      // 圆床：点击时实时测距（准星命中或站得够近都算），落到床垫环上入座
       const ray = raycaster.ray;
-      const sph = new THREE.Sphere(new THREE.Vector3(K.sofa.x, 0.4, K.sofa.z), K.sofa.r + 0.35);
-      const onSofa = ray.intersectsSphere(sph) ||
-        Math.hypot(player.pos.x - K.sofa.x, player.pos.z - K.sofa.z) < K.sofa.r + 0.6;
-      if (onSofa) { sit(); return; }
+      const sph = new THREE.Sphere(new THREE.Vector3(K.bed.x, 0.4, K.bed.z), K.bed.r + 0.35);
+      const onBed = ray.intersectsSphere(sph) ||
+        Math.hypot(player.pos.x - K.bed.x, player.pos.z - K.bed.z) < K.bed.r + 0.6;
+      if (onBed) { sit(); return; }
       if (hoverExit) { if (this.onExitRequest) this.onExitRequest(); return; }
       if (hoverScreen >= 0) tapScreen(hoverScreen);
     },
     onRightDown() {
       if (seated) stand();
+    },
+    /** 床上滚轮：上滚拉近巨幕、下滚拉远（main 转发，仅入座时生效） */
+    onWheel(deltaY) {
+      if (!seated) return false;
+      zoomT = Math.max(0, Math.min(1, zoomT - Math.sign(deltaY) * K.zoom.step));
+      applyZoom();
+      setHint('');
+      return true;
     },
     /** 入座（未锁指针）时用鼠标位置点某块银幕：切该屏出声/暂停 */
     onClick(x, y) {
@@ -496,12 +554,13 @@ export function createCinema({ camera, player, sfx }) {
       rebuild();
       refreshStatus();
     },
-    /** 无头验证用：当前环上每块屏的几何（高度 / 槽位圆心角 / 中心角 / 是否有片源） */
+    /** 无头验证用：当前环上每块屏的几何（高度 / 槽位圆心角 / 实占弧 / 宽高比 / 是否有片源） */
     debugRing() {
       return screens.map((s) => ({
-        h: +s.h.toFixed(2),
+        h: SH,
         slotDeg: +((s.slot / DEG) % 360).toFixed(1),
-        arcDeg: +(((s.mesh.geometry.parameters?.thetaLength ?? 0) / DEG)).toFixed(1),
+        arcDeg: +((s.arc / DEG)).toFixed(1),
+        ar: +(s.src?.ar ? s.src.ar.toFixed(2) : 0),
         src: s.src ? 1 : 0,
       }));
     },

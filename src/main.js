@@ -278,6 +278,12 @@ document.addEventListener('mousemove', (e) => {
     if (seatAim.t) seatAim.moved += Math.abs(e.movementX) + Math.abs(e.movementY);
   }
 });
+/* 入座后滚轮 = 变焦（拉近/拉远巨幕）；未入座时一律不拦，页面自身不滚动 */
+addEventListener('wheel', (e) => {
+  if (gameState !== 'playing' || playerLoc !== 'cinema' || !cinema.seated) return;
+  e.preventDefault();
+  cinema.onWheel(e.deltaY);
+}, { passive: false });
 canvas.addEventListener('mousedown', (e) => {
   if (gameState !== 'playing') return;
   if (document.pointerLockElement !== canvas) {
@@ -448,8 +454,9 @@ try {
   if (tp) setTimeout(() => {
     const [x, z, y, p] = tp.split(',').map(Number);
     GAME.teleport(x, z);
-    if (!Number.isNaN(y)) { player.freeYaw = y; player.yaw = y; }
-    if (!Number.isNaN(p)) { player.freePitch = p; player.pitch = p; }
+    // 缺参数时 Number() 给 NaN，必须显式挡掉：NaN 进 yaw/pitch 会让相机矩阵报废、整帧纯黑
+    if (Number.isFinite(y)) { player.freeYaw = y; player.yaw = y; }
+    if (Number.isFinite(p)) { player.freePitch = p; player.pitch = p; }
   }, 2300);
   if (m && demo === 'shot') {
     setTimeout(() => { if (machine.name === 'noBall') machine.dispatch('onLeftDown'); }, 1500); // 拾球
@@ -473,15 +480,20 @@ try {
       marks.push(`${Math.round(performance.now())}:${s}(${machine.name},t${scoring.taps},s${scoring.shotTaken})${extra}`);
       dbg.textContent = marks.join(' | ');
     };
+    // 任何 demo 分支跑飞了都要能在截图里看见，而不是留下一张莫名其妙的黑图
+    addEventListener('error', (e) => mark(`ERR ${e.message} @${e.filename?.split('/').pop()}:${e.lineno}`));
   }
   if (demo === 'save') {
     // 两段式持久化断言：写死「环上 5 部片（第 1/3/5 有片、第 2/4 是空洞）」，
-    // 第二次启动应复原成 n=5 src=10101，且各块屏同高、槽位角 71.2°
-    const L = window.BB_VIDEOS || [];
-    const rec = (i) => (L[i % L.length] ? { n: L[i % L.length].name, k: 0 } : null);
-    const list = L.length ? [rec(0), null, rec(1), null, rec(2)] : [];
-    localStorage.setItem('bb.cinema.screens', JSON.stringify(list));
-    mark(`SAVED n=${list.length} ${L.map((x) => x.name).join(',') || '(片单空)'}`);
+    // 第二次启动应复原成 n=5 src=10101，且各块屏等高 6.2、槽位圆心角 69.2°。
+    // 延迟到默认片源的 loadedmetadata（会回调 saveLayout 覆盖）之后再写，保证这条 5 槽是最后一次写入。
+    setTimeout(() => {
+      const L = window.BB_VIDEOS || [];
+      const rec = (i) => (L[i % L.length] ? { n: L[i % L.length].name, k: 0 } : null);
+      const list = L.length ? [rec(0), null, rec(1), null, rec(2)] : [];
+      localStorage.setItem('bb.cinema.screens', JSON.stringify(list));
+      mark(`SAVED n=${list.length} ${L.map((x) => x.name).join(',') || '(片单空)'}`);
+    }, 2000);
   }
   if (demo === 'tap') {
     // 自动化：走到球边 → 左键拾球 → 右键拍球 → 左键蓄力 → 松手出手，断言计分链路
@@ -500,18 +512,23 @@ try {
     setTimeout(() => { mark('final'); console.log('DEMO_TAP', marks.join(' | ')); }, 6000);
   }
   if (demo === 'sit' || demo === 'grid') {
-    // 公共：走到沙发边 + 左键入座（可选再开大屏墙），供两种演示复用
+    // 公共：走到圆床边 + 左键入座（可选再开大屏墙），供两种演示复用
     addEventListener('error', (e) => {
       const el = document.getElementById('dbg-out');
       if (el) el.textContent = `ERR ${e.message} @${e.filename?.split('/').pop()}:${e.lineno}`;
     });
     setTimeout(() => {
-      player.pos.set(0, 0, CFG.cinema.sofa.z + 1.6);
-      player.freeYaw = -Math.PI / 2; player.yaw = -Math.PI / 2;
+      player.pos.set(0, 0, CFG.cinema.bed.z + 1.6);
+      // 面朝 -z（θ=180°）：那块银幕正对着玩家，座下就是圆床
+      player.freeYaw = 0; player.yaw = 0;
       cinema.onLeftDown();
       if (demo === 'grid') document.getElementById('cb-big').click();
     }, 2600);
     setTimeout(() => {
+      const fov0 = camera.fov;
+      cinema.onWheel(-120); cinema.onWheel(-120); cinema.onWheel(-120);
+      const fovIn = camera.fov;
+      cinema.onWheel(120);
       const el = document.getElementById('dbg-out');
       const vs = Array.from(document.querySelectorAll('.btv'));
       const vs0 = vs[0]?.style;
@@ -521,11 +538,13 @@ try {
         + ` big=${document.body.classList.contains('big-screen') ? 1 : 0} n=${vs.length}`
         + ` src=${vs.map((v) => ((v.currentSrc || v.src) ? 1 : 0)).join('')}`
         + ` ring=${cinema.debugRing().map((r) => `h${r.h}/a${r.arcDeg}${r.src}`).join(',')}`
+        + ` zoom=${fov0.toFixed(1)}>${fovIn.toFixed(1)}>${camera.fov.toFixed(1)}`
         + ` grid=${vs0?.getPropertyValue('--cols') || '-'}x${vs0?.getPropertyValue('--rows') || '-'}`;
     }, 3400);
   }
   if (demo === 'import') {
-    // 多选导入：造两个假 File 走同一条 change 通道，断言「屏数 = 片源数」且排布已存档
+    // 多选导入＝整条替换：造两个假 File 走同一条 change 通道，断言环上只剩这 2 部
+    // （默认片单那 1 部不再保留），且存档列表就是这两部；随后「恢复默认」退回片单。
     setTimeout(() => {
       const inp = document.getElementById('cb-file-in');
       const mk = (n) => new File([new Blob(['x'], { type: 'video/mp4' })], n, { type: 'video/mp4' });
@@ -544,6 +563,23 @@ try {
       mark(`RESET n=${document.querySelectorAll('.btv').length}`
         + ` ring=${cinema.debugRing().map((r) => r.src).join('')}`);
     }, 4800);
+  }
+  if (demo === 'ring') {
+    // 视觉验证「等高 + 铺满一整圈」：导入 ?n= 部假片（blob 解码不了 -> 银幕停在占位卡上，
+    // 画面看得见弧度），入座正对环墙，肉眼即可检查有无空隙/有无高低不齐
+    const cnt = Math.max(1, Number(params.get('n')) || 5);
+    setTimeout(() => {
+      const inp = document.getElementById('cb-file-in');
+      const files = Array.from({ length: cnt }, (_, i) => new File([new Blob(['x'], { type: 'video/mp4' })], `demo-${i}.mp4`, { type: 'video/mp4' }));
+      Object.defineProperty(inp, 'files', { value: files });
+      inp.dispatchEvent(new Event('change'));
+      player.pos.set(0, 0, CFG.cinema.bed.z + 1.6);
+      player.freeYaw = 0; player.yaw = 0;
+      cinema.onLeftDown();
+    }, 2600);
+    setTimeout(() => {
+      mark(`RING n=${cnt} arc=${cinema.debugRing().map((r) => r.arcDeg).join('/')} sum=${cinema.debugRing().reduce((a, r) => a + r.arcDeg, 0).toFixed(1)}`);
+    }, 3600);
   }
   if (demo === 'exit') {
     // 出口门：把玩家挪到门洞口（θ=0 的 +z 侧）并手动推帧（无头 rAF 被限流，靠自然
