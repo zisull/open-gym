@@ -109,39 +109,27 @@ export class HoldState extends State {
   enter() {
     const { player, ui, modeDef } = this.G;
     player.speed = CFG.player.speedHold;
-    this._downT = -1; // -1 = 未按下；>=0 = 左键按住累计秒数
     ui.setPrompt(modeDef.id === 'free'
-      ? '<b>短按左键</b> 拍球 · <b>长按左键</b> 原地起投 · 走入投篮区自动瞄准'
-      : 'WASD 走位，进入投篮区开始进攻');
+      ? '<b>左键</b> 投篮（按住蓄力 松手出手）· <b>右键</b> 拍球 · 全场任意位置'
+      : 'WASD 走位 · <b>左键</b> 按住蓄力投篮 · <b>右键</b> 拍球');
   }
   update(dt) {
     const { player, ball, camera, scoring, machine } = this.G;
     ball.updateHeld(dt, camera);
     if (scoring.ended) return;
-    // 长按左键超过阈值 -> 原地进入投篮蓄力（自由模式全场可用）
-    if (this._downT >= 0) {
-      this._downT += dt;
-      if (this.G.modeDef.shotScore && this._downT > CFG.shot.tapHold) {
-        this._downT = -1;
-        this.G.pendingCharge = true; // 让 ShotState 继承"按住"输入
-        machine.set('shot');
-        return;
-      }
-    }
     // 持球移动进入投篮触发区 -> 自动切入投篮瞄准（仅计分投篮的模式）
     if (this.G.modeDef.shotScore && player.inShotZone() && player.mode !== 'shot') {
       machine.set('shot');
     }
   }
   onLeftDown() {
-    this._downT = 0;
+    // 左键 = 投篮：立即进入蓄力状态（松手出手）
+    if (!this.G.modeDef.shotScore) return;
+    this.G.pendingCharge = true;
+    this.G.machine.set('shot');
   }
-  onLeftUp() {
-    if (this._downT < 0) return;
-    const quick = this._downT <= CFG.shot.tapHold;
-    this._downT = -1;
-    if (!quick) return;
-    // 无门槛拍球：短按即拍，自动跟手
+  onRightDown() {
+    // 右键 = 无门槛拍球：自动跟手
     const { ball, sfx, fx, ui, scoring } = this.G;
     if (ball.tap()) {
       sfx.play('tap', { rate: 1.85 + Math.random() * 0.12, volume: 0.85 });
@@ -170,7 +158,7 @@ export class ShotState extends State {
     this.flightT = 0;
     this._prevY = 0;
     ui.showPowerBar(true);
-    ui.setPrompt('<b>按住左键</b> 蓄力 · <b>松开</b> 投篮 · <b>右键</b> 假投');
+    ui.setPrompt('<b>按住左键</b> 蓄力 · <b>松手</b> 投篮 · <b>右键</b> 取消');
   }
   exit() {
     const { player, ui } = this.G;
@@ -272,9 +260,15 @@ export class ShotState extends State {
   }
   onLeftUp() {
     if (this.flying || !this.charging) return;
-    const { ball, player, sfx, scoring } = this.G;
     this.charging = false;
-    const power = Math.max(0.04, this.charge);
+    // 左键点按（蓄力过低）= 取消，不出手也不记出手数
+    if (this.charge < CFG.shot.cancelCharge) {
+      this.charge = 0;
+      this.G.ui.setPrompt('<b>按住左键</b> 蓄力 · <b>松手</b> 投篮 · <b>右键</b> 取消');
+      return;
+    }
+    const { ball, player, sfx, scoring } = this.G;
+    const power = this.charge;
     this.markRelease(); // 记录出手点（2/3 分判定）
     const pos = ball.position.clone();
     ball.startPhysics(pos, shotVelocity(pos, power, player));
@@ -286,15 +280,11 @@ export class ShotState extends State {
   }
   onRightDown() {
     if (this.flying) return;
-    // 假投虚晃：取消蓄力，不释放篮球
-    if (this.charging || this.charge > 0) {
-      this.charging = false;
-      this.charge = 0;
-      this.G.sfx.play('tap', { volume: 0.5, rate: 1.4 });
-      this.G.fx.shake(0.012, 0.12);
-      this.G.ui.flashPump();
-      this.G.ui.setPrompt('假投成功！重新 <b>按住左键</b> 蓄力');
-    }
+    // 右键取消本次投篮：清空蓄力，回到持球状态
+    this.charging = false;
+    this.charge = 0;
+    this.G.sfx.play('tap', { volume: 0.5, rate: 1.4 });
+    this.G.machine.set('hold');
   }
 
   /** 进球事件 */

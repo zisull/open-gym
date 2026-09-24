@@ -5,7 +5,7 @@
  */
 import * as THREE from 'three';
 import { CFG } from './config.js';
-import { makeCourtTexture, makeSkyTexture, makeWallTexture } from './textures.js';
+import { makeCourtTexture, makeSkyTexture, makeWallTexture, makeDoorSignTexture } from './textures.js';
 
 /** 圈心地面投影（投篮距离计算、粒子特效都以此为原点） */
 export const RIM_POS = new THREE.Vector3(0, CFG.hoop.rimHeight, CFG.hoop.boardFaceZ + CFG.hoop.rimOffset);
@@ -13,43 +13,36 @@ export const RIM_POS = new THREE.Vector3(0, CFG.hoop.rimHeight, CFG.hoop.boardFa
 export function buildCourt(scene) {
   /* ================= 材质 ================= */
   const floorTex = makeCourtTexture();
-  // 上漆硬木地板：clearcoat 只做轻微漆面润色（过强会在斜视角下随相机闪烁）
-  const floorMat = new THREE.MeshPhysicalMaterial({
+  // 上漆木地板改用纯 Standard 材质：去掉 clearcoat 二次高光 + 几乎不吃环境反射，
+  // 相机移动时不再有游移的"假阴影"高光斑（闪烁根源之一）
+  const floorMat = new THREE.MeshStandardMaterial({
     map: floorTex,
-    roughness: 0.45,
-    metalness: 0.04,
-    clearcoat: 0.15,
-    clearcoatRoughness: 0.3,
-    envMapIntensity: 0.4,
+    roughness: 0.62,
+    metalness: 0.02,
+    envMapIntensity: 0.12,
   });
   const paintedWood = (color, rough = 0.6) => new THREE.MeshStandardMaterial({ color, roughness: rough, metalness: 0.05, envMapIntensity: 0.4 });
 
-  /* ================= 地板 ================= */
+  /* ================= 地板（整馆一个平面，贴图自带橡胶缓冲区：无共面 Mesh = 无 z-fighting） ================= */
   const floor = new THREE.Mesh(
-    new THREE.PlaneGeometry(CFG.court.halfW * 2, CFG.court.halfL * 2),
+    new THREE.PlaneGeometry(CFG.gym.halfW * 2, CFG.gym.halfL * 2),
     floorMat
   );
   floor.rotation.x = -Math.PI / 2;
   floor.receiveShadow = true;
   scene.add(floor);
 
-  // 场外地面（深色橡胶运动地垫；与球场地板拉开 6cm，任何深度精度下都不共面闪烁）
-  const apron = new THREE.Mesh(
-    new THREE.PlaneGeometry(CFG.gym.halfW * 2, CFG.gym.halfL * 2),
-    new THREE.MeshStandardMaterial({ color: 0x272b32, roughness: 0.82, metalness: 0, envMapIntensity: 0.25 })
-  );
-  apron.rotation.x = -Math.PI / 2;
-  apron.position.y = -0.06;
-  apron.receiveShadow = true;
-  scene.add(apron);
-
   /* ================= 墙体 / 顶棚 ================= */
   const wallTex = makeWallTexture();
   wallTex.repeat.set(4, 1);
   const wallMat = new THREE.MeshStandardMaterial({ map: wallTex, color: 0xffffff, roughness: 0.92, metalness: 0, envMapIntensity: 0.25, side: THREE.BackSide });
+  const ceilMat = new THREE.MeshStandardMaterial({ color: 0x1a1f28, roughness: 0.95, metalness: 0, envMapIntensity: 0.15, side: THREE.BackSide });
+  // 关键：盒子的底面与地板共面（y=0），若一起渲染就是"地板与深色面来回闪"的 z-fighting 根源。
+  // BoxGeometry 六面分组顺序 +x,-x,+y,-y,+z,-z —— 底面(-y)给一个不渲染的材质直接挖掉。
+  const hiddenMat = new THREE.MeshBasicMaterial({ visible: false });
   const shell = new THREE.Mesh(
     new THREE.BoxGeometry(CFG.gym.halfW * 2, CFG.gym.height, CFG.gym.halfL * 2),
-    wallMat
+    [wallMat, wallMat, ceilMat, hiddenMat, wallMat, wallMat]
   );
   shell.position.y = CFG.gym.height / 2;
   scene.add(shell);
@@ -167,6 +160,8 @@ export function buildCourt(scene) {
   /* ================= 远端装饰筐（整体绕 Y 旋转 180° 镜像到 +z 端） ================= */
   const far = hoopGroup.clone(true);
   far.rotation.y = Math.PI;
+  // 远端装饰在阴影相机范围外：若继续投影会在其边缘产生生硬闪烁切边
+  far.traverse((o) => { if (o.isMesh) o.castShadow = false; });
   scene.add(far);
 
   /* ================= 看台座椅（+x 侧，楔形阶梯紧贴右墙） ================= */
@@ -196,7 +191,9 @@ export function buildCourt(scene) {
       color.setHex(seatColors[(i + r * 7) % seatColors.length]);
       seats.setColorAt(i, color);
     }
-    seats.castShadow = true;
+    // 座椅不投影：5x26 的密集小盒子阴影是地板条纹闪烁的主要来源，
+    // 看台区域改由整块台阶面接收上方灯光渐变即可
+    seats.castShadow = false;
     bleacher.add(seats);
     // 靠背斜板
     const back = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.52, 12.2), concrete);
@@ -224,7 +221,9 @@ export function buildCourt(scene) {
     scene.add(g);
   };
   mkRail(20, -CFG.court.halfW - 1.2, 0, Math.PI / 2);
-  mkRail(14, 0, CFG.court.halfL + 1.2, 0);
+  // +z 侧围栏拆成两段，在电影院红门（x≈6）前留出通道缺口
+  mkRail(9.5, -2.75, CFG.court.halfL + 1.2, 0);
+  mkRail(1.5, 9.75, CFG.court.halfL + 1.2, 0);
   // 场边 LED 广告板（暗光发光，Bloom 轻微溢出）
   const adMat = new THREE.MeshStandardMaterial({ color: 0x0b1220, emissive: 0x2255ff, emissiveIntensity: 0.55, roughness: 0.4 });
   const ad1 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.8, 19.5), adMat);
@@ -247,6 +246,47 @@ export function buildCourt(scene) {
     const door = new THREE.Mesh(new THREE.BoxGeometry(1.7, 2.6, 0.12), doorMat);
     door.position.set(dx, 1.3, -CFG.gym.halfL + 0.12);
     scene.add(door);
+  }
+
+  /* ================= 电影院入口（+z 墙红门 + 发光门牌，走进去转场） ================= */
+  {
+    const D = CFG.cinema.gymDoor;
+    const g = new THREE.Group();
+    g.position.set(D.x, 0, CFG.gym.halfL - 0.06);
+    g.rotation.y = Math.PI; // 面朝场内（-z 方向）
+    const frameMat = new THREE.MeshStandardMaterial({ color: 0x6e1620, roughness: 0.5, metalness: 0.3 });
+    const frame = new THREE.Mesh(new THREE.BoxGeometry(2.05, 3.15, 0.1), frameMat);
+    frame.position.y = 1.57;
+    g.add(frame);
+    const slab = new THREE.Mesh(new THREE.BoxGeometry(1.7, 2.8, 0.12), paintedWood(0x2b1a12, 0.7));
+    slab.position.set(0, 1.4, 0.04);
+    g.add(slab);
+    const handle = new THREE.Mesh(new THREE.SphereGeometry(0.05, 10, 8), railMat);
+    handle.position.set(-0.62, 1.35, 0.14);
+    g.add(handle);
+    // 门缝暖光：模拟影院里透出来的放映光，让黑门板在暗墙上可辨
+    const crack = new THREE.Mesh(
+      new THREE.PlaneGeometry(1.56, 0.05),
+      new THREE.MeshBasicMaterial({ color: 0xffb066 })
+    );
+    crack.position.set(0, 2.72, 0.115);
+    g.add(crack);
+    const signTex = makeDoorSignTexture('电 影 院', '🎬 走进门即可观影');
+    const sign = new THREE.Mesh(
+      new THREE.PlaneGeometry(2.3, 0.58),
+      new THREE.MeshStandardMaterial({ map: signTex, emissiveMap: signTex, emissive: 0xffffff, emissiveIntensity: 0.9, roughness: 0.6 })
+    );
+    sign.position.set(0, 3.5, 0.1);
+    g.add(sign);
+    // 门口导视地垫（暗红发光圈，提示可进入）
+    const mat2 = new THREE.Mesh(
+      new THREE.CircleGeometry(0.95, 28),
+      new THREE.MeshStandardMaterial({ color: 0x5a1420, emissive: 0x7a1f2a, emissiveIntensity: 0.5, roughness: 0.9 })
+    );
+    mat2.rotation.x = -Math.PI / 2;
+    mat2.position.set(0, 0.012, 1.1); // 局部 +z 经组旋转后指向场内
+    g.add(mat2);
+    scene.add(g);
   }
 
   return { netGroup, rim, adTex, floor };
@@ -313,17 +353,18 @@ export function setupLights(scene) {
   const dir = new THREE.DirectionalLight(0xfff3e0, 2.4);
   dir.position.set(4, 14, -2);            // 更接近顶光：地板掠射阴影面积大幅缩小
   dir.castShadow = true;
-  dir.shadow.mapSize.set(4096, 4096);
-  // 收紧阴影相机到"半场+篮架"区域：同样的贴图分辨率下像素密度翻倍以上，
-  // 是消除地板阴影条纹闪烁最有效的一招
-  dir.shadow.camera.left = -12;
-  dir.shadow.camera.right = 12;
-  dir.shadow.camera.top = 14;
-  dir.shadow.camera.bottom = -14;
-  dir.shadow.camera.near = 2;
-  dir.shadow.camera.far = 40;
-  dir.shadow.bias = -0.0001;
-  dir.shadow.normalBias = 0.09;   // 消除斜视角下地板的阴影条纹闪烁
+  // 阴影配置原则：投射物越少、覆盖越紧、法线偏移越小越稳。
+  // 密集小阴影（座椅/远端筐）已关；这里用 2048 + 温和 normalBias，
+  // 避免 4096 细纹在相机移动时逐像素跳变（表现为地板"闪烁阴影"）。
+  dir.shadow.mapSize.set(2048, 2048);
+  dir.shadow.camera.left = -11;
+  dir.shadow.camera.right = 11;
+  dir.shadow.camera.top = 13;
+  dir.shadow.camera.bottom = -13;
+  dir.shadow.camera.near = 4;
+  dir.shadow.camera.far = 42;
+  dir.shadow.bias = -0.00015;
+  dir.shadow.normalBias = 0.03;
   scene.add(dir);
   scene.add(dir.target);
   dir.target.position.set(0, 0, -8);

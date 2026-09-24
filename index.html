@@ -62,7 +62,7 @@
       <button class="card" data-mode="free">
         <div class="ci">🏀</div>
         <h3>自由模式</h3>
-        <p>无时间限制 · <b>全场任意位置</b>长按起投<br>拍球得分与投篮得分<b>合并计算</b></p>
+        <p>无时间限制 · <b>全场任意位置</b>左键蓄力投篮<br>拍球得分与投篮得分<b>合并计算</b></p>
         <div class="rec">最高分 <b id="rec-free">0</b></div>
       </button>
       <button class="card" data-mode="shot">
@@ -77,9 +77,31 @@
       <label class="st"><span>音量</span><input type="range" id="set-volume" min="0" max="1" step="0.05" value="0.8"></label>
     </div>
     <div id="help">
-      <b>操作</b>：WASD 移动（左手）· 鼠标转向（右手）· <b>左键短按</b> 拾球 / 拍球 · <b>左键长按</b> 蓄力投篮（松手出手）· <b>右键</b> 假投虚晃 · ESC 暂停
+      <b>操作</b>：WASD 移动（左手）· 鼠标转向（右手）· <b>左键</b> 拾球 / 投篮（按住蓄力，松手出手）· <b>右键</b> 拍球 / 取消投篮 · ESC 暂停<br>
+      🎬 球场后方（<b>+Z 端右侧红门</b>）可进入<b>电影院</b>：选座入座，银幕播放 <code>video/</code> 文件夹里的影片
     </div>
   </div>
+
+  <!-- ================= 影院 UI ================= -->
+  <!-- 过场黑幕（切场景时淡入淡出） -->
+  <div id="fade"></div>
+  <!-- 影院内准星提示（复用提示样式） -->
+  <div id="cinema-hint" class="glass hidden"></div>
+  <!-- 入座后的放映控制条（此时释放指针锁定，可用鼠标点击） -->
+  <div id="cinema-bar" class="hidden">
+    <span id="cb-status">未选择影片</span>
+    <select id="cb-list" title="放映单"></select>
+    <button class="btn" id="cb-play">▶ 播放</button>
+    <button class="btn" id="cb-prev" title="上一部">⏮</button>
+    <button class="btn" id="cb-next" title="下一部">⏭</button>
+    <button class="btn" id="cb-file">📂 选择视频</button>
+    <label class="cb-vol">音量<input type="range" id="cb-vol" min="0" max="1" step="0.05" value="0.9"></label>
+    <button class="btn" id="cb-big">⛶ 放大观看</button>
+    <button class="btn primary" id="cb-stand">🧍 起身（或按 WASD）</button>
+    <input type="file" id="cb-file-in" accept="video/*,.mkv,.mov,.avi,.m4v,.webm,.ogg,.ogv" multiple class="hidden">
+  </div>
+  <!-- 放映机：真实 <video> 元素（离屏渲染保证解码持续），帧由 VideoTexture 贴上银幕 -->
+  <video id="btv" playsinline preload="auto"></video>
 
   <!-- ================= 暂停面板 ================= -->
   <div id="pause" class="overlay hidden">
@@ -114,6 +136,8 @@
   <script src="assets/audio/sfx.js"></script>
   <!-- 墙贴画清单（tools/gen_walls.bat 扫描 imgs/wall 自动生成） -->
   <script src="imgs/wall/manifest.js"></script>
+  <!-- 影院放映单（tools/gen_videos.bat 扫描 video/ 自动生成） -->
+  <script src="video/manifest.js"></script>
   <!-- 游戏主程序（esbuild 打包的普通脚本，双击 index.html 即可运行） -->
   <script src="dist/game.js"></script>
 </body>

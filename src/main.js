@@ -13,6 +13,7 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { CFG } from './config.js';
 import { createPhysics } from './physics.js';
 import { buildCourt, setupLights, applyBackground, addWallArt, RIM_POS } from './court.js';
+import { createCinema } from './cinema.js';
 import { GameBall } from './ball.js';
 import { Player } from './player.js';
 import { Effects } from './effects.js';
@@ -50,8 +51,9 @@ const composerTarget = new THREE.WebGLRenderTarget(drawSize.x, drawSize.y, {
   samples: 4,
 });
 const composer = new EffectComposer(renderer, composerTarget);
-composer.addPass(new RenderPass(scene, camera));
-const bloomPass = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), CFG.fx.bloomBase, 0.55, 0.78);
+const renderPass = new RenderPass(scene, camera);
+composer.addPass(renderPass);
+const bloomPass = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), CFG.fx.bloomBase, 0.55, 0.92);
 composer.addPass(bloomPass);
 composer.addPass(new OutputPass());
 
@@ -67,6 +69,57 @@ const fx = new Effects(scene, camera);
 const scoring = new ScoreManager();
 const sfx = new Sfx();
 const ui = new UI();
+
+/* ================= 电影院（独立场景 + 过场切换） ================= */
+const cinema = createCinema({ camera, player, sfx });
+cinema.scene.environment = scene.environment;   // 复用 PMREM 环境贴图
+let playerLoc = 'gym';                            // gym | cinema
+let fading = false;
+const fadeEl = document.getElementById('fade');
+const hudEl = document.getElementById('hud');
+
+function fadeTo(swap) {
+  if (fading) return;
+  fading = true;
+  fadeEl.classList.add('on');
+  setTimeout(() => {
+    swap();
+    setTimeout(() => { fadeEl.classList.remove('on'); fading = false; }, 120);
+  }, 420);
+}
+function enterCinema() {
+  fadeTo(() => {
+    playerLoc = 'cinema';
+    renderPass.scene = cinema.scene;
+    hudEl.classList.add('hidden');
+    cinema.enter();
+    cinema.ensurePlaylist();
+    sfx.play('ui');
+  });
+}
+function exitCinemaToGym() {
+  fadeTo(() => {
+    cinema.exit();
+    playerLoc = 'gym';
+    renderPass.scene = scene;
+    const D = CFG.cinema.gymDoor;
+    player.pos.set(D.x, 0, D.z - 2.4);
+    player.vel.set(0, 0, 0);
+    player.freeYaw = Math.atan2(D.x, player.pos.z); // 面向场地中心（yaw=atan2(-dx,-dz) 化简）
+    player.freePitch = 0;
+    ui.showHud(G.modeDef.name, G.modeDef.timed);
+  });
+}
+cinema.onExitRequest = exitCinemaToGym;
+/** 任何"回球馆玩法"的入口前调用：硬切回球馆场景 */
+function forceGym() {
+  if (playerLoc === 'gym') return;
+  cinema.exit();
+  playerLoc = 'gym';
+  renderPass.scene = scene;
+  fadeEl.classList.remove('on');
+  fading = false;
+}
 
 /* ================= 状态机装配 ================= */
 const netSway = { t: 0 };
@@ -88,6 +141,7 @@ let menuCamAngle = 0;
 let lastSecond = -1;
 
 function refreshMenu() {
+  forceGym();
   gameState = 'menu';
   machine.set('noBall');
   ball.startPhysics(new THREE.Vector3(1.4, 1, 0.5), null);
@@ -98,6 +152,7 @@ function refreshMenu() {
 
 function startMode(id) {
   sfx.init();               // 用户手势内初始化 AudioContext
+  forceGym();
   currentModeId = id;
   G.modeDef = CFG.MODES[id];
   scoring.reset(G.modeDef);
@@ -202,7 +257,10 @@ window.BB_VOLUME = savedVol;
 const keys = player.keys;
 addEventListener('keydown', (e) => {
   const k = e.key.toLowerCase();
-  if (k in keys) keys[k] = true;
+  if (k in keys) {
+    keys[k] = true;
+    if (playerLoc === 'cinema') cinema.onMoveKey(); // 坐着按移动键 -> 起身
+  }
 });
 addEventListener('keyup', (e) => {
   const k = e.key.toLowerCase();
@@ -214,18 +272,27 @@ document.addEventListener('mousemove', (e) => {
   }
 });
 canvas.addEventListener('mousedown', (e) => {
-  if (gameState === 'playing' && document.pointerLockElement === canvas) {
-    if (e.button === 0) machine.dispatch('onLeftDown');
-    if (e.button === 2) machine.dispatch('onRightDown');
+  if (gameState !== 'playing') return;
+  if (document.pointerLockElement !== canvas) {
+    // 影院走动中丢了锁 -> 点画面找回
+    if (playerLoc === 'cinema' && !cinema.seated) canvas.requestPointerLock?.();
+    return;
   }
+  if (playerLoc === 'cinema') {
+    if (e.button === 0) cinema.onLeftDown();
+    if (e.button === 2) cinema.onRightDown();
+    return;
+  }
+  if (e.button === 0) machine.dispatch('onLeftDown');
+  if (e.button === 2) machine.dispatch('onRightDown');
 });
 addEventListener('mouseup', (e) => {
-  if (gameState === 'playing' && e.button === 0) machine.dispatch('onLeftUp');
+  if (gameState === 'playing' && playerLoc === 'gym' && e.button === 0) machine.dispatch('onLeftUp');
 });
 document.addEventListener('contextmenu', (e) => e.preventDefault());
 document.addEventListener('pointerlockchange', () => {
-  // 玩家按 ESC 或点击外部导致解锁 -> 自动暂停
-  if (document.pointerLockElement !== canvas && gameState === 'playing') pauseGame();
+  // 玩家按 ESC 或点击外部导致解锁 -> 自动暂停（影院入座本来就不锁，跳过）
+  if (document.pointerLockElement !== canvas && gameState === 'playing' && location === 'gym') pauseGame();
 });
 
 /* ================= 物理碰撞音效 ================= */
@@ -251,6 +318,11 @@ function tick() {
   const dt = Math.min(clock.getDelta(), 0.05);
 
   if (gameState === 'playing' || gameState === 'result') {
+    if (playerLoc === 'cinema') {
+      /* ---- 影院：只有走动/入座/放映逻辑，球馆物理与状态机挂起 ---- */
+      player.update(dt);
+      cinema.update(dt);
+    } else {
     /* ---- 物理固定步长（1/120s，最多 6 子步防穿模） ---- */
     acc += dt;
     let guard = 6;
@@ -262,6 +334,14 @@ function tick() {
     /* ---- 玩法更新 ---- */
     machine.update(dt);
     player.update(dt);
+
+    /* ---- 电影院入口触发 + 提示 ---- */
+    if (gameState === 'playing') {
+      const D = CFG.cinema.gymDoor;
+      const dDoor = Math.hypot(player.pos.x - D.x, player.pos.z - D.z);
+      if (dDoor < D.r) enterCinema();
+      else if (dDoor < 3.6) ui.setPrompt('🎬 <b>走进红门</b> 去电影院看场电影');
+    }
 
     /* ---- 挑战倒计时 ---- */
     if (scoring.mode.timed && !scoring.ended) {
@@ -287,6 +367,7 @@ function tick() {
       live
     );
     ui.setCombos(scoring.shotCombo, scoring.shotMultiplier());
+    }
   } else if (gameState === 'menu') {
     /* ---- 菜单背景：镜头绕场慢游 + 物理照常 ---- */
     world.step(1 / 60, dt, 3);
@@ -337,17 +418,52 @@ try {
   const params = new URLSearchParams(location.search);
   window.GAME = {
     startMode, finishSession, machine, scoring, ui, player, ball, fx,
+    enterCinema, exitCinemaToGym, cinema,
     get state() { return gameState; },
+    get location() { return playerLoc; },
     teleport: (x, z) => { player.pos.set(x, 0, z); },
     dispatch: (evt) => machine.dispatch(evt),
   };
   const m = params.get('mode');
   const demo = params.get('demo'); // shot|result：自动演示（截图验证用）
   if (m && CFG.MODES[m]) setTimeout(() => startMode(m), 400);
+  if (params.get('loc') === 'cinema') setTimeout(() => enterCinema(), 1100);
+  const tp = params.get('tp'); // tp=x,z,yaw：调试传送
+  if (tp) setTimeout(() => {
+    const [x, z, y] = tp.split(',').map(Number);
+    GAME.teleport(x, z);
+    if (!Number.isNaN(y)) { player.freeYaw = y; player.yaw = y; }
+  }, 2300);
   if (m && demo === 'shot') {
     setTimeout(() => { if (machine.name === 'noBall') machine.dispatch('onLeftDown'); }, 1500); // 拾球
     setTimeout(() => { player.pos.set(0.5, 0, -8); }, 2000);  // 传送到投篮区
     setTimeout(() => machine.dispatch('onLeftDown'), 2900);   // 按住蓄力
+  }
+  if (demo === 'tap') {
+    // 自动化：左键拾球 → 右键拍球 → 左键蓄力 → 松手出手，断言计分链路
+    const marks = [];
+    let dbg = document.getElementById('dbg-out');
+    if (!dbg) {
+      dbg = document.createElement('div');
+      dbg.id = 'dbg-out';
+      dbg.style.cssText = 'position:fixed;left:8px;bottom:8px;z-index:9999;color:#0f0;font:16px monospace;background:#000;padding:4px 8px';
+      document.body.appendChild(dbg);
+    }
+    const mark = (s) => {
+      const cur = machine.current;
+      const extra = cur && cur.charging !== undefined ? `[ch=${cur.charging?1:0},${(cur.charge ?? 0).toFixed(2)},fly=${cur.flying?1:0}]` : '';
+      marks.push(`${Math.round(performance.now())}:${s}(${machine.name},t${scoring.taps},s${scoring.shotTaken})${extra}`);
+      dbg.textContent = marks.join(' | ');
+    };
+    setTimeout(() => { if (machine.name === 'noBall') machine.dispatch('onLeftDown'); mark('pickup'); }, 1200);
+    setTimeout(() => { machine.dispatch('onRightDown'); mark('tap1'); }, 1800);
+    setTimeout(() => { machine.dispatch('onRightDown'); mark('tap2'); }, 2600);
+    setTimeout(() => { machine.dispatch('onLeftDown'); mark('charge'); }, 3400);
+    // 无头环境 rAF 被限流（本例仅 ~6 帧），逐帧累加的 charge 近似为 0；
+    // 手动置为 0.8 以验证「松手出手」路径（真机按住 0.8s 即为此值）
+    setTimeout(() => { if (machine.current) machine.current.charge = 0.8; mark('setcharge'); }, 4200);
+    setTimeout(() => { machine.dispatch('onLeftUp'); mark('release'); }, 4400);
+    setTimeout(() => { mark('final'); console.log('DEMO_TAP', marks.join(' | ')); }, 6000);
   }
   if (demo === 'result') {
     // 结算弹窗冒烟测试（带假数据）

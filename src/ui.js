@@ -121,9 +121,6 @@ export class UI {
       this.el.pSweet.style.height = `${Math.min(100, half * 2 * 100)}%`;
     }
   }
-  flashPump() {
-    this.setPrompt('假投成功！重新 <b>按住左键</b> 蓄力', 'pump');
-  }
 
   /* ---------- 结算弹窗 ---------- */
   showResult({ modeName, scoreLabel, score, best, prevBest, isNew, stats }) {

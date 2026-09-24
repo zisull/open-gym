@@ -256,3 +256,50 @@ body {
 @media (max-width: 900px) {
   #menu h1 { font-size: 38px; }
 }
+
+/* ===================================================================
+   电影院：过场黑幕 / 提示 / 放映控制条 / 离屏放映机 <video>
+   =================================================================== */
+#fade {
+  position: fixed; inset: 0; background: #000; opacity: 0;
+  pointer-events: none; z-index: 40; transition: opacity 0.42s ease;
+}
+#fade.on { opacity: 1; }
+
+#cinema-hint {
+  position: fixed; left: 50%; bottom: 120px; transform: translateX(-50%);
+  padding: 8px 18px; font-size: 15px; color: var(--dim); z-index: 6;
+}
+#cinema-hint b { color: var(--text); }
+
+/* 放映机元素：保持在文档中且被渲染（1px 透明），否则部分浏览器会暂停解码 */
+#btv {
+  position: fixed; left: 0; top: 0; width: 2px; height: 2px;
+  opacity: 0.01; pointer-events: none; z-index: -1;
+}
+body.big-screen #btv {
+  left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: min(94vw, calc(94vh * 16 / 9)); height: auto; aspect-ratio: 16 / 9;
+  opacity: 1; z-index: 60; pointer-events: auto;
+  background: #000; box-shadow: 0 0 60px rgba(0, 0, 0, 0.8); border-radius: 6px;
+}
+body.big-screen::after {
+  content: ""; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.72); z-index: 55;
+}
+body.big-screen #cinema-bar { z-index: 62; }
+
+#cinema-bar {
+  position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center;
+  max-width: 96vw; padding: 10px 16px; z-index: 61;
+  background: rgba(10, 14, 20, 0.86); border: 1px solid var(--glass-line);
+  border-radius: 14px; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+}
+#cinema-bar .btn { padding: 6px 12px; font-size: 14px; }
+#cb-status { font-size: 13px; color: var(--dim); max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#cb-list {
+  background: var(--glass); color: var(--text); border: 1px solid var(--glass-line);
+  border-radius: 8px; padding: 5px 8px; font-size: 13px; max-width: 200px;
+}
+.cb-vol { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--dim); }
+.cb-vol input { width: 90px; }

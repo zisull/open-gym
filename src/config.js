@@ -57,7 +57,7 @@ export const CFG = {
     zoneMinDist: 1.6,    // 太近不触发（篮下架不住）
     zoneMaxZ: -3.0,      // 自动切入瞄准只限进攻端半场
     chargeTime: 1.35,    // 蓄力从 0 到满的时间（秒）
-    tapHold: 0.18,       // 持球时左键：短按=拍球，超过该秒数=长按进入蓄力
+    cancelCharge: 0.06,  // 左键点按低于该蓄力值 -> 视为取消，不出手不记出手数
     speedMin: 5.6,       // 出手初速度下限（power=0）
     speedMax: 17.5,      // 出手初速度上限（power=1，足够覆盖全场最远端线角）
     elevAngle: 52 * Math.PI / 180, // 固定理想抛物线仰角
@@ -95,5 +95,28 @@ export const CFG = {
     bloomScore: 0.95,
     shakeAmp: 0.045,
     shakeDur: 0.28,
+  },
+  /* ---------- 电影院（球馆 +z 墙红门进入；影厅为独立场景） ---------- */
+  cinema: {
+    // 球馆侧入口门：玩家走进该圆区域自动传送进影厅
+    gymDoor: { x: 6.0, z: 16.35, r: 1.25 },
+    // 影厅外壳尺寸（中心在原点）
+    halfW: 9.0, halfL: 7.0, height: 7.0,
+    // 观众席：4 排 x 7 座，逐排升高
+    rows: [
+      { z: -1.6, y: 0.0 },
+      { z: 0.6, y: 0.5 },
+      { z: 2.8, y: 1.0 },
+      { z: 5.0, y: 1.5 },
+    ],
+    cols: 7, colSpacing: 1.2,
+    eyeSit: 1.18,          // 入座视高（相对台基）
+    walkSpeed: 3.0,
+    // 出口门（影厅 +z 墙）：走进 -> 回球馆
+    exitDoor: { x: 6.5, z: 6.9, r: 1.15 },
+    // 银幕（16:9，位于 -z 前墙）
+    screenW: 9.2, screenH: 5.18, screenY: 3.4, screenZ: -6.9,
+    // video/ 清单生成器单文件内嵌上限（字节），超过则提示改用"选择视频"
+    maxEmbedMB: 80,
   },
 };

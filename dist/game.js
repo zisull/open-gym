@@ -7083,7 +7083,21 @@
   function now() {
     return (typeof performance === "undefined" ? Date : performance).now();
   }
-  var REVISION, CullFaceNone, CullFaceBack, CullFaceFront, PCFShadowMap, PCFSoftShadowMap, VSMShadowMap, FrontSide, BackSide, DoubleSide, NoBlending, NormalBlending, AdditiveBlending, SubtractiveBlending, MultiplyBlending, CustomBlending, AddEquation, SubtractEquation, ReverseSubtractEquation, MinEquation, MaxEquation, ZeroFactor, OneFactor, SrcColorFactor, OneMinusSrcColorFactor, SrcAlphaFactor, OneMinusSrcAlphaFactor, DstAlphaFactor, OneMinusDstAlphaFactor, DstColorFactor, OneMinusDstColorFactor, SrcAlphaSaturateFactor, ConstantColorFactor, OneMinusConstantColorFactor, ConstantAlphaFactor, OneMinusConstantAlphaFactor, NeverDepth, AlwaysDepth, LessDepth, LessEqualDepth, EqualDepth, GreaterEqualDepth, GreaterDepth, NotEqualDepth, MultiplyOperation, MixOperation, AddOperation, NoToneMapping, LinearToneMapping, ReinhardToneMapping, CineonToneMapping, ACESFilmicToneMapping, CustomToneMapping, AgXToneMapping, UVMapping, CubeReflectionMapping, CubeRefractionMapping, EquirectangularReflectionMapping, EquirectangularRefractionMapping, CubeUVReflectionMapping, RepeatWrapping, ClampToEdgeWrapping, MirroredRepeatWrapping, NearestFilter, NearestMipmapNearestFilter, NearestMipmapLinearFilter, LinearFilter, LinearMipmapNearestFilter, LinearMipmapLinearFilter, UnsignedByteType, ByteType, ShortType, UnsignedShortType, IntType, UnsignedIntType, FloatType, HalfFloatType, UnsignedShort4444Type, UnsignedShort5551Type, UnsignedInt248Type, AlphaFormat, RGBAFormat, LuminanceFormat, LuminanceAlphaFormat, DepthFormat, DepthStencilFormat, RedFormat, RedIntegerFormat, RGFormat, RGIntegerFormat, RGBAIntegerFormat, RGB_S3TC_DXT1_Format, RGBA_S3TC_DXT1_Format, RGBA_S3TC_DXT3_Format, RGBA_S3TC_DXT5_Format, RGB_PVRTC_4BPPV1_Format, RGB_PVRTC_2BPPV1_Format, RGBA_PVRTC_4BPPV1_Format, RGBA_PVRTC_2BPPV1_Format, RGB_ETC1_Format, RGB_ETC2_Format, RGBA_ETC2_EAC_Format, RGBA_ASTC_4x4_Format, RGBA_ASTC_5x4_Format, RGBA_ASTC_5x5_Format, RGBA_ASTC_6x5_Format, RGBA_ASTC_6x6_Format, RGBA_ASTC_8x5_Format, RGBA_ASTC_8x6_Format, RGBA_ASTC_8x8_Format, RGBA_ASTC_10x5_Format, RGBA_ASTC_10x6_Format, RGBA_ASTC_10x8_Format, RGBA_ASTC_10x10_Format, RGBA_ASTC_12x10_Format, RGBA_ASTC_12x12_Format, RGBA_BPTC_Format, RGB_BPTC_SIGNED_Format, RGB_BPTC_UNSIGNED_Format, RED_RGTC1_Format, SIGNED_RED_RGTC1_Format, RED_GREEN_RGTC2_Format, SIGNED_RED_GREEN_RGTC2_Format, InterpolateDiscrete, InterpolateLinear, InterpolateSmooth, ZeroCurvatureEnding, ZeroSlopeEnding, WrapAroundEnding, LinearEncoding, sRGBEncoding, BasicDepthPacking, RGBADepthPacking, TangentSpaceNormalMap, ObjectSpaceNormalMap, NoColorSpace, SRGBColorSpace, LinearSRGBColorSpace, DisplayP3ColorSpace, LinearDisplayP3ColorSpace, LinearTransfer, SRGBTransfer, Rec709Primaries, P3Primaries, KeepStencilOp, AlwaysStencilFunc, NeverCompare, LessCompare, EqualCompare, LessEqualCompare, GreaterCompare, NotEqualCompare, GreaterEqualCompare, AlwaysCompare, StaticDrawUsage, GLSL3, _SRGBAFormat, WebGLCoordinateSystem, WebGPUCoordinateSystem, EventDispatcher, _lut, _seed, DEG2RAD, RAD2DEG, MathUtils, Vector2, Matrix3, _m3, _cache, LINEAR_SRGB_TO_LINEAR_DISPLAY_P3, LINEAR_DISPLAY_P3_TO_LINEAR_SRGB, COLOR_SPACES, SUPPORTED_WORKING_COLOR_SPACES, ColorManagement, _canvas, ImageUtils, _sourceId, Source, _textureId, Texture, Vector4, RenderTarget, WebGLRenderTarget, DataArrayTexture, Data3DTexture, Quaternion, Vector3, _vector$c, _quaternion$4, Box3, _points, _vector$b, _box$4, _v0$2, _v1$7, _v2$4, _f0, _f1, _f2, _center, _extents, _triangleNormal, _testAxis, _box$3, _v1$6, _v2$3, Sphere, _vector$a, _segCenter, _segDir, _diff, _edge1, _edge2, _normal$1, Ray, Matrix4, _v1$5, _m1$2, _zero, _one, _x, _y, _z, _matrix$1, _quaternion$3, Euler, Layers, _object3DId, _v1$4, _q1, _m1$1, _target, _position$3, _scale$2, _quaternion$2, _xAxis, _yAxis, _zAxis, _addedEvent, _removedEvent, Object3D, _v0$1, _v1$3, _v2$2, _v3$1, _vab, _vac, _vbc, _vap, _vbp, _vcp, warnedGetUV, Triangle, _colorKeywords, _hslA, _hslB, Color, _color, _materialId, Material, MeshBasicMaterial, _vector$9, _vector2$1, BufferAttribute, Uint16BufferAttribute, Uint32BufferAttribute, Float32BufferAttribute, _id$2, _m1, _obj, _offset, _box$2, _boxMorphTargets, _vector$8, BufferGeometry, _inverseMatrix$3, _ray$3, _sphere$6, _sphereHitAt, _vA$1, _vB$1, _vC$1, _tempA, _morphA, _uvA$1, _uvB$1, _uvC$1, _normalA, _normalB, _normalC, _intersectionPoint, _intersectionPointWorld, Mesh, BoxGeometry, UniformsUtils, default_vertex, default_fragment, ShaderMaterial, Camera, PerspectiveCamera, fov, aspect, CubeCamera, CubeTexture, WebGLCubeRenderTarget, _vector1, _vector2, _normalMatrix, Plane, _sphere$5, _vector$7, Frustum, PlaneGeometry, alphahash_fragment, alphahash_pars_fragment, alphamap_fragment, alphamap_pars_fragment, alphatest_fragment, alphatest_pars_fragment, aomap_fragment, aomap_pars_fragment, batching_pars_vertex, batching_vertex, begin_vertex, beginnormal_vertex, bsdfs, iridescence_fragment, bumpmap_pars_fragment, clipping_planes_fragment, clipping_planes_pars_fragment, clipping_planes_pars_vertex, clipping_planes_vertex, color_fragment, color_pars_fragment, color_pars_vertex, color_vertex, common, cube_uv_reflection_fragment, defaultnormal_vertex, displacementmap_pars_vertex, displacementmap_vertex, emissivemap_fragment, emissivemap_pars_fragment, colorspace_fragment, colorspace_pars_fragment, envmap_fragment, envmap_common_pars_fragment, envmap_pars_fragment, envmap_pars_vertex, envmap_vertex, fog_vertex, fog_pars_vertex, fog_fragment, fog_pars_fragment, gradientmap_pars_fragment, lightmap_fragment, lightmap_pars_fragment, lights_lambert_fragment, lights_lambert_pars_fragment, lights_pars_begin, envmap_physical_pars_fragment, lights_toon_fragment, lights_toon_pars_fragment, lights_phong_fragment, lights_phong_pars_fragment, lights_physical_fragment, lights_physical_pars_fragment, lights_fragment_begin, lights_fragment_maps, lights_fragment_end, logdepthbuf_fragment, logdepthbuf_pars_fragment, logdepthbuf_pars_vertex, logdepthbuf_vertex, map_fragment, map_pars_fragment, map_particle_fragment, map_particle_pars_fragment, metalnessmap_fragment, metalnessmap_pars_fragment, morphcolor_vertex, morphnormal_vertex, morphtarget_pars_vertex, morphtarget_vertex, normal_fragment_begin, normal_fragment_maps, normal_pars_fragment, normal_pars_vertex, normal_vertex, normalmap_pars_fragment, clearcoat_normal_fragment_begin, clearcoat_normal_fragment_maps, clearcoat_pars_fragment, iridescence_pars_fragment, opaque_fragment, packing, premultiplied_alpha_fragment, project_vertex, dithering_fragment, dithering_pars_fragment, roughnessmap_fragment, roughnessmap_pars_fragment, shadowmap_pars_fragment, shadowmap_pars_vertex, shadowmap_vertex, shadowmask_pars_fragment, skinbase_vertex, skinning_pars_vertex, skinning_vertex, skinnormal_vertex, specularmap_fragment, specularmap_pars_fragment, tonemapping_fragment, tonemapping_pars_fragment, transmission_fragment, transmission_pars_fragment, uv_pars_fragment, uv_pars_vertex, uv_vertex, worldpos_vertex, vertex$h, fragment$h, vertex$g, fragment$g, vertex$f, fragment$f, vertex$e, fragment$e, vertex$d, fragment$d, vertex$c, fragment$c, vertex$b, fragment$b, vertex$a, fragment$a, vertex$9, fragment$9, vertex$8, fragment$8, vertex$7, fragment$7, vertex$6, fragment$6, vertex$5, fragment$5, vertex$4, fragment$4, vertex$3, fragment$3, vertex$2, fragment$2, vertex$1, fragment$1, ShaderChunk, UniformsLib, ShaderLib, _rgb, OrthographicCamera, LOD_MIN, EXTRA_LOD_SIGMA, MAX_SAMPLES, _flatCamera, _clearColor, _oldTarget, _oldActiveCubeFace, _oldActiveMipmapLevel, PHI, INV_PHI, _axisDirections, PMREMGenerator, DepthTexture, emptyTexture, emptyShadowTexture, emptyArrayTexture, empty3dTexture, emptyCubeTexture, arrayCacheF32, arrayCacheI32, mat4array, mat3array, mat2array, SingleUniform, PureArrayUniform, StructuredUniform, RePathPart, WebGLUniforms, COMPLETION_STATUS_KHR, programIdCount, includePattern, shaderChunkMap, unrollLoopPattern, _id$1, WebGLShaderCache, WebGLShaderStage, nextVersion, MeshDepthMaterial, MeshDistanceMaterial, vertex, fragment, ArrayCamera, Group, _moveEvent, WebXRController, WebXRManager, WebGLRenderer, WebGL1Renderer, Fog, Scene, InstancedBufferAttribute, _instanceLocalMatrix, _instanceWorldMatrix, _instanceIntersects, _box3, _identity, _mesh$1, _sphere$3, InstancedMesh, PointsMaterial, _inverseMatrix, _ray, _sphere, _position$2, Points, CanvasTexture, Curve, EllipseCurve, ArcCurve, tmp, px, py, pz, CatmullRomCurve3, CubicBezierCurve, CubicBezierCurve3, LineCurve, LineCurve3, QuadraticBezierCurve, QuadraticBezierCurve3, SplineCurve, Curves, CylinderGeometry, SphereGeometry, TorusGeometry, TubeGeometry, RawShaderMaterial, MeshStandardMaterial, MeshPhysicalMaterial, Interpolant, CubicInterpolant, LinearInterpolant, DiscreteInterpolant, KeyframeTrack, BooleanKeyframeTrack, ColorKeyframeTrack, NumberKeyframeTrack, QuaternionLinearInterpolant, QuaternionKeyframeTrack, StringKeyframeTrack, VectorKeyframeTrack, Cache, LoadingManager, DefaultLoadingManager, Loader, ImageLoader, TextureLoader, Light, HemisphereLight, _projScreenMatrix$1, _lightPositionWorld$1, _lookTarget$1, LightShadow, _projScreenMatrix, _lightPositionWorld, _lookTarget, PointLightShadow, PointLight, DirectionalLightShadow, DirectionalLight, Clock, _RESERVED_CHARS_RE, _reservedRe, _wordChar, _wordCharOrDot, _directoryRe, _nodeRe, _objectRe, _propertyRe, _trackRe, _supportedObjectNames, Composite, PropertyBinding, _controlInterpolantsResultBuffer;
+  function ascSort(a2, b2) {
+    return a2.distance - b2.distance;
+  }
+  function intersectObject(object, raycaster, intersects, recursive) {
+    if (object.layers.test(raycaster.layers)) {
+      object.raycast(raycaster, intersects);
+    }
+    if (recursive === true) {
+      const children = object.children;
+      for (let i = 0, l = children.length; i < l; i++) {
+        intersectObject(children[i], raycaster, intersects, true);
+      }
+    }
+  }
+  var REVISION, CullFaceNone, CullFaceBack, CullFaceFront, PCFShadowMap, PCFSoftShadowMap, VSMShadowMap, FrontSide, BackSide, DoubleSide, NoBlending, NormalBlending, AdditiveBlending, SubtractiveBlending, MultiplyBlending, CustomBlending, AddEquation, SubtractEquation, ReverseSubtractEquation, MinEquation, MaxEquation, ZeroFactor, OneFactor, SrcColorFactor, OneMinusSrcColorFactor, SrcAlphaFactor, OneMinusSrcAlphaFactor, DstAlphaFactor, OneMinusDstAlphaFactor, DstColorFactor, OneMinusDstColorFactor, SrcAlphaSaturateFactor, ConstantColorFactor, OneMinusConstantColorFactor, ConstantAlphaFactor, OneMinusConstantAlphaFactor, NeverDepth, AlwaysDepth, LessDepth, LessEqualDepth, EqualDepth, GreaterEqualDepth, GreaterDepth, NotEqualDepth, MultiplyOperation, MixOperation, AddOperation, NoToneMapping, LinearToneMapping, ReinhardToneMapping, CineonToneMapping, ACESFilmicToneMapping, CustomToneMapping, AgXToneMapping, UVMapping, CubeReflectionMapping, CubeRefractionMapping, EquirectangularReflectionMapping, EquirectangularRefractionMapping, CubeUVReflectionMapping, RepeatWrapping, ClampToEdgeWrapping, MirroredRepeatWrapping, NearestFilter, NearestMipmapNearestFilter, NearestMipmapLinearFilter, LinearFilter, LinearMipmapNearestFilter, LinearMipmapLinearFilter, UnsignedByteType, ByteType, ShortType, UnsignedShortType, IntType, UnsignedIntType, FloatType, HalfFloatType, UnsignedShort4444Type, UnsignedShort5551Type, UnsignedInt248Type, AlphaFormat, RGBAFormat, LuminanceFormat, LuminanceAlphaFormat, DepthFormat, DepthStencilFormat, RedFormat, RedIntegerFormat, RGFormat, RGIntegerFormat, RGBAIntegerFormat, RGB_S3TC_DXT1_Format, RGBA_S3TC_DXT1_Format, RGBA_S3TC_DXT3_Format, RGBA_S3TC_DXT5_Format, RGB_PVRTC_4BPPV1_Format, RGB_PVRTC_2BPPV1_Format, RGBA_PVRTC_4BPPV1_Format, RGBA_PVRTC_2BPPV1_Format, RGB_ETC1_Format, RGB_ETC2_Format, RGBA_ETC2_EAC_Format, RGBA_ASTC_4x4_Format, RGBA_ASTC_5x4_Format, RGBA_ASTC_5x5_Format, RGBA_ASTC_6x5_Format, RGBA_ASTC_6x6_Format, RGBA_ASTC_8x5_Format, RGBA_ASTC_8x6_Format, RGBA_ASTC_8x8_Format, RGBA_ASTC_10x5_Format, RGBA_ASTC_10x6_Format, RGBA_ASTC_10x8_Format, RGBA_ASTC_10x10_Format, RGBA_ASTC_12x10_Format, RGBA_ASTC_12x12_Format, RGBA_BPTC_Format, RGB_BPTC_SIGNED_Format, RGB_BPTC_UNSIGNED_Format, RED_RGTC1_Format, SIGNED_RED_RGTC1_Format, RED_GREEN_RGTC2_Format, SIGNED_RED_GREEN_RGTC2_Format, InterpolateDiscrete, InterpolateLinear, InterpolateSmooth, ZeroCurvatureEnding, ZeroSlopeEnding, WrapAroundEnding, LinearEncoding, sRGBEncoding, BasicDepthPacking, RGBADepthPacking, TangentSpaceNormalMap, ObjectSpaceNormalMap, NoColorSpace, SRGBColorSpace, LinearSRGBColorSpace, DisplayP3ColorSpace, LinearDisplayP3ColorSpace, LinearTransfer, SRGBTransfer, Rec709Primaries, P3Primaries, KeepStencilOp, AlwaysStencilFunc, NeverCompare, LessCompare, EqualCompare, LessEqualCompare, GreaterCompare, NotEqualCompare, GreaterEqualCompare, AlwaysCompare, StaticDrawUsage, GLSL3, _SRGBAFormat, WebGLCoordinateSystem, WebGPUCoordinateSystem, EventDispatcher, _lut, _seed, DEG2RAD, RAD2DEG, MathUtils, Vector2, Matrix3, _m3, _cache, LINEAR_SRGB_TO_LINEAR_DISPLAY_P3, LINEAR_DISPLAY_P3_TO_LINEAR_SRGB, COLOR_SPACES, SUPPORTED_WORKING_COLOR_SPACES, ColorManagement, _canvas, ImageUtils, _sourceId, Source, _textureId, Texture, Vector4, RenderTarget, WebGLRenderTarget, DataArrayTexture, Data3DTexture, Quaternion, Vector3, _vector$c, _quaternion$4, Box3, _points, _vector$b, _box$4, _v0$2, _v1$7, _v2$4, _f0, _f1, _f2, _center, _extents, _triangleNormal, _testAxis, _box$3, _v1$6, _v2$3, Sphere, _vector$a, _segCenter, _segDir, _diff, _edge1, _edge2, _normal$1, Ray, Matrix4, _v1$5, _m1$2, _zero, _one, _x, _y, _z, _matrix$1, _quaternion$3, Euler, Layers, _object3DId, _v1$4, _q1, _m1$1, _target, _position$3, _scale$2, _quaternion$2, _xAxis, _yAxis, _zAxis, _addedEvent, _removedEvent, Object3D, _v0$1, _v1$3, _v2$2, _v3$1, _vab, _vac, _vbc, _vap, _vbp, _vcp, warnedGetUV, Triangle, _colorKeywords, _hslA, _hslB, Color, _color, _materialId, Material, MeshBasicMaterial, _vector$9, _vector2$1, BufferAttribute, Uint16BufferAttribute, Uint32BufferAttribute, Float32BufferAttribute, _id$2, _m1, _obj, _offset, _box$2, _boxMorphTargets, _vector$8, BufferGeometry, _inverseMatrix$3, _ray$3, _sphere$6, _sphereHitAt, _vA$1, _vB$1, _vC$1, _tempA, _morphA, _uvA$1, _uvB$1, _uvC$1, _normalA, _normalB, _normalC, _intersectionPoint, _intersectionPointWorld, Mesh, BoxGeometry, UniformsUtils, default_vertex, default_fragment, ShaderMaterial, Camera, PerspectiveCamera, fov, aspect, CubeCamera, CubeTexture, WebGLCubeRenderTarget, _vector1, _vector2, _normalMatrix, Plane, _sphere$5, _vector$7, Frustum, PlaneGeometry, alphahash_fragment, alphahash_pars_fragment, alphamap_fragment, alphamap_pars_fragment, alphatest_fragment, alphatest_pars_fragment, aomap_fragment, aomap_pars_fragment, batching_pars_vertex, batching_vertex, begin_vertex, beginnormal_vertex, bsdfs, iridescence_fragment, bumpmap_pars_fragment, clipping_planes_fragment, clipping_planes_pars_fragment, clipping_planes_pars_vertex, clipping_planes_vertex, color_fragment, color_pars_fragment, color_pars_vertex, color_vertex, common, cube_uv_reflection_fragment, defaultnormal_vertex, displacementmap_pars_vertex, displacementmap_vertex, emissivemap_fragment, emissivemap_pars_fragment, colorspace_fragment, colorspace_pars_fragment, envmap_fragment, envmap_common_pars_fragment, envmap_pars_fragment, envmap_pars_vertex, envmap_vertex, fog_vertex, fog_pars_vertex, fog_fragment, fog_pars_fragment, gradientmap_pars_fragment, lightmap_fragment, lightmap_pars_fragment, lights_lambert_fragment, lights_lambert_pars_fragment, lights_pars_begin, envmap_physical_pars_fragment, lights_toon_fragment, lights_toon_pars_fragment, lights_phong_fragment, lights_phong_pars_fragment, lights_physical_fragment, lights_physical_pars_fragment, lights_fragment_begin, lights_fragment_maps, lights_fragment_end, logdepthbuf_fragment, logdepthbuf_pars_fragment, logdepthbuf_pars_vertex, logdepthbuf_vertex, map_fragment, map_pars_fragment, map_particle_fragment, map_particle_pars_fragment, metalnessmap_fragment, metalnessmap_pars_fragment, morphcolor_vertex, morphnormal_vertex, morphtarget_pars_vertex, morphtarget_vertex, normal_fragment_begin, normal_fragment_maps, normal_pars_fragment, normal_pars_vertex, normal_vertex, normalmap_pars_fragment, clearcoat_normal_fragment_begin, clearcoat_normal_fragment_maps, clearcoat_pars_fragment, iridescence_pars_fragment, opaque_fragment, packing, premultiplied_alpha_fragment, project_vertex, dithering_fragment, dithering_pars_fragment, roughnessmap_fragment, roughnessmap_pars_fragment, shadowmap_pars_fragment, shadowmap_pars_vertex, shadowmap_vertex, shadowmask_pars_fragment, skinbase_vertex, skinning_pars_vertex, skinning_vertex, skinnormal_vertex, specularmap_fragment, specularmap_pars_fragment, tonemapping_fragment, tonemapping_pars_fragment, transmission_fragment, transmission_pars_fragment, uv_pars_fragment, uv_pars_vertex, uv_vertex, worldpos_vertex, vertex$h, fragment$h, vertex$g, fragment$g, vertex$f, fragment$f, vertex$e, fragment$e, vertex$d, fragment$d, vertex$c, fragment$c, vertex$b, fragment$b, vertex$a, fragment$a, vertex$9, fragment$9, vertex$8, fragment$8, vertex$7, fragment$7, vertex$6, fragment$6, vertex$5, fragment$5, vertex$4, fragment$4, vertex$3, fragment$3, vertex$2, fragment$2, vertex$1, fragment$1, ShaderChunk, UniformsLib, ShaderLib, _rgb, OrthographicCamera, LOD_MIN, EXTRA_LOD_SIGMA, MAX_SAMPLES, _flatCamera, _clearColor, _oldTarget, _oldActiveCubeFace, _oldActiveMipmapLevel, PHI, INV_PHI, _axisDirections, PMREMGenerator, DepthTexture, emptyTexture, emptyShadowTexture, emptyArrayTexture, empty3dTexture, emptyCubeTexture, arrayCacheF32, arrayCacheI32, mat4array, mat3array, mat2array, SingleUniform, PureArrayUniform, StructuredUniform, RePathPart, WebGLUniforms, COMPLETION_STATUS_KHR, programIdCount, includePattern, shaderChunkMap, unrollLoopPattern, _id$1, WebGLShaderCache, WebGLShaderStage, nextVersion, MeshDepthMaterial, MeshDistanceMaterial, vertex, fragment, ArrayCamera, Group, _moveEvent, WebXRController, WebXRManager, WebGLRenderer, WebGL1Renderer, Fog, Scene, InstancedBufferAttribute, _instanceLocalMatrix, _instanceWorldMatrix, _instanceIntersects, _box3, _identity, _mesh$1, _sphere$3, InstancedMesh, PointsMaterial, _inverseMatrix, _ray, _sphere, _position$2, Points, VideoTexture, CanvasTexture, Curve, EllipseCurve, ArcCurve, tmp, px, py, pz, CatmullRomCurve3, CubicBezierCurve, CubicBezierCurve3, LineCurve, LineCurve3, QuadraticBezierCurve, QuadraticBezierCurve3, SplineCurve, Curves, CircleGeometry, CylinderGeometry, SphereGeometry, TorusGeometry, TubeGeometry, RawShaderMaterial, MeshStandardMaterial, MeshPhysicalMaterial, Interpolant, CubicInterpolant, LinearInterpolant, DiscreteInterpolant, KeyframeTrack, BooleanKeyframeTrack, ColorKeyframeTrack, NumberKeyframeTrack, QuaternionLinearInterpolant, QuaternionKeyframeTrack, StringKeyframeTrack, VectorKeyframeTrack, Cache, LoadingManager, DefaultLoadingManager, Loader, ImageLoader, TextureLoader, Light, HemisphereLight, _projScreenMatrix$1, _lightPositionWorld$1, _lookTarget$1, LightShadow, _projScreenMatrix, _lightPositionWorld, _lookTarget, PointLightShadow, PointLight, DirectionalLightShadow, DirectionalLight, Clock, _RESERVED_CHARS_RE, _reservedRe, _wordChar, _wordCharOrDot, _directoryRe, _nodeRe, _objectRe, _propertyRe, _trackRe, _supportedObjectNames, Composite, PropertyBinding, _controlInterpolantsResultBuffer, Raycaster;
   var init_three_module = __esm({
     "node_modules/three/build/three.module.js"() {
       REVISION = "160";
@@ -18180,6 +18194,33 @@
           }
         }
       };
+      VideoTexture = class extends Texture {
+        constructor(video, mapping, wrapS, wrapT, magFilter, minFilter, format, type, anisotropy) {
+          super(video, mapping, wrapS, wrapT, magFilter, minFilter, format, type, anisotropy);
+          this.isVideoTexture = true;
+          this.minFilter = minFilter !== void 0 ? minFilter : LinearFilter;
+          this.magFilter = magFilter !== void 0 ? magFilter : LinearFilter;
+          this.generateMipmaps = false;
+          const scope = this;
+          function updateVideo() {
+            scope.needsUpdate = true;
+            video.requestVideoFrameCallback(updateVideo);
+          }
+          if ("requestVideoFrameCallback" in video) {
+            video.requestVideoFrameCallback(updateVideo);
+          }
+        }
+        clone() {
+          return new this.constructor(this.image).copy(this);
+        }
+        update() {
+          const video = this.image;
+          const hasVideoFrameCallback = "requestVideoFrameCallback" in video;
+          if (hasVideoFrameCallback === false && video.readyState >= video.HAVE_CURRENT_DATA) {
+            this.needsUpdate = true;
+          }
+        }
+      };
       CanvasTexture = class extends Texture {
         constructor(canvas, mapping, wrapS, wrapT, magFilter, minFilter, format, type, anisotropy) {
           super(canvas, mapping, wrapS, wrapT, magFilter, minFilter, format, type, anisotropy);
@@ -18908,6 +18949,53 @@
         QuadraticBezierCurve3,
         SplineCurve
       });
+      CircleGeometry = class _CircleGeometry extends BufferGeometry {
+        constructor(radius = 1, segments = 32, thetaStart = 0, thetaLength = Math.PI * 2) {
+          super();
+          this.type = "CircleGeometry";
+          this.parameters = {
+            radius,
+            segments,
+            thetaStart,
+            thetaLength
+          };
+          segments = Math.max(3, segments);
+          const indices = [];
+          const vertices = [];
+          const normals = [];
+          const uvs = [];
+          const vertex2 = new Vector3();
+          const uv = new Vector2();
+          vertices.push(0, 0, 0);
+          normals.push(0, 0, 1);
+          uvs.push(0.5, 0.5);
+          for (let s = 0, i = 3; s <= segments; s++, i += 3) {
+            const segment = thetaStart + s / segments * thetaLength;
+            vertex2.x = radius * Math.cos(segment);
+            vertex2.y = radius * Math.sin(segment);
+            vertices.push(vertex2.x, vertex2.y, vertex2.z);
+            normals.push(0, 0, 1);
+            uv.x = (vertices[i] / radius + 1) / 2;
+            uv.y = (vertices[i + 1] / radius + 1) / 2;
+            uvs.push(uv.x, uv.y);
+          }
+          for (let i = 1; i <= segments; i++) {
+            indices.push(i, i + 1, 0);
+          }
+          this.setIndex(indices);
+          this.setAttribute("position", new Float32BufferAttribute(vertices, 3));
+          this.setAttribute("normal", new Float32BufferAttribute(normals, 3));
+          this.setAttribute("uv", new Float32BufferAttribute(uvs, 2));
+        }
+        copy(source) {
+          super.copy(source);
+          this.parameters = Object.assign({}, source.parameters);
+          return this;
+        }
+        static fromJSON(data) {
+          return new _CircleGeometry(data.radius, data.segments, data.thetaStart, data.thetaLength);
+        }
+      };
       CylinderGeometry = class _CylinderGeometry extends BufferGeometry {
         constructor(radiusTop = 1, radiusBottom = 1, height = 1, radialSegments = 32, heightSegments = 1, openEnded = false, thetaStart = 0, thetaLength = Math.PI * 2) {
           super();
@@ -20802,6 +20890,50 @@
         ]
       ];
       _controlInterpolantsResultBuffer = new Float32Array(1);
+      Raycaster = class {
+        constructor(origin, direction, near = 0, far = Infinity) {
+          this.ray = new Ray(origin, direction);
+          this.near = near;
+          this.far = far;
+          this.camera = null;
+          this.layers = new Layers();
+          this.params = {
+            Mesh: {},
+            Line: { threshold: 1 },
+            LOD: {},
+            Points: { threshold: 1 },
+            Sprite: {}
+          };
+        }
+        set(origin, direction) {
+          this.ray.set(origin, direction);
+        }
+        setFromCamera(coords, camera) {
+          if (camera.isPerspectiveCamera) {
+            this.ray.origin.setFromMatrixPosition(camera.matrixWorld);
+            this.ray.direction.set(coords.x, coords.y, 0.5).unproject(camera).sub(this.ray.origin).normalize();
+            this.camera = camera;
+          } else if (camera.isOrthographicCamera) {
+            this.ray.origin.set(coords.x, coords.y, (camera.near + camera.far) / (camera.near - camera.far)).unproject(camera);
+            this.ray.direction.set(0, 0, -1).transformDirection(camera.matrixWorld);
+            this.camera = camera;
+          } else {
+            console.error("THREE.Raycaster: Unsupported camera type: " + camera.type);
+          }
+        }
+        intersectObject(object, recursive = true, intersects = []) {
+          intersectObject(object, this, intersects, recursive);
+          intersects.sort(ascSort);
+          return intersects;
+        }
+        intersectObjects(objects, recursive = true, intersects = []) {
+          for (let i = 0, l = objects.length; i < l; i++) {
+            intersectObject(objects[i], this, intersects, recursive);
+          }
+          intersects.sort(ascSort);
+          return intersects;
+        }
+      };
       if (typeof __THREE_DEVTOOLS__ !== "undefined") {
         __THREE_DEVTOOLS__.dispatchEvent(new CustomEvent("register", { detail: {
           revision: REVISION
@@ -21858,8 +21990,8 @@
           // 自动切入瞄准只限进攻端半场
           chargeTime: 1.35,
           // 蓄力从 0 到满的时间（秒）
-          tapHold: 0.18,
-          // 持球时左键：短按=拍球，超过该秒数=长按进入蓄力
+          cancelCharge: 0.06,
+          // 左键点按低于该蓄力值 -> 视为取消，不出手不记出手数
           speedMin: 5.6,
           // 出手初速度下限（power=0）
           speedMax: 17.5,
@@ -21915,6 +22047,36 @@
           bloomScore: 0.95,
           shakeAmp: 0.045,
           shakeDur: 0.28
+        },
+        /* ---------- 电影院（球馆 +z 墙红门进入；影厅为独立场景） ---------- */
+        cinema: {
+          // 球馆侧入口门：玩家走进该圆区域自动传送进影厅
+          gymDoor: { x: 6, z: 16.35, r: 1.25 },
+          // 影厅外壳尺寸（中心在原点）
+          halfW: 9,
+          halfL: 7,
+          height: 7,
+          // 观众席：4 排 x 7 座，逐排升高
+          rows: [
+            { z: -1.6, y: 0 },
+            { z: 0.6, y: 0.5 },
+            { z: 2.8, y: 1 },
+            { z: 5, y: 1.5 }
+          ],
+          cols: 7,
+          colSpacing: 1.2,
+          eyeSit: 1.18,
+          // 入座视高（相对台基）
+          walkSpeed: 3,
+          // 出口门（影厅 +z 墙）：走进 -> 回球馆
+          exitDoor: { x: 6.5, z: 6.9, r: 1.15 },
+          // 银幕（16:9，位于 -z 前墙）
+          screenW: 9.2,
+          screenH: 5.18,
+          screenY: 3.4,
+          screenZ: -6.9,
+          // video/ 清单生成器单文件内嵌上限（字节），超过则提示改用"选择视频"
+          maxEmbedMB: 80
         }
       };
     }
@@ -29009,55 +29171,90 @@
     };
   }
   function makeCourtTexture() {
-    const W = 2048, H = 1100;
+    const PPM = 80;
+    const G = CFG.gym, C = CFG.court;
+    const W = Math.round(G.halfW * 2 * PPM);
+    const H = Math.round(G.halfL * 2 * PPM);
     const cv = document.createElement("canvas");
     cv.width = W;
     cv.height = H;
     const ctx = cv.getContext("2d");
     const rnd = mulberry32(20260924);
-    const grad = ctx.createLinearGradient(0, 0, 0, H);
+    const cx = (x) => (x + G.halfW) * PPM;
+    const cz = (z) => (z + G.halfL) * PPM;
+    const pm = (m) => m * PPM;
+    const bg = ctx.createLinearGradient(0, 0, 0, H);
+    bg.addColorStop(0, "#2b3038");
+    bg.addColorStop(0.5, "#272b32");
+    bg.addColorStop(1, "#22262d");
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, W, H);
+    for (let i = 0; i < 9e3; i++) {
+      ctx.fillStyle = rnd() > 0.5 ? "rgba(255,255,255,0.014)" : "rgba(0,0,0,0.05)";
+      ctx.fillRect(rnd() * W, rnd() * H, 2, 2);
+    }
+    ctx.strokeStyle = "rgba(0,0,0,0.16)";
+    ctx.lineWidth = 2;
+    for (let gx = -G.halfW + 2; gx < G.halfW; gx += 2) {
+      ctx.beginPath();
+      ctx.moveTo(cx(gx), 0);
+      ctx.lineTo(cx(gx), H);
+      ctx.stroke();
+    }
+    for (let gz = -G.halfL + 2; gz < G.halfL; gz += 2) {
+      ctx.beginPath();
+      ctx.moveTo(0, cz(gz));
+      ctx.lineTo(W, cz(gz));
+      ctx.stroke();
+    }
+    const x0 = cx(-C.halfW), x1 = cx(C.halfW), z0 = cz(-C.halfL), z1 = cz(C.halfL);
+    const cw = x1 - x0, ch = z1 - z0;
+    const grad = ctx.createLinearGradient(0, z0, 0, z1);
     grad.addColorStop(0, "#c98a45");
     grad.addColorStop(0.5, "#d69a55");
     grad.addColorStop(1, "#c68541");
     ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, W, H);
+    ctx.fillRect(x0, z0, cw, ch);
     const plankH = 14;
-    for (let y = 0; y < H; y += plankH) {
+    for (let y = z0; y < z1; y += plankH) {
       const shade = 0.86 + rnd() * 0.24;
       ctx.fillStyle = `rgba(${Math.round(178 * shade)}, ${Math.round(118 * shade)}, ${Math.round(58 * shade)}, 0.5)`;
-      ctx.fillRect(0, y, W, plankH - 1.5);
+      ctx.fillRect(x0, y, cw, plankH - 1.5);
       ctx.strokeStyle = `rgba(120, 70, 25, ${0.05 + rnd() * 0.08})`;
       ctx.lineWidth = 1;
       for (let g = 0; g < 3; g++) {
         ctx.beginPath();
         const gy = y + rnd() * plankH;
-        ctx.moveTo(0, gy);
-        for (let x = 0; x < W; x += 64) ctx.lineTo(x, gy + (rnd() - 0.5) * 3);
+        ctx.moveTo(x0, gy);
+        for (let px2 = x0; px2 < x1; px2 += 64) ctx.lineTo(px2, gy + (rnd() - 0.5) * 3);
         ctx.stroke();
       }
       if (rnd() < 0.35) {
         ctx.fillStyle = "rgba(90, 55, 20, 0.35)";
-        ctx.fillRect(rnd() * W, y, 2, plankH);
+        ctx.fillRect(x0 + rnd() * cw, y, 2, plankH);
       }
     }
-    const sheen = ctx.createLinearGradient(0, H * 0.3, 0, H * 0.55);
+    const sheen = ctx.createLinearGradient(0, z0 + ch * 0.3, 0, z0 + ch * 0.55);
     sheen.addColorStop(0, "rgba(255,240,210,0)");
     sheen.addColorStop(0.5, "rgba(255,240,210,0.10)");
     sheen.addColorStop(1, "rgba(255,240,210,0)");
     ctx.fillStyle = sheen;
-    ctx.fillRect(0, 0, W, H);
-    const { halfW, halfL } = CFG.court;
-    const sy = (z) => (z + halfL) / (halfL * 2) * H;
-    const su = (m) => m / (halfW * 2) * W;
-    const sv = (m) => m / (halfL * 2) * H;
+    ctx.fillRect(x0, z0, cw, ch);
+    ctx.strokeStyle = "rgba(0,0,0,0.4)";
+    ctx.lineWidth = 3;
+    ctx.strokeRect(x0, z0, cw, ch);
+    const { halfW, halfL } = C;
+    const sy = (z) => cz(z);
+    const su = (m) => pm(m);
+    const sv = (m) => pm(m);
     const ell = (x, y, r, a0, a1, ccw) => ctx.ellipse(x, y, su(r), sv(r), 0, a0, a1, ccw);
     ctx.strokeStyle = "#f5f1e8";
     ctx.lineCap = "round";
     ctx.lineWidth = 5;
-    ctx.strokeRect(2, 2, W - 4, H - 4);
+    ctx.strokeRect(x0 + 3, z0 + 3, cw - 6, ch - 6);
     ctx.beginPath();
-    ctx.moveTo(W / 2, 0);
-    ctx.lineTo(W / 2, H);
+    ctx.moveTo(W / 2, z0);
+    ctx.lineTo(W / 2, z1);
     ctx.stroke();
     ctx.beginPath();
     ell(W / 2, H / 2, 1.8, 0, Math.PI * 2);
@@ -29074,46 +29271,46 @@
       const faceZ = endZ - sign * 1.2;
       const rimFloorZ = faceZ - sign * CFG.hoop.rimOffset;
       const ftZ = endZ - sign * 5.8;
-      const cx = W / 2;
+      const cxp = W / 2;
       const keyW = su(4.9 / 2);
       const yEnd = sy(endZ), yFt = sy(ftZ);
-      ctx.strokeRect(cx - keyW, Math.min(yEnd, yFt), keyW * 2, Math.abs(yFt - yEnd));
+      ctx.strokeRect(cxp - keyW, Math.min(yEnd, yFt), keyW * 2, Math.abs(yFt - yEnd));
       ctx.fillStyle = "rgba(70, 110, 160, 0.16)";
-      ctx.fillRect(cx - keyW, Math.min(yEnd, yFt), keyW * 2, Math.abs(yFt - yEnd));
+      ctx.fillRect(cxp - keyW, Math.min(yEnd, yFt), keyW * 2, Math.abs(yFt - yEnd));
       ctx.beginPath();
-      ell(cx, yFt, 1.8, 0, Math.PI * 2);
+      ell(cxp, yFt, 1.8, 0, Math.PI * 2);
       ctx.stroke();
       ctx.beginPath();
-      if (sign < 0) ell(cx, sy(rimFloorZ), 1.25, 0, Math.PI, false);
-      else ell(cx, sy(rimFloorZ), 1.25, Math.PI, Math.PI * 2, false);
+      if (sign < 0) ell(cxp, sy(rimFloorZ), 1.25, 0, Math.PI, false);
+      else ell(cxp, sy(rimFloorZ), 1.25, Math.PI, Math.PI * 2, false);
       ctx.stroke();
       const cornerX = su(halfW - 0.9);
       const r3px = su(CFG.shot.zoneRadius);
       const ac = Math.acos(Math.min(1, cornerX / r3px));
       const dy = sv(CFG.shot.zoneRadius) * Math.sin(ac);
-      const cz = sy(rimFloorZ);
+      const czp = sy(rimFloorZ);
       ctx.beginPath();
       if (sign < 0) {
-        ctx.moveTo(cx - cornerX, yEnd);
-        ctx.lineTo(cx - cornerX, cz + dy);
-        ell(cx, cz, CFG.shot.zoneRadius, Math.PI - ac, ac, true);
-        ctx.lineTo(cx + cornerX, yEnd);
+        ctx.moveTo(cxp - cornerX, yEnd);
+        ctx.lineTo(cxp - cornerX, czp + dy);
+        ell(cxp, czp, CFG.shot.zoneRadius, Math.PI - ac, ac, true);
+        ctx.lineTo(cxp + cornerX, yEnd);
       } else {
-        ctx.moveTo(cx - cornerX, yEnd);
-        ctx.lineTo(cx - cornerX, cz - dy);
-        ell(cx, cz, CFG.shot.zoneRadius, Math.PI + ac, Math.PI * 2 - ac, false);
-        ctx.lineTo(cx + cornerX, yEnd);
+        ctx.moveTo(cxp - cornerX, yEnd);
+        ctx.lineTo(cxp - cornerX, czp - dy);
+        ell(cxp, czp, CFG.shot.zoneRadius, Math.PI + ac, Math.PI * 2 - ac, false);
+        ctx.lineTo(cxp + cornerX, yEnd);
       }
       ctx.stroke();
       ctx.restore();
     }
     paintEnd(-1);
     paintEnd(1);
-    ctx.fillStyle = "rgba(245,241,232,0.5)";
-    ctx.font = `bold 56px 'Segoe UI', system-ui`;
+    ctx.fillStyle = "rgba(235,235,235,0.42)";
+    ctx.font = `bold 90px 'Segoe UI', system-ui`;
     ctx.textAlign = "center";
-    ctx.fillText("FIRST-TOUCH HOOPS", W / 2, H - 26);
-    ctx.fillText("STREET  \xB7  GYM  \xB7  3D", W / 2, 62);
+    ctx.fillText("FIRST-TOUCH HOOPS", W / 2, cz(G.halfL - 1.1));
+    ctx.fillText("STREET  \xB7  GYM  \xB7  3D", W / 2, cz(-G.halfL + 1.6));
     const tex = new CanvasTexture(cv);
     tex.colorSpace = SRGBColorSpace;
     tex.anisotropy = 16;
@@ -29229,6 +29426,59 @@
     const tex = new CanvasTexture(cv);
     return tex;
   }
+  function makeDoorSignTexture(text, sub) {
+    const cv = document.createElement("canvas");
+    cv.width = 512;
+    cv.height = 128;
+    const ctx = cv.getContext("2d");
+    const g = ctx.createLinearGradient(0, 0, 0, 128);
+    g.addColorStop(0, "#3d0f14");
+    g.addColorStop(1, "#1e0a0d");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 512, 128);
+    ctx.strokeStyle = "rgba(255,190,90,0.85)";
+    ctx.lineWidth = 5;
+    ctx.strokeRect(9, 9, 494, 110);
+    ctx.fillStyle = "#ffcf7a";
+    ctx.font = `bold 58px 'Microsoft YaHei', system-ui`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(text, 256, sub ? 48 : 64);
+    if (sub) {
+      ctx.font = `24px 'Microsoft YaHei', system-ui`;
+      ctx.fillStyle = "rgba(255,207,122,0.75)";
+      ctx.fillText(sub, 256, 94);
+    }
+    const tex = new CanvasTexture(cv);
+    tex.colorSpace = SRGBColorSpace;
+    return tex;
+  }
+  function makeScreenPlaceholderTexture() {
+    const cv = document.createElement("canvas");
+    cv.width = 1024;
+    cv.height = 576;
+    const ctx = cv.getContext("2d");
+    const g = ctx.createRadialGradient(512, 288, 60, 512, 288, 640);
+    g.addColorStop(0, "#161b26");
+    g.addColorStop(1, "#05070c");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 1024, 576);
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#8fa3c8";
+    ctx.font = `bold 44px 'Microsoft YaHei', system-ui`;
+    ctx.fillText("\u94F6 \u5E55 \u653E \u6620 \u5385", 512, 190);
+    ctx.fillStyle = "#5f6f8c";
+    ctx.font = `28px 'Microsoft YaHei', system-ui`;
+    ctx.fillText("\u2460 \u628A\u89C6\u9891\u6587\u4EF6\u653E\u8FDB video/ \u6587\u4EF6\u5939", 512, 280);
+    ctx.fillText("\u2461 \u53CC\u51FB tools/gen_videos.bat \u751F\u6210\u653E\u6620\u6E05\u5355", 512, 326);
+    ctx.fillText("\u77ED\u7247\u81EA\u52A8\u8FDB\u653E\u6620\u5355\uFF1B\u5927\u6587\u4EF6\u70B9\u201C\u9009\u62E9\u89C6\u9891\u201D", 512, 392);
+    ctx.fillStyle = "#39445a";
+    ctx.font = `24px 'Microsoft YaHei', system-ui`;
+    ctx.fillText("MP4 \xB7 WebM \xB7 MOV \xB7 M4V \xB7 Ogg\uFF08\u4EE5\u6D4F\u89C8\u5668\u53EF\u89E3\u7801\u4E3A\u51C6\uFF09", 512, 448);
+    const tex = new CanvasTexture(cv);
+    tex.colorSpace = SRGBColorSpace;
+    return tex;
+  }
   function makeSkyTexture() {
     const cv = document.createElement("canvas");
     cv.width = 16;
@@ -29254,36 +29504,28 @@
   // src/court.js
   function buildCourt(scene) {
     const floorTex = makeCourtTexture();
-    const floorMat = new MeshPhysicalMaterial({
+    const floorMat = new MeshStandardMaterial({
       map: floorTex,
-      roughness: 0.45,
-      metalness: 0.04,
-      clearcoat: 0.15,
-      clearcoatRoughness: 0.3,
-      envMapIntensity: 0.4
+      roughness: 0.62,
+      metalness: 0.02,
+      envMapIntensity: 0.12
     });
     const paintedWood = (color, rough = 0.6) => new MeshStandardMaterial({ color, roughness: rough, metalness: 0.05, envMapIntensity: 0.4 });
     const floor = new Mesh(
-      new PlaneGeometry(CFG.court.halfW * 2, CFG.court.halfL * 2),
+      new PlaneGeometry(CFG.gym.halfW * 2, CFG.gym.halfL * 2),
       floorMat
     );
     floor.rotation.x = -Math.PI / 2;
     floor.receiveShadow = true;
     scene.add(floor);
-    const apron = new Mesh(
-      new PlaneGeometry(CFG.gym.halfW * 2, CFG.gym.halfL * 2),
-      new MeshStandardMaterial({ color: 2566962, roughness: 0.82, metalness: 0, envMapIntensity: 0.25 })
-    );
-    apron.rotation.x = -Math.PI / 2;
-    apron.position.y = -0.06;
-    apron.receiveShadow = true;
-    scene.add(apron);
     const wallTex = makeWallTexture();
     wallTex.repeat.set(4, 1);
     const wallMat = new MeshStandardMaterial({ map: wallTex, color: 16777215, roughness: 0.92, metalness: 0, envMapIntensity: 0.25, side: BackSide });
+    const ceilMat = new MeshStandardMaterial({ color: 1711912, roughness: 0.95, metalness: 0, envMapIntensity: 0.15, side: BackSide });
+    const hiddenMat = new MeshBasicMaterial({ visible: false });
     const shell = new Mesh(
       new BoxGeometry(CFG.gym.halfW * 2, CFG.gym.height, CFG.gym.halfL * 2),
-      wallMat
+      [wallMat, wallMat, ceilMat, hiddenMat, wallMat, wallMat]
     );
     shell.position.y = CFG.gym.height / 2;
     scene.add(shell);
@@ -29389,6 +29631,9 @@
     hoopGroup.add(netGroup);
     const far = hoopGroup.clone(true);
     far.rotation.y = Math.PI;
+    far.traverse((o) => {
+      if (o.isMesh) o.castShadow = false;
+    });
     scene.add(far);
     const bleacher = new Group();
     const concrete = paintedWood(4870232);
@@ -29415,7 +29660,7 @@
         color.setHex(seatColors[(i + r * 7) % seatColors.length]);
         seats.setColorAt(i, color);
       }
-      seats.castShadow = true;
+      seats.castShadow = false;
       bleacher.add(seats);
       const back = new Mesh(new BoxGeometry(0.06, 0.52, 12.2), concrete);
       back.position.set(x + 0.2, h + 0.3, 0);
@@ -29440,7 +29685,8 @@
       scene.add(g);
     };
     mkRail(20, -CFG.court.halfW - 1.2, 0, Math.PI / 2);
-    mkRail(14, 0, CFG.court.halfL + 1.2, 0);
+    mkRail(9.5, -2.75, CFG.court.halfL + 1.2, 0);
+    mkRail(1.5, 9.75, CFG.court.halfL + 1.2, 0);
     const adMat = new MeshStandardMaterial({ color: 725536, emissive: 2250239, emissiveIntensity: 0.55, roughness: 0.4 });
     const ad1 = new Mesh(new BoxGeometry(0.1, 0.8, 19.5), adMat);
     ad1.position.set(-CFG.court.halfW - 1.7, 0.45, 0);
@@ -29464,6 +29710,43 @@
       const door = new Mesh(new BoxGeometry(1.7, 2.6, 0.12), doorMat);
       door.position.set(dx, 1.3, -CFG.gym.halfL + 0.12);
       scene.add(door);
+    }
+    {
+      const D = CFG.cinema.gymDoor;
+      const g = new Group();
+      g.position.set(D.x, 0, CFG.gym.halfL - 0.06);
+      g.rotation.y = Math.PI;
+      const frameMat = new MeshStandardMaterial({ color: 7214624, roughness: 0.5, metalness: 0.3 });
+      const frame = new Mesh(new BoxGeometry(2.05, 3.15, 0.1), frameMat);
+      frame.position.y = 1.57;
+      g.add(frame);
+      const slab = new Mesh(new BoxGeometry(1.7, 2.8, 0.12), paintedWood(2824722, 0.7));
+      slab.position.set(0, 1.4, 0.04);
+      g.add(slab);
+      const handle = new Mesh(new SphereGeometry(0.05, 10, 8), railMat);
+      handle.position.set(-0.62, 1.35, 0.14);
+      g.add(handle);
+      const crack = new Mesh(
+        new PlaneGeometry(1.56, 0.05),
+        new MeshBasicMaterial({ color: 16756838 })
+      );
+      crack.position.set(0, 2.72, 0.115);
+      g.add(crack);
+      const signTex = makeDoorSignTexture("\u7535 \u5F71 \u9662", "\u{1F3AC} \u8D70\u8FDB\u95E8\u5373\u53EF\u89C2\u5F71");
+      const sign = new Mesh(
+        new PlaneGeometry(2.3, 0.58),
+        new MeshStandardMaterial({ map: signTex, emissiveMap: signTex, emissive: 16777215, emissiveIntensity: 0.9, roughness: 0.6 })
+      );
+      sign.position.set(0, 3.5, 0.1);
+      g.add(sign);
+      const mat2 = new Mesh(
+        new CircleGeometry(0.95, 28),
+        new MeshStandardMaterial({ color: 5903392, emissive: 8003370, emissiveIntensity: 0.5, roughness: 0.9 })
+      );
+      mat2.rotation.x = -Math.PI / 2;
+      mat2.position.set(0, 0.012, 1.1);
+      g.add(mat2);
+      scene.add(g);
     }
     return { netGroup, rim, adTex, floor };
   }
@@ -29515,15 +29798,15 @@
     const dir = new DirectionalLight(16774112, 2.4);
     dir.position.set(4, 14, -2);
     dir.castShadow = true;
-    dir.shadow.mapSize.set(4096, 4096);
-    dir.shadow.camera.left = -12;
-    dir.shadow.camera.right = 12;
-    dir.shadow.camera.top = 14;
-    dir.shadow.camera.bottom = -14;
-    dir.shadow.camera.near = 2;
-    dir.shadow.camera.far = 40;
-    dir.shadow.bias = -1e-4;
-    dir.shadow.normalBias = 0.09;
+    dir.shadow.mapSize.set(2048, 2048);
+    dir.shadow.camera.left = -11;
+    dir.shadow.camera.right = 11;
+    dir.shadow.camera.top = 13;
+    dir.shadow.camera.bottom = -13;
+    dir.shadow.camera.near = 4;
+    dir.shadow.camera.far = 42;
+    dir.shadow.bias = -15e-5;
+    dir.shadow.normalBias = 0.03;
     scene.add(dir);
     scene.add(dir.target);
     dir.target.position.set(0, 0, -8);
@@ -29543,6 +29826,334 @@
       init_config();
       init_textures();
       RIM_POS = new Vector3(0, CFG.hoop.rimHeight, CFG.hoop.boardFaceZ + CFG.hoop.rimOffset);
+    }
+  });
+
+  // src/cinema.js
+  function createCinema({ camera, player, sfx }) {
+    const scene = new Scene();
+    scene.background = new Color(395019);
+    const shellMat = new MeshStandardMaterial({ color: 1316381, roughness: 0.95, metalness: 0, side: BackSide, envMapIntensity: 0.1 });
+    const hiddenMat = new MeshBasicMaterial({ visible: false });
+    const shell = new Mesh(
+      new BoxGeometry(K.halfW * 2, K.height, K.halfL * 2),
+      [shellMat, shellMat, shellMat, hiddenMat, shellMat, shellMat]
+    );
+    shell.position.y = K.height / 2;
+    scene.add(shell);
+    const carpet = new Mesh(
+      new PlaneGeometry(K.halfW * 2, K.halfL * 2),
+      new MeshStandardMaterial({ color: 1711140, roughness: 1, metalness: 0, envMapIntensity: 0.05 })
+    );
+    carpet.rotation.x = -Math.PI / 2;
+    carpet.position.y = 0.01;
+    scene.add(carpet);
+    const bezel = new Mesh(
+      new BoxGeometry(K.screenW + 0.7, K.screenH + 0.55, 0.16),
+      new MeshStandardMaterial({ color: 263434, roughness: 0.9 })
+    );
+    bezel.position.set(0, K.screenY, K.screenZ - 0.06);
+    scene.add(bezel);
+    const placeholderTex = makeScreenPlaceholderTexture();
+    const screenMat = new MeshBasicMaterial({ map: placeholderTex, color: 12108496 });
+    const screen = new Mesh(new PlaneGeometry(K.screenW, K.screenH), screenMat);
+    screen.position.set(0, K.screenY, K.screenZ + 0.03);
+    scene.add(screen);
+    const videoEl = document.getElementById("btv");
+    const videoTex = new VideoTexture(videoEl);
+    videoTex.colorSpace = SRGBColorSpace;
+    videoTex.minFilter = LinearFilter;
+    videoTex.magFilter = LinearFilter;
+    scene.add(new HemisphereLight(3752271, 657932, 0.55));
+    const proj = new PointLight(10466520, 6, 16, 1.6);
+    proj.position.set(0, K.screenY, K.screenZ + 3.2);
+    scene.add(proj);
+    const sconceMat = new MeshStandardMaterial({ color: 2757640, emissive: 16742959, emissiveIntensity: 1.6 });
+    for (const sx of [-1, 1]) {
+      for (const sz of [-3.5, 1.5]) {
+        const s = new Mesh(new BoxGeometry(0.1, 0.5, 0.24), sconceMat);
+        s.position.set(sx * (K.halfW - 0.08), 3.1, sz);
+        scene.add(s);
+        const p = new PointLight(16746564, 2.2, 8, 1.8);
+        p.position.set(sx * (K.halfW - 0.4), 3.1, sz);
+        scene.add(p);
+      }
+    }
+    const seats = [];
+    const seatGeoC = new BoxGeometry(0.95, 0.5, 0.8);
+    const seatGeoB = new BoxGeometry(0.95, 0.72, 0.16);
+    const riserMat = new MeshStandardMaterial({ color: 2106156, roughness: 0.92 });
+    const nosyMat = new MeshStandardMaterial({ color: 1053208, roughness: 0.9 });
+    K.rows.forEach((row, ri) => {
+      if (row.y > 0) {
+        const riser = new Mesh(new BoxGeometry(10.6, row.y, 2.3), ri >= 2 ? riserMat : nosyMat);
+        riser.position.set(0, row.y / 2, row.z);
+        scene.add(riser);
+        const strip = new Mesh(
+          new BoxGeometry(10.6, 0.04, 0.05),
+          new MeshStandardMaterial({ color: 3350538, emissive: 16752720, emissiveIntensity: 1.2 })
+        );
+        strip.position.set(0, row.y + 0.02, row.z - 1.15);
+        scene.add(strip);
+      }
+      for (let ci = 0; ci < K.cols; ci++) {
+        const x = (ci - (K.cols - 1) / 2) * K.colSpacing;
+        const mat = new MeshStandardMaterial({ color: 7021616, roughness: 0.88, metalness: 0.02 });
+        const cushion = new Mesh(seatGeoC, mat);
+        cushion.position.set(x, row.y + 0.25, row.z + 0.15);
+        scene.add(cushion);
+        const back = new Mesh(seatGeoB, mat);
+        back.position.set(x, row.y + 0.82, row.z - 0.42);
+        back.rotation.x = 0.14;
+        scene.add(back);
+        seats.push({ mesh: cushion, mat, x, z: row.z, y: row.y, row: ri, col: ci });
+      }
+    });
+    const exitGroup = new Group();
+    exitGroup.position.set(K.exitDoor.x, 0, K.halfL - 0.06);
+    exitGroup.rotation.y = Math.PI;
+    {
+      const frame = new Mesh(
+        new BoxGeometry(1.9, 2.9, 0.1),
+        new MeshStandardMaterial({ color: 1848612, roughness: 0.6, metalness: 0.3 })
+      );
+      frame.position.y = 1.45;
+      exitGroup.add(frame);
+      const slab = new Mesh(
+        new BoxGeometry(1.55, 2.6, 0.12),
+        new MeshStandardMaterial({ color: 2896960, roughness: 0.7 })
+      );
+      slab.position.set(0, 1.3, 0.04);
+      exitGroup.add(slab);
+      const signTex = makeDoorSignTexture("\u51FA \u53E3", "\u2192 \u7BEE\u7403\u9986");
+      const sign = new Mesh(
+        new PlaneGeometry(1.9, 0.48),
+        new MeshStandardMaterial({ map: signTex, emissiveMap: signTex, emissive: 16777215, emissiveIntensity: 1 })
+      );
+      sign.position.set(0, 3.15, 0.1);
+      exitGroup.add(sign);
+    }
+    scene.add(exitGroup);
+    const exitHit = exitGroup.children[1];
+    const playlist = (window.BB_VIDEOS || []).slice();
+    let cur = -1;
+    let bigMode = false;
+    const $2 = (id) => document.getElementById(id);
+    const bar = $2("cinema-bar");
+    const sel = $2("cb-list");
+    const status = $2("cb-status");
+    const playBtn = $2("cb-play");
+    function refreshSelect() {
+      sel.innerHTML = "";
+      playlist.forEach((it, i) => {
+        const o = document.createElement("option");
+        o.value = String(i);
+        o.textContent = it.name;
+        o.selected = i === cur;
+        sel.appendChild(o);
+      });
+      sel.disabled = playlist.length === 0;
+    }
+    function setStatus(t) {
+      status.textContent = t;
+    }
+    function loadIndex(i, autoplay) {
+      if (!playlist.length) {
+        setStatus("\u7247\u5355\u4E3A\u7A7A\uFF1A\u653E\u89C6\u9891\u8FDB video/ \u6216\u70B9\u201C\u9009\u62E9\u89C6\u9891\u201D");
+        return;
+      }
+      cur = (i % playlist.length + playlist.length) % playlist.length;
+      videoEl.src = playlist[cur].url;
+      screenMat.map = videoTex;
+      screenMat.color.setHex(16777215);
+      screenMat.needsUpdate = true;
+      refreshSelect();
+      setStatus(`\u25B6 ${playlist[cur].name}`);
+      if (autoplay) play();
+    }
+    function play() {
+      videoEl.play().then(() => {
+        playBtn.textContent = "\u23F8 \u6682\u505C";
+      }).catch(() => setStatus("\u65E0\u6CD5\u64AD\u653E\uFF08\u683C\u5F0F\u4E0D\u53D7\u6D4F\u89C8\u5668\u652F\u6301\uFF1F\uFF09"));
+    }
+    function pause() {
+      videoEl.pause();
+      playBtn.textContent = "\u25B6 \u64AD\u653E";
+    }
+    videoEl.addEventListener("ended", () => loadIndex(cur + 1, true));
+    $2("cb-play").addEventListener("click", () => {
+      if (!playlist.length) {
+        setStatus("\u8FD8\u6CA1\u6709\u7247\u6E90");
+        return;
+      }
+      if (videoEl.paused) {
+        if (cur < 0) loadIndex(0, true);
+        else play();
+      } else pause();
+    });
+    $2("cb-prev").addEventListener("click", () => loadIndex(cur - 1, !videoEl.paused));
+    $2("cb-next").addEventListener("click", () => loadIndex(cur + 1, !videoEl.paused));
+    sel.addEventListener("change", () => loadIndex(Number(sel.value), true));
+    $2("cb-vol").addEventListener("input", (e) => {
+      videoEl.volume = Number(e.target.value);
+    });
+    videoEl.volume = Number($2("cb-vol").value || 0.9);
+    $2("cb-big").addEventListener("click", () => {
+      bigMode = !bigMode;
+      document.body.classList.toggle("big-screen", bigMode);
+      $2("cb-big").textContent = bigMode ? "\u26F6 \u56DE\u5230\u5F71\u5385\u89C6\u89D2" : "\u26F6 \u653E\u5927\u89C2\u770B";
+    });
+    $2("cb-stand").addEventListener("click", () => stand());
+    $2("cb-file").addEventListener("click", () => $2("cb-file-in").click());
+    $2("cb-file-in").addEventListener("change", (e) => {
+      const files = Array.from(e.target.files || []);
+      if (!files.length) return;
+      files.forEach((f) => playlist.push({ name: f.name, url: URL.createObjectURL(f) }));
+      loadIndex(playlist.length - files.length, true);
+      e.target.value = "";
+    });
+    refreshSelect();
+    let seated = null;
+    let hoverSeat = null;
+    let hoverExit = false;
+    let hoverScreen = false;
+    const raycaster = new Raycaster();
+    const hintEl = $2("cinema-hint");
+    const GYM_BOUNDS = {
+      minX: CFG.gym.playerMinX,
+      maxX: CFG.gym.playerMaxX,
+      minZ: CFG.gym.playerMinZ,
+      maxZ: CFG.gym.playerMaxZ
+    };
+    const GYM_BLOCKERS = [{ x: 0, z: CFG.hoop.boardFaceZ - 0.95, r: 0.9 }];
+    const ROOM_BOUNDS = { minX: -K.halfW + 0.8, maxX: K.halfW - 0.55, minZ: -K.halfL + 1.1, maxZ: K.halfL - 0.75 };
+    function setHint(t) {
+      hintEl.innerHTML = t || "";
+      hintEl.classList.toggle("hidden", !t);
+    }
+    function sit(seat) {
+      seated = seat;
+      player.pos.set(seat.x, 0, seat.z - 0.28);
+      player.vel.set(0, 0, 0);
+      player.bounds = { minX: seat.x - 0.05, maxX: seat.x + 0.05, minZ: seat.z - 0.33, maxZ: seat.z - 0.23 };
+      player.blockers = [];
+      player.eyeHeight = seat.y + K.eyeSit;
+      player.speed = 0;
+      const dx = 0 - seat.x, dz = K.screenZ + 0.03 - (seat.z - 0.28);
+      player.freeYaw = Math.atan2(-dx, -dz);
+      player.freePitch = Math.atan2(K.screenY - player.eyeHeight, Math.hypot(dx, dz));
+      bar.classList.remove("hidden");
+      setHint("");
+      document.exitPointerLock?.();
+      if (cur < 0 && playlist.length) loadIndex(0, false);
+      sfx.play("ui", { volume: 0.4 });
+    }
+    function stand() {
+      if (!seated) return;
+      seated = null;
+      player.bounds = ROOM_BOUNDS;
+      player.blockers = [];
+      player.eyeHeight = CFG.player.eye;
+      player.speed = K.walkSpeed;
+      bar.classList.add("hidden");
+      if (bigMode) {
+        bigMode = false;
+        document.body.classList.remove("big-screen");
+        $2("cb-big").textContent = "\u26F6 \u653E\u5927\u89C2\u770B";
+      }
+      canvasLock();
+    }
+    function canvasLock() {
+      const c2 = document.getElementById("gl");
+      c2.requestPointerLock?.();
+    }
+    return {
+      scene,
+      get seated() {
+        return !!seated;
+      },
+      onExitRequest: null,
+      enter() {
+        player.pos.set(K.exitDoor.x, 0, K.halfL - 2.6);
+        player.vel.set(0, 0, 0);
+        player.bounds = ROOM_BOUNDS;
+        player.blockers = [];
+        player.eyeHeight = CFG.player.eye;
+        player.speed = K.walkSpeed;
+        player.mode = "free";
+        player.exitShotAim();
+        player.freeYaw = 0;
+        player.freePitch = 0;
+        setHint("\u8D70\u52A8\u9009\u4E2A\u5EA7\u4F4D\uFF1A<b>\u5DE6\u952E</b> \u70B9\u5EA7\u5165\u5EA7 \xB7 \u8D70\u5411 <b>\u51FA\u53E3\u95E8</b> \u56DE\u7403\u573A \xB7 <b>ESC</b> \u56DE\u4E3B\u83DC\u5355");
+      },
+      exit() {
+        stand();
+        player.bounds = GYM_BOUNDS;
+        player.blockers = GYM_BLOCKERS;
+        player.eyeHeight = CFG.player.eye;
+        setHint("");
+        bar.classList.add("hidden");
+      },
+      /** 每帧（main 在 playing 且 loc==='cinema' 时调用；player.update 之后） */
+      update(dt) {
+        if (!seated) {
+          raycaster.setFromCamera({ x: 0, y: 0 }, camera);
+          const hits = raycaster.intersectObjects([...seats.map((s) => s.mesh), exitHit, screen], false);
+          const hit = hits.find((h) => h.distance < 9) || null;
+          const newSeat = hit && seats.find((s) => s.mesh === hit.object) || null;
+          hoverExit = !!hit && hit.object === exitHit;
+          hoverScreen = !!hit && hit.object === screen;
+          if (hoverSeat !== newSeat) {
+            if (hoverSeat) hoverSeat.mat.emissive.setHex(0);
+            hoverSeat = newSeat;
+            if (hoverSeat) hoverSeat.mat.emissive.setHex(4002842);
+          }
+          const dExit = Math.hypot(player.pos.x - K.exitDoor.x, player.pos.z - K.exitDoor.z);
+          if (dExit < K.exitDoor.r && this.onExitRequest) this.onExitRequest();
+          setHint(hoverSeat ? "<b>\u5DE6\u952E</b> \u5165\u5EA7" : hoverExit ? "<b>\u5DE6\u952E</b> \u6216\u8D70\u8FC7\u53BB\uFF1A\u8FD4\u56DE\u7BEE\u7403\u9986" : hoverScreen && playlist.length ? "<b>\u5DE6\u952E</b> \u64AD\u653E / \u6682\u505C" : "");
+        } else if (hoverSeat) {
+          hoverSeat.mat.emissive.setHex(0);
+          hoverSeat = null;
+        }
+      },
+      onLeftDown() {
+        if (seated) return;
+        if (hoverSeat) {
+          sit(hoverSeat);
+          return;
+        }
+        if (hoverExit) {
+          if (this.onExitRequest) this.onExitRequest();
+          return;
+        }
+        if (hoverScreen && playlist.length) {
+          videoEl.paused ? cur < 0 ? loadIndex(0, true) : play() : pause();
+        }
+      },
+      onRightDown() {
+        if (seated) stand();
+      },
+      /** WASD 按下时 main 转发：坐着则起身（keydown 手势内可重新锁指针） */
+      onMoveKey() {
+        if (seated) stand();
+      },
+      /** 进入影院瞬间调用：确保有片单 */
+      ensurePlaylist() {
+        if (cur < 0 && playlist.length) loadIndex(0, false);
+      },
+      stopVideo() {
+        videoEl.pause();
+        playBtn.textContent = "\u25B6 \u64AD\u653E";
+      }
+    };
+  }
+  var K;
+  var init_cinema = __esm({
+    "src/cinema.js"() {
+      init_three_module();
+      init_config();
+      init_textures();
+      K = CFG.cinema;
     }
   });
 
@@ -29689,6 +30300,14 @@
           this.bobPhase = 0;
           this.keys = { w: false, a: false, s: false, d: false };
           this.inputEnabled = true;
+          this.eyeHeight = CFG.player.eye;
+          this.bounds = {
+            minX: CFG.gym.playerMinX,
+            maxX: CFG.gym.playerMaxX,
+            minZ: CFG.gym.playerMinZ,
+            maxZ: CFG.gym.playerMaxZ
+          };
+          this.blockers = [{ x: 0, z: CFG.hoop.boardFaceZ - 0.95, r: 0.9 }];
         }
         /** 鼠标移动输入：dx/dy 为像素增量 */
         look(dx, dy) {
@@ -29769,14 +30388,16 @@
           this.vel.z += (wishZ * this.speed - this.vel.z) * k;
           this.pos.x += this.vel.x * dt;
           this.pos.z += this.vel.z * dt;
-          this.pos.x = MathUtils.clamp(this.pos.x, CFG.gym.playerMinX, CFG.gym.playerMaxX);
-          this.pos.z = MathUtils.clamp(this.pos.z, CFG.gym.playerMinZ, CFG.gym.playerMaxZ);
-          const poleX = 0, poleZ = CFG.hoop.boardFaceZ - 0.95;
-          const dpx = this.pos.x - poleX, dpz = this.pos.z - poleZ;
-          const pd = Math.hypot(dpx, dpz);
-          if (pd < 0.9 && pd > 1e-4) {
-            this.pos.x = poleX + dpx / pd * 0.9;
-            this.pos.z = poleZ + dpz / pd * 0.9;
+          const B = this.bounds;
+          this.pos.x = MathUtils.clamp(this.pos.x, B.minX, B.maxX);
+          this.pos.z = MathUtils.clamp(this.pos.z, B.minZ, B.maxZ);
+          for (const blk of this.blockers) {
+            const dpx = this.pos.x - blk.x, dpz = this.pos.z - blk.z;
+            const pd = Math.hypot(dpx, dpz);
+            if (pd < blk.r && pd > 1e-4) {
+              this.pos.x = blk.x + dpx / pd * blk.r;
+              this.pos.z = blk.z + dpz / pd * blk.r;
+            }
           }
           const targetBlend = this.mode === "shot" ? 1 : 0;
           this.blend += (targetBlend - this.blend) * Math.min(1, dt * 5.2);
@@ -29801,7 +30422,7 @@
           }
           const bob = speedH > 0.4 ? Math.sin(this.bobPhase * 2) * 0.018 * Math.min(1, speedH / 3) : 0;
           const roll = speedH > 0.4 ? Math.sin(this.bobPhase) * 4e-3 * Math.min(1, speedH / 3) : 0;
-          this.camera.position.set(this.pos.x, P.eye + bob, this.pos.z);
+          this.camera.position.set(this.pos.x, this.eyeHeight + bob, this.pos.z);
           this.camera.rotation.set(0, 0, 0);
           this.camera.rotateY(this.yaw);
           this.camera.rotateX(this.pitch);
@@ -30029,34 +30650,22 @@
         enter() {
           const { player, ui, modeDef } = this.G;
           player.speed = CFG.player.speedHold;
-          this._downT = -1;
-          ui.setPrompt(modeDef.id === "free" ? "<b>\u77ED\u6309\u5DE6\u952E</b> \u62CD\u7403 \xB7 <b>\u957F\u6309\u5DE6\u952E</b> \u539F\u5730\u8D77\u6295 \xB7 \u8D70\u5165\u6295\u7BEE\u533A\u81EA\u52A8\u7784\u51C6" : "WASD \u8D70\u4F4D\uFF0C\u8FDB\u5165\u6295\u7BEE\u533A\u5F00\u59CB\u8FDB\u653B");
+          ui.setPrompt(modeDef.id === "free" ? "<b>\u5DE6\u952E</b> \u6295\u7BEE\uFF08\u6309\u4F4F\u84C4\u529B \u677E\u624B\u51FA\u624B\uFF09\xB7 <b>\u53F3\u952E</b> \u62CD\u7403 \xB7 \u5168\u573A\u4EFB\u610F\u4F4D\u7F6E" : "WASD \u8D70\u4F4D \xB7 <b>\u5DE6\u952E</b> \u6309\u4F4F\u84C4\u529B\u6295\u7BEE \xB7 <b>\u53F3\u952E</b> \u62CD\u7403");
         }
         update(dt) {
           const { player, ball, camera, scoring, machine } = this.G;
           ball.updateHeld(dt, camera);
           if (scoring.ended) return;
-          if (this._downT >= 0) {
-            this._downT += dt;
-            if (this.G.modeDef.shotScore && this._downT > CFG.shot.tapHold) {
-              this._downT = -1;
-              this.G.pendingCharge = true;
-              machine.set("shot");
-              return;
-            }
-          }
           if (this.G.modeDef.shotScore && player.inShotZone() && player.mode !== "shot") {
             machine.set("shot");
           }
         }
         onLeftDown() {
-          this._downT = 0;
+          if (!this.G.modeDef.shotScore) return;
+          this.G.pendingCharge = true;
+          this.G.machine.set("shot");
         }
-        onLeftUp() {
-          if (this._downT < 0) return;
-          const quick = this._downT <= CFG.shot.tapHold;
-          this._downT = -1;
-          if (!quick) return;
+        onRightDown() {
           const { ball, sfx, fx, ui, scoring } = this.G;
           if (ball.tap()) {
             sfx.play("tap", { rate: 1.85 + Math.random() * 0.12, volume: 0.85 });
@@ -30081,7 +30690,7 @@
           this.flightT = 0;
           this._prevY = 0;
           ui.showPowerBar(true);
-          ui.setPrompt("<b>\u6309\u4F4F\u5DE6\u952E</b> \u84C4\u529B \xB7 <b>\u677E\u5F00</b> \u6295\u7BEE \xB7 <b>\u53F3\u952E</b> \u5047\u6295");
+          ui.setPrompt("<b>\u6309\u4F4F\u5DE6\u952E</b> \u84C4\u529B \xB7 <b>\u677E\u624B</b> \u6295\u7BEE \xB7 <b>\u53F3\u952E</b> \u53D6\u6D88");
         }
         exit() {
           const { player, ui } = this.G;
@@ -30169,9 +30778,14 @@
         }
         onLeftUp() {
           if (this.flying || !this.charging) return;
-          const { ball, player, sfx, scoring } = this.G;
           this.charging = false;
-          const power = Math.max(0.04, this.charge);
+          if (this.charge < CFG.shot.cancelCharge) {
+            this.charge = 0;
+            this.G.ui.setPrompt("<b>\u6309\u4F4F\u5DE6\u952E</b> \u84C4\u529B \xB7 <b>\u677E\u624B</b> \u6295\u7BEE \xB7 <b>\u53F3\u952E</b> \u53D6\u6D88");
+            return;
+          }
+          const { ball, player, sfx, scoring } = this.G;
+          const power = this.charge;
           this.markRelease();
           const pos = ball.position.clone();
           ball.startPhysics(pos, shotVelocity(pos, power, player));
@@ -30183,14 +30797,10 @@
         }
         onRightDown() {
           if (this.flying) return;
-          if (this.charging || this.charge > 0) {
-            this.charging = false;
-            this.charge = 0;
-            this.G.sfx.play("tap", { volume: 0.5, rate: 1.4 });
-            this.G.fx.shake(0.012, 0.12);
-            this.G.ui.flashPump();
-            this.G.ui.setPrompt("\u5047\u6295\u6210\u529F\uFF01\u91CD\u65B0 <b>\u6309\u4F4F\u5DE6\u952E</b> \u84C4\u529B");
-          }
+          this.charging = false;
+          this.charge = 0;
+          this.G.sfx.play("tap", { volume: 0.5, rate: 1.4 });
+          this.G.machine.set("hold");
         }
         /** 进球事件 */
         onScore() {
@@ -30615,9 +31225,6 @@
             this.el.pSweet.style.height = `${Math.min(100, half * 2 * 100)}%`;
           }
         }
-        flashPump() {
-          this.setPrompt("\u5047\u6295\u6210\u529F\uFF01\u91CD\u65B0 <b>\u6309\u4F4F\u5DE6\u952E</b> \u84C4\u529B", "pump");
-        }
         /* ---------- 结算弹窗 ---------- */
         showResult({ modeName, scoreLabel, score, best, prevBest, isNew, stats }) {
           this.el.result.classList.remove("hidden");
@@ -30654,6 +31261,7 @@
       init_config();
       init_physics();
       init_court();
+      init_cinema();
       init_ball();
       init_player();
       init_effects();
@@ -30682,8 +31290,9 @@
         samples: 4
       });
       var composer = new EffectComposer(renderer, composerTarget);
-      composer.addPass(new RenderPass(scene, camera));
-      var bloomPass = new UnrealBloomPass(new Vector2(innerWidth, innerHeight), CFG.fx.bloomBase, 0.55, 0.78);
+      var renderPass = new RenderPass(scene, camera);
+      composer.addPass(renderPass);
+      var bloomPass = new UnrealBloomPass(new Vector2(innerWidth, innerHeight), CFG.fx.bloomBase, 0.55, 0.92);
       composer.addPass(bloomPass);
       composer.addPass(new OutputPass());
       var courtRefs = buildCourt(scene);
@@ -30696,6 +31305,56 @@
       var scoring = new ScoreManager();
       var sfx = new Sfx();
       var ui = new UI();
+      var cinema = createCinema({ camera, player, sfx });
+      cinema.scene.environment = scene.environment;
+      var playerLoc = "gym";
+      var fading = false;
+      var fadeEl = document.getElementById("fade");
+      var hudEl = document.getElementById("hud");
+      function fadeTo(swap) {
+        if (fading) return;
+        fading = true;
+        fadeEl.classList.add("on");
+        setTimeout(() => {
+          swap();
+          setTimeout(() => {
+            fadeEl.classList.remove("on");
+            fading = false;
+          }, 120);
+        }, 420);
+      }
+      function enterCinema() {
+        fadeTo(() => {
+          playerLoc = "cinema";
+          renderPass.scene = cinema.scene;
+          hudEl.classList.add("hidden");
+          cinema.enter();
+          cinema.ensurePlaylist();
+          sfx.play("ui");
+        });
+      }
+      function exitCinemaToGym() {
+        fadeTo(() => {
+          cinema.exit();
+          playerLoc = "gym";
+          renderPass.scene = scene;
+          const D = CFG.cinema.gymDoor;
+          player.pos.set(D.x, 0, D.z - 2.4);
+          player.vel.set(0, 0, 0);
+          player.freeYaw = Math.atan2(D.x, player.pos.z);
+          player.freePitch = 0;
+          ui.showHud(G.modeDef.name, G.modeDef.timed);
+        });
+      }
+      cinema.onExitRequest = exitCinemaToGym;
+      function forceGym() {
+        if (playerLoc === "gym") return;
+        cinema.exit();
+        playerLoc = "gym";
+        renderPass.scene = scene;
+        fadeEl.classList.remove("on");
+        fading = false;
+      }
       var netSway = { t: 0 };
       var G = {
         camera,
@@ -30720,6 +31379,7 @@
       var menuCamAngle = 0;
       var lastSecond = -1;
       function refreshMenu() {
+        forceGym();
         gameState = "menu";
         machine.set("noBall");
         ball.startPhysics(new Vector3(1.4, 1, 0.5), null);
@@ -30729,6 +31389,7 @@
       }
       function startMode(id) {
         sfx.init();
+        forceGym();
         currentModeId = id;
         G.modeDef = CFG.MODES[id];
         scoring.reset(G.modeDef);
@@ -30841,7 +31502,10 @@
       var keys = player.keys;
       addEventListener("keydown", (e) => {
         const k = e.key.toLowerCase();
-        if (k in keys) keys[k] = true;
+        if (k in keys) {
+          keys[k] = true;
+          if (playerLoc === "cinema") cinema.onMoveKey();
+        }
       });
       addEventListener("keyup", (e) => {
         const k = e.key.toLowerCase();
@@ -30853,17 +31517,25 @@
         }
       });
       canvas.addEventListener("mousedown", (e) => {
-        if (gameState === "playing" && document.pointerLockElement === canvas) {
-          if (e.button === 0) machine.dispatch("onLeftDown");
-          if (e.button === 2) machine.dispatch("onRightDown");
+        if (gameState !== "playing") return;
+        if (document.pointerLockElement !== canvas) {
+          if (playerLoc === "cinema" && !cinema.seated) canvas.requestPointerLock?.();
+          return;
         }
+        if (playerLoc === "cinema") {
+          if (e.button === 0) cinema.onLeftDown();
+          if (e.button === 2) cinema.onRightDown();
+          return;
+        }
+        if (e.button === 0) machine.dispatch("onLeftDown");
+        if (e.button === 2) machine.dispatch("onRightDown");
       });
       addEventListener("mouseup", (e) => {
-        if (gameState === "playing" && e.button === 0) machine.dispatch("onLeftUp");
+        if (gameState === "playing" && playerLoc === "gym" && e.button === 0) machine.dispatch("onLeftUp");
       });
       document.addEventListener("contextmenu", (e) => e.preventDefault());
       document.addEventListener("pointerlockchange", () => {
-        if (document.pointerLockElement !== canvas && gameState === "playing") pauseGame();
+        if (document.pointerLockElement !== canvas && gameState === "playing" && location === "gym") pauseGame();
       });
       ballBody.addEventListener("collide", (e) => {
         const impact = Math.abs(e.contact.getImpactVelocityAlongNormal());
@@ -30883,33 +31555,44 @@
         requestAnimationFrame(tick);
         const dt = Math.min(clock.getDelta(), 0.05);
         if (gameState === "playing" || gameState === "result") {
-          acc += dt;
-          let guard = 6;
-          while (acc >= 1 / 120 && guard-- > 0) {
-            world.step(1 / 120);
-            acc -= 1 / 120;
-          }
-          machine.update(dt);
-          player.update(dt);
-          if (scoring.mode.timed && !scoring.ended) {
-            const justEnd = scoring.tickTimer(dt);
-            const sec = Math.ceil(scoring.timeLeft);
-            if (sec !== lastSecond && sec <= CFG.challenge.lastSecondTick && sec > 0) {
-              lastSecond = sec;
-              sfx.play("tick", { volume: 0.8, rate: 1.3 });
+          if (playerLoc === "cinema") {
+            player.update(dt);
+            cinema.update(dt);
+          } else {
+            acc += dt;
+            let guard = 6;
+            while (acc >= 1 / 120 && guard-- > 0) {
+              world.step(1 / 120);
+              acc -= 1 / 120;
             }
-            if (justEnd) finishSession();
-            ui.setTimer(scoring.timeLeft, scoring.timeLeft / CFG.challenge.duration, scoring.timeLeft <= 10);
+            machine.update(dt);
+            player.update(dt);
+            if (gameState === "playing") {
+              const D = CFG.cinema.gymDoor;
+              const dDoor = Math.hypot(player.pos.x - D.x, player.pos.z - D.z);
+              if (dDoor < D.r) enterCinema();
+              else if (dDoor < 3.6) ui.setPrompt("\u{1F3AC} <b>\u8D70\u8FDB\u7EA2\u95E8</b> \u53BB\u7535\u5F71\u9662\u770B\u573A\u7535\u5F71");
+            }
+            if (scoring.mode.timed && !scoring.ended) {
+              const justEnd = scoring.tickTimer(dt);
+              const sec = Math.ceil(scoring.timeLeft);
+              if (sec !== lastSecond && sec <= CFG.challenge.lastSecondTick && sec > 0) {
+                lastSecond = sec;
+                sfx.play("tick", { volume: 0.8, rate: 1.3 });
+              }
+              if (justEnd) finishSession();
+              ui.setTimer(scoring.timeLeft, scoring.timeLeft / CFG.challenge.duration, scoring.timeLeft <= 10);
+            }
+            const curDist = Math.hypot(player.pos.x - RIM_POS.x, player.pos.z - RIM_POS.z);
+            const dMul = ScoreManager.distanceMultiplier(curDist).toFixed(1);
+            const live = scoring.mode.id === "free" ? `\u62CD\u7403 ${scoring.taps} \u6B21 \xB7 \u6295\u7BEE ${scoring.shotMade}/${scoring.shotTaken} \xB7 \u5F53\u524D\u8DDD\u79BB\xD7${dMul}` : `\u8FDB ${scoring.shotMade} \xB7 \u6362\u4F4D ${scoring.spots} \u6B21 \xB7 \u5F53\u524D\u8DDD\u79BB\xD7${dMul}`;
+            ui.setScore(
+              scoring.displayScore,
+              Math.max(loadRecord(currentModeId), scoring.displayScore),
+              live
+            );
+            ui.setCombos(scoring.shotCombo, scoring.shotMultiplier());
           }
-          const curDist = Math.hypot(player.pos.x - RIM_POS.x, player.pos.z - RIM_POS.z);
-          const dMul = ScoreManager.distanceMultiplier(curDist).toFixed(1);
-          const live = scoring.mode.id === "free" ? `\u62CD\u7403 ${scoring.taps} \u6B21 \xB7 \u6295\u7BEE ${scoring.shotMade}/${scoring.shotTaken} \xB7 \u5F53\u524D\u8DDD\u79BB\xD7${dMul}` : `\u8FDB ${scoring.shotMade} \xB7 \u6362\u4F4D ${scoring.spots} \u6B21 \xB7 \u5F53\u524D\u8DDD\u79BB\xD7${dMul}`;
-          ui.setScore(
-            scoring.displayScore,
-            Math.max(loadRecord(currentModeId), scoring.displayScore),
-            live
-          );
-          ui.setCombos(scoring.shotCombo, scoring.shotMultiplier());
         } else if (gameState === "menu") {
           world.step(1 / 60, dt, 3);
           ball.syncFromPhysics();
@@ -30953,8 +31636,14 @@
           player,
           ball,
           fx,
+          enterCinema,
+          exitCinemaToGym,
+          cinema,
           get state() {
             return gameState;
+          },
+          get location() {
+            return playerLoc;
           },
           teleport: (x, z) => {
             player.pos.set(x, 0, z);
@@ -30964,6 +31653,16 @@
         const m = params.get("mode");
         const demo = params.get("demo");
         if (m && CFG.MODES[m]) setTimeout(() => startMode(m), 400);
+        if (params.get("loc") === "cinema") setTimeout(() => enterCinema(), 1100);
+        const tp = params.get("tp");
+        if (tp) setTimeout(() => {
+          const [x, z, y] = tp.split(",").map(Number);
+          GAME.teleport(x, z);
+          if (!Number.isNaN(y)) {
+            player.freeYaw = y;
+            player.yaw = y;
+          }
+        }, 2300);
         if (m && demo === "shot") {
           setTimeout(() => {
             if (machine.name === "noBall") machine.dispatch("onLeftDown");
@@ -30972,6 +31671,50 @@
             player.pos.set(0.5, 0, -8);
           }, 2e3);
           setTimeout(() => machine.dispatch("onLeftDown"), 2900);
+        }
+        if (demo === "tap") {
+          const marks = [];
+          let dbg = document.getElementById("dbg-out");
+          if (!dbg) {
+            dbg = document.createElement("div");
+            dbg.id = "dbg-out";
+            dbg.style.cssText = "position:fixed;left:8px;bottom:8px;z-index:9999;color:#0f0;font:16px monospace;background:#000;padding:4px 8px";
+            document.body.appendChild(dbg);
+          }
+          const mark = (s) => {
+            const cur = machine.current;
+            const extra = cur && cur.charging !== void 0 ? `[ch=${cur.charging ? 1 : 0},${(cur.charge ?? 0).toFixed(2)},fly=${cur.flying ? 1 : 0}]` : "";
+            marks.push(`${Math.round(performance.now())}:${s}(${machine.name},t${scoring.taps},s${scoring.shotTaken})${extra}`);
+            dbg.textContent = marks.join(" | ");
+          };
+          setTimeout(() => {
+            if (machine.name === "noBall") machine.dispatch("onLeftDown");
+            mark("pickup");
+          }, 1200);
+          setTimeout(() => {
+            machine.dispatch("onRightDown");
+            mark("tap1");
+          }, 1800);
+          setTimeout(() => {
+            machine.dispatch("onRightDown");
+            mark("tap2");
+          }, 2600);
+          setTimeout(() => {
+            machine.dispatch("onLeftDown");
+            mark("charge");
+          }, 3400);
+          setTimeout(() => {
+            if (machine.current) machine.current.charge = 0.8;
+            mark("setcharge");
+          }, 4200);
+          setTimeout(() => {
+            machine.dispatch("onLeftUp");
+            mark("release");
+          }, 4400);
+          setTimeout(() => {
+            mark("final");
+            console.log("DEMO_TAP", marks.join(" | "));
+          }, 6e3);
         }
         if (demo === "result") {
           setTimeout(() => startMode(m || "shot"), 300);

@@ -39,6 +39,13 @@ export class Player {
     this.bobPhase = 0;
     this.keys = { w: false, a: false, s: false, d: false };
     this.inputEnabled = true; // 结算弹窗/暂停时关闭
+    this.eyeHeight = CFG.player.eye;   // 当前视高（影院入座时按座位调整）
+    // 可行走区域与圆柱阻挡（可被影院等场景整体替换）
+    this.bounds = {
+      minX: CFG.gym.playerMinX, maxX: CFG.gym.playerMaxX,
+      minZ: CFG.gym.playerMinZ, maxZ: CFG.gym.playerMaxZ,
+    };
+    this.blockers = [{ x: 0, z: CFG.hoop.boardFaceZ - 0.95, r: 0.9 }]; // 篮架立柱
   }
 
   /** 鼠标移动输入：dx/dy 为像素增量 */
@@ -130,16 +137,17 @@ export class Player {
     this.pos.x += this.vel.x * dt;
     this.pos.z += this.vel.z * dt;
 
-    /* ---- 2. 球馆边界钳制 + 篮架立柱圆形阻挡 ---- */
-    this.pos.x = THREE.MathUtils.clamp(this.pos.x, CFG.gym.playerMinX, CFG.gym.playerMaxX);
-    this.pos.z = THREE.MathUtils.clamp(this.pos.z, CFG.gym.playerMinZ, CFG.gym.playerMaxZ);
-    // 篮架立柱（位于篮板后方）：以柱为圆心推开
-    const poleX = 0, poleZ = CFG.hoop.boardFaceZ - 0.95;
-    const dpx = this.pos.x - poleX, dpz = this.pos.z - poleZ;
-    const pd = Math.hypot(dpx, dpz);
-    if (pd < 0.9 && pd > 0.0001) {
-      this.pos.x = poleX + (dpx / pd) * 0.9;
-      this.pos.z = poleZ + (dpz / pd) * 0.9;
+    /* ---- 2. 边界钳制 + 圆柱阻挡（bounds/blockers 可被影院场景替换） ---- */
+    const B = this.bounds;
+    this.pos.x = THREE.MathUtils.clamp(this.pos.x, B.minX, B.maxX);
+    this.pos.z = THREE.MathUtils.clamp(this.pos.z, B.minZ, B.maxZ);
+    for (const blk of this.blockers) {
+      const dpx = this.pos.x - blk.x, dpz = this.pos.z - blk.z;
+      const pd = Math.hypot(dpx, dpz);
+      if (pd < blk.r && pd > 0.0001) {
+        this.pos.x = blk.x + (dpx / pd) * blk.r;
+        this.pos.z = blk.z + (dpz / pd) * blk.r;
+      }
     }
 
     /* ---- 3. 视角目标计算（含投篮吸附平滑插值） ---- */
@@ -173,7 +181,7 @@ export class Player {
     const bob = speedH > 0.4 ? Math.sin(this.bobPhase * 2) * 0.018 * Math.min(1, speedH / 3) : 0;
     const roll = speedH > 0.4 ? Math.sin(this.bobPhase) * 0.004 * Math.min(1, speedH / 3) : 0;
 
-    this.camera.position.set(this.pos.x, P.eye + bob, this.pos.z);
+    this.camera.position.set(this.pos.x, this.eyeHeight + bob, this.pos.z);
     this.camera.rotation.set(0, 0, 0);
     this.camera.rotateY(this.yaw);
     this.camera.rotateX(this.pitch);

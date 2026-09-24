@@ -2,3 +2,16 @@ node_modules/
 .shots/
 dist/*.map
 imgs/wall/manifest.js
+video/manifest.js
+# 用户自备素材不入库（仓库保持轻量，manifest 也含 base64 副本）
+imgs/wall/*.jpg
+imgs/wall/*.jpeg
+imgs/wall/*.webp
+imgs/wall/*.gif
+imgs/wall/*.bmp
+video/*.mp4
+video/*.m4v
+video/*.webm
+video/*.mov
+video/*.avi
+video/*.mkv

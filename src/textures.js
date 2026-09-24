@@ -16,62 +16,97 @@ function mulberry32(seed) {
 }
 
 /**
- * 篮球场地板贴图：木纹 + 全部标线（中线/中圈/三秒区/罚球圈/三分弧/限制区）
- * 贴图覆盖整个球场 28m x 15m。
+ * 球馆地面一体贴图：橡胶地垫 + 木地板 + 全部标线（中线/中圈/三秒区/罚球圈/三分弧/限制区）。
+ * 覆盖整个球馆（含场外缓冲区），地板 Mesh 只用这一张、一个平面——
+ * 从此不存在"两个共面 Mesh 来回闪"的 z-fighting。
+ * 画布 80 像素/米，x、z 等比，圆就是正圆。
  */
 export function makeCourtTexture() {
-  const W = 2048, H = 1100;            // 画布分辨率
+  const PPM = 80;
+  const G = CFG.gym, C = CFG.court;
+  const W = Math.round(G.halfW * 2 * PPM);
+  const H = Math.round(G.halfL * 2 * PPM);
   const cv = document.createElement('canvas');
   cv.width = W; cv.height = H;
   const ctx = cv.getContext('2d');
   const rnd = mulberry32(20260924);
+  const cx = (x) => (x + G.halfW) * PPM;   // 世界 x -> 像素
+  const cz = (z) => (z + G.halfL) * PPM;   // 世界 z -> 像素（与画布 y 同向）
+  const pm = (m) => m * PPM;               // 米 -> 像素
 
-  // ---- 木地板底色 ----
-  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  /* ================= 场外：深色橡胶地垫 ================= */
+  const bg = ctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, '#2b3038');
+  bg.addColorStop(0.5, '#272b32');
+  bg.addColorStop(1, '#22262d');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+  // 地垫颗粒噪点
+  for (let i = 0; i < 9000; i++) {
+    ctx.fillStyle = rnd() > 0.5 ? 'rgba(255,255,255,0.014)' : 'rgba(0,0,0,0.05)';
+    ctx.fillRect(rnd() * W, rnd() * H, 2, 2);
+  }
+  // 地垫拼缝（每 2m）
+  ctx.strokeStyle = 'rgba(0,0,0,0.16)';
+  ctx.lineWidth = 2;
+  for (let gx = -G.halfW + 2; gx < G.halfW; gx += 2) {
+    ctx.beginPath(); ctx.moveTo(cx(gx), 0); ctx.lineTo(cx(gx), H); ctx.stroke();
+  }
+  for (let gz = -G.halfL + 2; gz < G.halfL; gz += 2) {
+    ctx.beginPath(); ctx.moveTo(0, cz(gz)); ctx.lineTo(W, cz(gz)); ctx.stroke();
+  }
+
+  /* ================= 场内：木地板 ================= */
+  const x0 = cx(-C.halfW), x1 = cx(C.halfW), z0 = cz(-C.halfL), z1 = cz(C.halfL);
+  const cw = x1 - x0, ch = z1 - z0;
+  const grad = ctx.createLinearGradient(0, z0, 0, z1);
   grad.addColorStop(0, '#c98a45');
   grad.addColorStop(0.5, '#d69a55');
   grad.addColorStop(1, '#c68541');
   ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, W, H);
+  ctx.fillRect(x0, z0, cw, ch);
 
   // 木板条纹（沿长度方向铺设）
   const plankH = 14;
-  for (let y = 0; y < H; y += plankH) {
+  for (let y = z0; y < z1; y += plankH) {
     const shade = 0.86 + rnd() * 0.24;
     ctx.fillStyle = `rgba(${Math.round(178 * shade)}, ${Math.round(118 * shade)}, ${Math.round(58 * shade)}, 0.5)`;
-    ctx.fillRect(0, y, W, plankH - 1.5);
+    ctx.fillRect(x0, y, cw, plankH - 1.5);
     // 木纹细线
     ctx.strokeStyle = `rgba(120, 70, 25, ${0.05 + rnd() * 0.08})`;
     ctx.lineWidth = 1;
     for (let g = 0; g < 3; g++) {
       ctx.beginPath();
       const gy = y + rnd() * plankH;
-      ctx.moveTo(0, gy);
-      for (let x = 0; x < W; x += 64) ctx.lineTo(x, gy + (rnd() - 0.5) * 3);
+      ctx.moveTo(x0, gy);
+      for (let px = x0; px < x1; px += 64) ctx.lineTo(px, gy + (rnd() - 0.5) * 3);
       ctx.stroke();
     }
     // 板缝随机断开
     if (rnd() < 0.35) {
       ctx.fillStyle = 'rgba(90, 55, 20, 0.35)';
-      ctx.fillRect(rnd() * W, y, 2, plankH);
+      ctx.fillRect(x0 + rnd() * cw, y, 2, plankH);
     }
   }
 
-  // 高光缎面感（沿 x 的宽光带）
-  const sheen = ctx.createLinearGradient(0, H * 0.3, 0, H * 0.55);
+  // 高光缎面感（沿场长的宽光带）
+  const sheen = ctx.createLinearGradient(0, z0 + ch * 0.3, 0, z0 + ch * 0.55);
   sheen.addColorStop(0, 'rgba(255,240,210,0)');
   sheen.addColorStop(0.5, 'rgba(255,240,210,0.10)');
   sheen.addColorStop(1, 'rgba(255,240,210,0)');
   ctx.fillStyle = sheen;
-  ctx.fillRect(0, 0, W, H);
+  ctx.fillRect(x0, z0, cw, ch);
 
-  // ---- 坐标换算：世界 (x,z) -> 像素 ----
-  // 画布像素非正方形（x 向 136.5px/m，z 向 39.3px/m），
-  // 圆/弧一律用 ctx.ellipse 以 (rx=su, ry=sv) 两轴半径绘制，保证落地后是正圆且线宽一致。
-  const { halfW, halfL } = CFG.court;
-  const sy = (z) => ((z + halfL) / (halfL * 2)) * H;
-  const su = (m) => (m / (halfW * 2)) * W;   // 米 -> 像素（x 向）
-  const sv = (m) => (m / (halfL * 2)) * H;   // 米 -> 像素（z 向）
+  // 场地与地垫的交界缝
+  ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(x0, z0, cw, ch);
+
+  /* ================= 标线 ================= */
+  const { halfW, halfL } = C;
+  const sy = (z) => cz(z);
+  const su = (m) => pm(m);
+  const sv = (m) => pm(m);
   const ell = (x, y, r, a0, a1, ccw) => ctx.ellipse(x, y, su(r), sv(r), 0, a0, a1, ccw);
 
   ctx.strokeStyle = '#f5f1e8';
@@ -79,10 +114,10 @@ export function makeCourtTexture() {
   ctx.lineWidth = 5;
 
   // 球场边线 + 端线
-  ctx.strokeRect(2, 2, W - 4, H - 4);
+  ctx.strokeRect(x0 + 3, z0 + 3, cw - 6, ch - 6);
   // 中线
   ctx.beginPath();
-  ctx.moveTo(W / 2, 0); ctx.lineTo(W / 2, H);
+  ctx.moveTo(W / 2, z0); ctx.lineTo(W / 2, z1);
   ctx.stroke();
   // 中圈 + 圆心
   ctx.beginPath();
@@ -102,24 +137,24 @@ export function makeCourtTexture() {
     const faceZ = endZ - sign * 1.2;                  // 篮板面 z（向场内 1.2m）
     const rimFloorZ = faceZ - sign * CFG.hoop.rimOffset; // 圈心地面投影 z
     const ftZ = endZ - sign * 5.8;                    // 罚球线 z
-    const cx = W / 2;
+    const cxp = W / 2;
 
     // 禁区（三秒区）：宽 4.9m，端线伸到罚球线
     const keyW = su(4.9 / 2);
     const yEnd = sy(endZ), yFt = sy(ftZ);
-    ctx.strokeRect(cx - keyW, Math.min(yEnd, yFt), keyW * 2, Math.abs(yFt - yEnd));
+    ctx.strokeRect(cxp - keyW, Math.min(yEnd, yFt), keyW * 2, Math.abs(yFt - yEnd));
     ctx.fillStyle = 'rgba(70, 110, 160, 0.16)';
-    ctx.fillRect(cx - keyW, Math.min(yEnd, yFt), keyW * 2, Math.abs(yFt - yEnd));
+    ctx.fillRect(cxp - keyW, Math.min(yEnd, yFt), keyW * 2, Math.abs(yFt - yEnd));
 
     // 罚球圈
     ctx.beginPath();
-    ell(cx, yFt, 1.8, 0, Math.PI * 2);
+    ell(cxp, yFt, 1.8, 0, Math.PI * 2);
     ctx.stroke();
 
     // 合理冲撞区半圆（圈心投影为心，半径 1.25m，开口朝端线）
     ctx.beginPath();
-    if (sign < 0) ell(cx, sy(rimFloorZ), 1.25, 0, Math.PI, false);
-    else ell(cx, sy(rimFloorZ), 1.25, Math.PI, Math.PI * 2, false);
+    if (sign < 0) ell(cxp, sy(rimFloorZ), 1.25, 0, Math.PI, false);
+    else ell(cxp, sy(rimFloorZ), 1.25, Math.PI, Math.PI * 2, false);
     ctx.stroke();
 
     // 三分弧：以圈心投影为心，半径 6.75m，两侧直线段沿边线内 0.9m 接到端线
@@ -127,20 +162,20 @@ export function makeCourtTexture() {
     const r3px = su(CFG.shot.zoneRadius);
     const ac = Math.acos(Math.min(1, cornerX / r3px)); // 弧与角线交点的参数角
     const dy = sv(CFG.shot.zoneRadius) * Math.sin(ac);  // 交点距圈心的像素纵向距离
-    const cz = sy(rimFloorZ);
+    const czp = sy(rimFloorZ);
     ctx.beginPath();
     if (sign < 0) {
       // 近筐：弧朝场内（+y）鼓出
-      ctx.moveTo(cx - cornerX, yEnd);
-      ctx.lineTo(cx - cornerX, cz + dy);
-      ell(cx, cz, CFG.shot.zoneRadius, Math.PI - ac, ac, true);
-      ctx.lineTo(cx + cornerX, yEnd);
+      ctx.moveTo(cxp - cornerX, yEnd);
+      ctx.lineTo(cxp - cornerX, czp + dy);
+      ell(cxp, czp, CFG.shot.zoneRadius, Math.PI - ac, ac, true);
+      ctx.lineTo(cxp + cornerX, yEnd);
     } else {
       // 远筐：弧朝场内（-y）鼓出
-      ctx.moveTo(cx - cornerX, yEnd);
-      ctx.lineTo(cx - cornerX, cz - dy);
-      ell(cx, cz, CFG.shot.zoneRadius, Math.PI + ac, Math.PI * 2 - ac, false);
-      ctx.lineTo(cx + cornerX, yEnd);
+      ctx.moveTo(cxp - cornerX, yEnd);
+      ctx.lineTo(cxp - cornerX, czp - dy);
+      ell(cxp, czp, CFG.shot.zoneRadius, Math.PI + ac, Math.PI * 2 - ac, false);
+      ctx.lineTo(cxp + cornerX, yEnd);
     }
     ctx.stroke();
     ctx.restore();
@@ -148,12 +183,12 @@ export function makeCourtTexture() {
   paintEnd(-1); // 进攻端（可玩篮筐，-z）
   paintEnd(1);  // 另一端纯装饰
 
-  // 端线外赞助区文字
-  ctx.fillStyle = 'rgba(245,241,232,0.5)';
-  ctx.font = `bold 56px 'Segoe UI', system-ui`;
+  // 端线外赞助区文字（橡胶地垫带上）
+  ctx.fillStyle = 'rgba(235,235,235,0.42)';
+  ctx.font = `bold 90px 'Segoe UI', system-ui`;
   ctx.textAlign = 'center';
-  ctx.fillText('FIRST-TOUCH HOOPS', W / 2, H - 26);
-  ctx.fillText('STREET  ·  GYM  ·  3D', W / 2, 62);
+  ctx.fillText('FIRST-TOUCH HOOPS', W / 2, cz(G.halfL - 1.1));
+  ctx.fillText('STREET  ·  GYM  ·  3D', W / 2, cz(-G.halfL + 1.6));
 
   const tex = new THREE.CanvasTexture(cv);
   tex.colorSpace = THREE.SRGBColorSpace;
@@ -265,6 +300,61 @@ export function makeBallBumpTexture() {
   ctx.beginPath(); ctx.arc(S * 0.75, S / 2, S * 0.34, Math.PI / 2, -Math.PI / 2); ctx.stroke();
 
   const tex = new THREE.CanvasTexture(cv);
+  return tex;
+}
+
+/** 影院门牌贴图：暗红底 + 金色字，Bloom 提亮 */
+export function makeDoorSignTexture(text, sub) {
+  const cv = document.createElement('canvas');
+  cv.width = 512; cv.height = 128;
+  const ctx = cv.getContext('2d');
+  const g = ctx.createLinearGradient(0, 0, 0, 128);
+  g.addColorStop(0, '#3d0f14');
+  g.addColorStop(1, '#1e0a0d');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 512, 128);
+  ctx.strokeStyle = 'rgba(255,190,90,0.85)';
+  ctx.lineWidth = 5;
+  ctx.strokeRect(9, 9, 494, 110);
+  ctx.fillStyle = '#ffcf7a';
+  ctx.font = `bold 58px 'Microsoft YaHei', system-ui`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, 256, sub ? 48 : 64);
+  if (sub) {
+    ctx.font = `24px 'Microsoft YaHei', system-ui`;
+    ctx.fillStyle = 'rgba(255,207,122,0.75)';
+    ctx.fillText(sub, 256, 94);
+  }
+  const tex = new THREE.CanvasTexture(cv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+/** 影院银幕占位图：黑色底 + 使用说明（尚未加载视频时显示） */
+export function makeScreenPlaceholderTexture() {
+  const cv = document.createElement('canvas');
+  cv.width = 1024; cv.height = 576;
+  const ctx = cv.getContext('2d');
+  const g = ctx.createRadialGradient(512, 288, 60, 512, 288, 640);
+  g.addColorStop(0, '#161b26');
+  g.addColorStop(1, '#05070c');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 1024, 576);
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#8fa3c8';
+  ctx.font = `bold 44px 'Microsoft YaHei', system-ui`;
+  ctx.fillText('银 幕 放 映 厅', 512, 190);
+  ctx.fillStyle = '#5f6f8c';
+  ctx.font = `28px 'Microsoft YaHei', system-ui`;
+  ctx.fillText('① 把视频文件放进 video/ 文件夹', 512, 280);
+  ctx.fillText('② 双击 tools/gen_videos.bat 生成放映清单', 512, 326);
+  ctx.fillText('短片自动进放映单；大文件点“选择视频”', 512, 392);
+  ctx.fillStyle = '#39445a';
+  ctx.font = `24px 'Microsoft YaHei', system-ui`;
+  ctx.fillText('MP4 · WebM · MOV · M4V · Ogg（以浏览器可解码为准）', 512, 448);
+  const tex = new THREE.CanvasTexture(cv);
+  tex.colorSpace = THREE.SRGBColorSpace;
   return tex;
 }
 
