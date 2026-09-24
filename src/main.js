@@ -292,7 +292,7 @@ addEventListener('mouseup', (e) => {
 document.addEventListener('contextmenu', (e) => e.preventDefault());
 document.addEventListener('pointerlockchange', () => {
   // 玩家按 ESC 或点击外部导致解锁 -> 自动暂停（影院入座本来就不锁，跳过）
-  if (document.pointerLockElement !== canvas && gameState === 'playing' && location === 'gym') pauseGame();
+  if (document.pointerLockElement !== canvas && gameState === 'playing' && playerLoc === 'gym') pauseGame();
 });
 
 /* ================= 物理碰撞音效 ================= */
@@ -439,8 +439,8 @@ try {
     setTimeout(() => { player.pos.set(0.5, 0, -8); }, 2000);  // 传送到投篮区
     setTimeout(() => machine.dispatch('onLeftDown'), 2900);   // 按住蓄力
   }
-  if (demo === 'tap') {
-    // 自动化：左键拾球 → 右键拍球 → 左键蓄力 → 松手出手，断言计分链路
+  if (demo === 'tap' || demo === 'pause') {
+    // 无头断言回读通道：结果写进专用 DOM 节点，再用 --screenshot 读图
     const marks = [];
     let dbg = document.getElementById('dbg-out');
     if (!dbg) {
@@ -449,12 +449,15 @@ try {
       dbg.style.cssText = 'position:fixed;left:8px;bottom:8px;z-index:9999;color:#0f0;font:16px monospace;background:#000;padding:4px 8px';
       document.body.appendChild(dbg);
     }
-    const mark = (s) => {
+    var mark = (s) => { // eslint-disable-line no-var
       const cur = machine.current;
       const extra = cur && cur.charging !== undefined ? `[ch=${cur.charging?1:0},${(cur.charge ?? 0).toFixed(2)},fly=${cur.flying?1:0}]` : '';
       marks.push(`${Math.round(performance.now())}:${s}(${machine.name},t${scoring.taps},s${scoring.shotTaken})${extra}`);
       dbg.textContent = marks.join(' | ');
     };
+  }
+  if (demo === 'tap') {
+    // 自动化：左键拾球 → 右键拍球 → 左键蓄力 → 松手出手，断言计分链路
     setTimeout(() => { if (machine.name === 'noBall') machine.dispatch('onLeftDown'); mark('pickup'); }, 1200);
     setTimeout(() => { machine.dispatch('onRightDown'); mark('tap1'); }, 1800);
     setTimeout(() => { machine.dispatch('onRightDown'); mark('tap2'); }, 2600);
@@ -464,6 +467,13 @@ try {
     setTimeout(() => { if (machine.current) machine.current.charge = 0.8; mark('setcharge'); }, 4200);
     setTimeout(() => { machine.dispatch('onLeftUp'); mark('release'); }, 4400);
     setTimeout(() => { mark('final'); console.log('DEMO_TAP', marks.join(' | ')); }, 6000);
+  }
+  if (demo === 'pause') {
+    // 断言：解锁回调的守卫条件（历史上误用过 window.location，恒 false）。
+    // 无头下 pointer lock 从未真正获得，exitPointerLock 不产生 change 事件，
+    // 故直接派发合成事件走同一回调；条件为真时应弹出暂停面板。
+    setTimeout(() => { mark(`lock=${document.pointerLockElement ? 1 : 0}`); document.dispatchEvent(new Event('pointerlockchange')); }, 1600);
+    setTimeout(() => { mark(`paused=${document.getElementById('pause').classList.contains('hidden') ? 0 : 1}`); }, 2600);
   }
   if (demo === 'result') {
     // 结算弹窗冒烟测试（带假数据）

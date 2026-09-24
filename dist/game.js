@@ -31535,7 +31535,7 @@
       });
       document.addEventListener("contextmenu", (e) => e.preventDefault());
       document.addEventListener("pointerlockchange", () => {
-        if (document.pointerLockElement !== canvas && gameState === "playing" && location === "gym") pauseGame();
+        if (document.pointerLockElement !== canvas && gameState === "playing" && playerLoc === "gym") pauseGame();
       });
       ballBody.addEventListener("collide", (e) => {
         const impact = Math.abs(e.contact.getImpactVelocityAlongNormal());
@@ -31672,8 +31672,8 @@
           }, 2e3);
           setTimeout(() => machine.dispatch("onLeftDown"), 2900);
         }
-        if (demo === "tap") {
-          const marks = [];
+        if (demo === "tap" || demo === "pause") {
+          const marks2 = [];
           let dbg = document.getElementById("dbg-out");
           if (!dbg) {
             dbg = document.createElement("div");
@@ -31681,12 +31681,14 @@
             dbg.style.cssText = "position:fixed;left:8px;bottom:8px;z-index:9999;color:#0f0;font:16px monospace;background:#000;padding:4px 8px";
             document.body.appendChild(dbg);
           }
-          const mark = (s) => {
+          mark = (s) => {
             const cur = machine.current;
             const extra = cur && cur.charging !== void 0 ? `[ch=${cur.charging ? 1 : 0},${(cur.charge ?? 0).toFixed(2)},fly=${cur.flying ? 1 : 0}]` : "";
-            marks.push(`${Math.round(performance.now())}:${s}(${machine.name},t${scoring.taps},s${scoring.shotTaken})${extra}`);
-            dbg.textContent = marks.join(" | ");
+            marks2.push(`${Math.round(performance.now())}:${s}(${machine.name},t${scoring.taps},s${scoring.shotTaken})${extra}`);
+            dbg.textContent = marks2.join(" | ");
           };
+        }
+        if (demo === "tap") {
           setTimeout(() => {
             if (machine.name === "noBall") machine.dispatch("onLeftDown");
             mark("pickup");
@@ -31716,6 +31718,15 @@
             console.log("DEMO_TAP", marks.join(" | "));
           }, 6e3);
         }
+        if (demo === "pause") {
+          setTimeout(() => {
+            mark(`lock=${document.pointerLockElement ? 1 : 0}`);
+            document.dispatchEvent(new Event("pointerlockchange"));
+          }, 1600);
+          setTimeout(() => {
+            mark(`paused=${document.getElementById("pause").classList.contains("hidden") ? 0 : 1}`);
+          }, 2600);
+        }
         if (demo === "result") {
           setTimeout(() => startMode(m || "shot"), 300);
           setTimeout(() => {
@@ -31729,6 +31740,7 @@
         }
       } catch {
       }
+      var mark;
     }
   });
   require_main();
