@@ -30,13 +30,13 @@ export function buildCourt(scene) {
   floor.receiveShadow = true;
   scene.add(floor);
 
-  // 场外地面（深灰水泥环带）
+  // 场外地面（深灰水泥环带；与球场地板拉开 6cm，任何深度精度下都不共面闪烁）
   const apron = new THREE.Mesh(
     new THREE.PlaneGeometry(CFG.gym.halfW * 2, CFG.gym.halfL * 2),
     new THREE.MeshStandardMaterial({ color: 0x2a2e35, roughness: 0.9 })
   );
   apron.rotation.x = -Math.PI / 2;
-  apron.position.y = -0.012;
+  apron.position.y = -0.06;
   apron.receiveShadow = true;
   scene.add(apron);
 
@@ -260,8 +260,8 @@ export function setupLights(scene) {
   dir.shadow.camera.bottom = -18;
   dir.shadow.camera.near = 1;
   dir.shadow.camera.far = 40;
-  dir.shadow.bias = -0.0004;
-  dir.shadow.normalBias = 0.03;
+  dir.shadow.bias = -0.0002;
+  dir.shadow.normalBias = 0.05;   // 消除斜视角下地板的阴影条纹闪烁
   scene.add(dir);
   scene.add(dir.target);
   dir.target.position.set(0, 0, -8);

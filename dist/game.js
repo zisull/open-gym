@@ -29035,7 +29035,7 @@
       new MeshStandardMaterial({ color: 2764341, roughness: 0.9 })
     );
     apron.rotation.x = -Math.PI / 2;
-    apron.position.y = -0.012;
+    apron.position.y = -0.06;
     apron.receiveShadow = true;
     scene.add(apron);
     const wallMat = new MeshStandardMaterial({ color: 3160390, roughness: 0.95, side: BackSide });
@@ -29229,8 +29229,8 @@
     dir.shadow.camera.bottom = -18;
     dir.shadow.camera.near = 1;
     dir.shadow.camera.far = 40;
-    dir.shadow.bias = -4e-4;
-    dir.shadow.normalBias = 0.03;
+    dir.shadow.bias = -2e-4;
+    dir.shadow.normalBias = 0.05;
     scene.add(dir);
     scene.add(dir.target);
     dir.target.position.set(0, 0, -8);
@@ -30501,8 +30501,13 @@
       renderer.toneMapping = ACESFilmicToneMapping;
       var scene = new Scene();
       applyBackground(scene);
-      var camera = new PerspectiveCamera(75, innerWidth / innerHeight, 0.05, 120);
-      var composer = new EffectComposer(renderer);
+      var camera = new PerspectiveCamera(75, innerWidth / innerHeight, 0.12, 120);
+      var drawSize = renderer.getDrawingBufferSize(new Vector2());
+      var composerTarget = new WebGLRenderTarget(drawSize.x, drawSize.y, {
+        type: HalfFloatType,
+        samples: 4
+      });
+      var composer = new EffectComposer(renderer, composerTarget);
       composer.addPass(new RenderPass(scene, camera));
       var bloomPass = new UnrealBloomPass(new Vector2(innerWidth, innerHeight), CFG.fx.bloomBase, 0.55, 0.78);
       composer.addPass(bloomPass);
@@ -30763,7 +30768,8 @@
         camera.aspect = innerWidth / innerHeight;
         camera.updateProjectionMatrix();
         renderer.setSize(innerWidth, innerHeight);
-        composer.setSize(innerWidth, innerHeight);
+        const pr = renderer.getPixelRatio();
+        composer.setSize(innerWidth * pr, innerHeight * pr);
       });
       ball.startPhysics(new Vector3(1.4, 1, 0.5), null);
       refreshMenu();

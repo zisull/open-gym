@@ -25,11 +25,12 @@ body {
 .hidden { display: none !important; }
 
 .glass {
-  background: var(--glass);
+  background: rgba(12, 17, 25, 0.78);
   border: 1px solid var(--glass-line);
   border-radius: 14px;
-  backdrop-filter: blur(8px);
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+  /* 注意：不加 backdrop-filter —— 悬浮在持续重绘的 WebGL 画布上的
+     backdrop blur 会逐帧重新采样合成，是画面闪烁的常见来源 */
 }
 
 /* ---------------- 准星 ---------------- */
@@ -200,8 +201,8 @@ body {
   background:
     radial-gradient(1200px 500px at 50% -10%, rgba(255, 122, 47, 0.16), transparent 60%),
     radial-gradient(900px 600px at 85% 110%, rgba(40, 90, 200, 0.18), transparent 60%),
-    linear-gradient(180deg, rgba(13, 18, 25, 0.78), rgba(8, 11, 16, 0.66));
-  backdrop-filter: blur(2px);
+    linear-gradient(180deg, rgba(13, 18, 25, 0.84), rgba(8, 11, 16, 0.74));
+  /* 不用 backdrop-filter：背景是逐帧重绘的 3D 画布，模糊采样会闪烁 */
   overflow: auto;
 }
 .menu-glow {
@@ -250,7 +251,7 @@ body {
 .overlay {
   position: fixed; inset: 0; z-index: 30;
   display: flex; align-items: center; justify-content: center;
-  background: rgba(5, 8, 12, 0.55); backdrop-filter: blur(3px);
+  background: rgba(5, 8, 12, 0.72);
 }
 .panel { padding: 30px 44px; text-align: center; min-width: 360px; position: relative; }
 .panel h2 { font-size: 22px; letter-spacing: 3px; margin-bottom: 14px; color: #ffdfc2; }

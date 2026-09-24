@@ -32,10 +32,18 @@ renderer.toneMapping = THREE.ACESFilmicToneMapping;
 
 const scene = new THREE.Scene();
 applyBackground(scene);
-const camera = new THREE.PerspectiveCamera(75, innerWidth / innerHeight, 0.05, 120);
+const camera = new THREE.PerspectiveCamera(75, innerWidth / innerHeight, 0.12, 120);
 
-/* 后期：Bloom 泛光（进球时脉冲增强） */
-const composer = new EffectComposer(renderer);
+/* 后期：Bloom 泛光（进球时脉冲增强）
+   注意：走 EffectComposer 后 canvas 自身的 antialias 失效，
+   必须给 composer 的渲染目标开 MSAA（samples），否则地板标线
+   在斜视角下会产生边缘抖动/闪烁。 */
+const drawSize = renderer.getDrawingBufferSize(new THREE.Vector2());
+const composerTarget = new THREE.WebGLRenderTarget(drawSize.x, drawSize.y, {
+  type: THREE.HalfFloatType,
+  samples: 4,
+});
+const composer = new EffectComposer(renderer, composerTarget);
 composer.addPass(new RenderPass(scene, camera));
 const bloomPass = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), CFG.fx.bloomBase, 0.55, 0.78);
 composer.addPass(bloomPass);
@@ -311,7 +319,9 @@ addEventListener('resize', () => {
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
-  composer.setSize(innerWidth, innerHeight);
+  // composer.setSize 不乘 pixelRatio，需手动传物理像素尺寸，否则缩放窗口后模糊抖动
+  const pr = renderer.getPixelRatio();
+  composer.setSize(innerWidth * pr, innerHeight * pr);
 });
 
 /* ================= 启动 ================= */
