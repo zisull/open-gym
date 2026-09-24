@@ -29,11 +29,8 @@
       <div id="timer-track"><i id="timer-fill"></i></div>
     </div>
 
-    <!-- 右上：双连击计数器（运球/投篮相互独立） -->
+    <!-- 右上：投篮连击计数器 -->
     <div id="hud-right">
-      <div class="combo-chip glass" id="chip-d">
-        <span class="cl">⛹ 运球连击</span><b id="combo-d">0</b><em id="mul-d">×1</em>
-      </div>
       <div class="combo-chip glass" id="chip-s">
         <span class="cl">🏀 投篮连击</span><b id="combo-s">0</b><em id="mul-s">×1</em>
       </div>
@@ -44,17 +41,6 @@
 
     <!-- 中央得分飘字 -->
     <div id="score-popup"></div>
-
-    <!-- 运球：滚动拍球进度条 -->
-    <div id="dribble-bar" class="hidden">
-      <div class="db-track" id="db-track">
-        <div class="db-zone-good" id="db-good"></div>
-        <div class="db-zone-perfect" id="db-perfect"></div>
-        <div class="db-center-line"></div>
-        <div class="db-marker" id="db-marker"></div>
-      </div>
-      <div class="db-faildots" id="db-faildots"><i></i><i></i><i></i></div>
-    </div>
 
     <!-- 投篮：蓄力力度条（含最佳力度段） -->
     <div id="power-bar" class="hidden">
@@ -76,19 +62,13 @@
       <button class="card" data-mode="free">
         <div class="ci">🏀</div>
         <h3>自由模式</h3>
-        <p>无时间限制，自由运球投篮练习<br>运球得分与投篮得分<b>合并计算</b></p>
+        <p>无时间限制，自由拍球投篮练习<br>拍球得分与投篮得分<b>合并计算</b></p>
         <div class="rec">最高分 <b id="rec-free">0</b></div>
-      </button>
-      <button class="card" data-mode="dribble">
-        <div class="ci">⛹</div>
-        <h3>运球限时挑战</h3>
-        <p>90 秒 · 只比运球单项得分<br>卡点越准连击越高，进度条越滚越快</p>
-        <div class="rec">最高分 <b id="rec-dribble">0</b></div>
       </button>
       <button class="card" data-mode="shot">
         <div class="ci">🎯</div>
         <h3>投篮限时挑战</h3>
-        <p>90 秒 · 只比投篮单项得分<br>踩最佳力度段出手，连击倍数封顶 ×3</p>
+        <p>90 秒 · 每进一球随机传送新投篮点<br>踩最佳力度段出手，连击倍数封顶 ×3</p>
         <div class="rec">最高分 <b id="rec-shot">0</b></div>
       </button>
     </div>
@@ -97,7 +77,7 @@
       <label class="st"><span>音量</span><input type="range" id="set-volume" min="0" max="1" step="0.05" value="0.8"></label>
     </div>
     <div id="help">
-      <b>操作</b>：WASD 移动（左手）· 鼠标转向（右手）· <b>左键</b> 拾球 / 卡点拍球 / 按住蓄力 · <b>右键</b> 开始运球 / 结束运球 / 假投 · ESC 暂停
+      <b>操作</b>：WASD 移动（左手）· 鼠标转向（右手）· <b>左键</b> 拾球 / 拍球 / 按住蓄力投篮 · <b>右键</b> 假投虚晃 · ESC 暂停
     </div>
   </div>
 

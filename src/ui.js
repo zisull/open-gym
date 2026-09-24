@@ -12,19 +12,15 @@ export class UI {
       hud: $('hud'), cross: $('crosshair'),
       mode: $('hud-mode'), score: $('hud-score'), best: $('hud-best'), sub: $('hud-sub'),
       timerBox: $('hud-timer'), timerText: $('timer-text'), timerFill: $('timer-fill'),
-      chipD: $('chip-d'), comboD: $('combo-d'), mulD: $('mul-d'),
       chipS: $('chip-s'), comboS: $('combo-s'), mulS: $('mul-s'),
       prompt: $('hud-prompt'), popup: $('score-popup'),
-      dbar: $('dribble-bar'), dMarker: $('db-marker'),
-      dGood: $('db-good'), dPerfect: $('db-perfect'), dFails: $('db-faildots').children,
       pbar: $('power-bar'), pFill: $('pb-fill'), pSweet: $('pb-sweet'),
       menu: $('menu'), pause: $('pause'), result: $('result'),
       badgeNew: $('badge-new'), resTitle: $('res-title'), resScore: $('res-score'),
       resScoreLabel: $('res-score-label'), resLines: $('res-lines'), resShare: $('res-share'),
-      recFree: $('rec-free'), recDribble: $('rec-dribble'), recShot: $('rec-shot'),
+      recFree: $('rec-free'), recShot: $('rec-shot'),
       setShadow: $('set-shadow'), setVolume: $('set-volume'), pauseShadow: $('pause-shadow'),
     };
-    this._lastComboD = -1;
     this._lastComboS = -1;
     this._prompt = '';
     this._bindButtons();
@@ -59,7 +55,6 @@ export class UI {
     this.el.result.classList.add('hidden');
     this.el.pause.classList.add('hidden');
     this.el.recFree.textContent = records.free;
-    this.el.recDribble.textContent = records.dribble;
     this.el.recShot.textContent = records.shot;
   }
   hideMenu() { this.el.menu.classList.add('hidden'); }
@@ -81,14 +76,7 @@ export class UI {
     this.el.sub.textContent = subText || '';
   }
 
-  setCombos(cd, mulD, cs, mulS) {
-    if (cd !== this._lastComboD) {
-      this.el.comboD.textContent = cd;
-      this.el.mulD.textContent = `×${mulD}`;
-      this.el.chipD.classList.remove('pulse'); void this.el.chipD.offsetWidth;
-      if (cd > 0) this.el.chipD.classList.add('pulse');
-      this._lastComboD = cd;
-    }
+  setCombos(cs, mulS) {
     if (cs !== this._lastComboS) {
       this.el.comboS.textContent = cs;
       this.el.mulS.textContent = `×${mulS}`;
@@ -117,29 +105,6 @@ export class UI {
     el.innerHTML = (points > 0 ? `+${points}` : '') + (label ? `<small>${label}</small>` : '');
     el.classList.toggle('bad', points === 0 && !!label);
     el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
-  }
-
-  /* ---------- 运球节奏条 ---------- */
-  showDribbleBar(show) { this.el.dbar.classList.toggle('hidden', !show); }
-  updateDribbleBar(t, zones) {
-    this.el.dMarker.style.left = `${t * 100}%`;
-    this.el.dGood.style.left = `${(0.5 - zones.good) * 100}%`;
-    this.el.dGood.style.width = `${zones.good * 2 * 100}%`;
-    this.el.dPerfect.style.left = `${(0.5 - zones.perfect) * 100}%`;
-    this.el.dPerfect.style.width = `${zones.perfect * 2 * 100}%`;
-  }
-  _barFlash(cls) {
-    const bar = this.el.dbar;
-    ['flash-perfect', 'flash-good', 'flash-miss'].forEach((c) => bar.classList.remove(c));
-    void bar.offsetWidth;
-    bar.classList.add(cls);
-  }
-  flashPerfect() { this._barFlash('flash-perfect'); }
-  flashGood() { this._barFlash('flash-good'); }
-  flashMiss() { this._barFlash('flash-miss'); }
-  /** 连续失误指示灯（0~3） */
-  setFailDots(n) {
-    for (let i = 0; i < 3; i++) this.el.dFails[i].classList.toggle('on', i < n);
   }
 
   /* ---------- 投篮力度条 ---------- */

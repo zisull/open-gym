@@ -8,6 +8,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
 import { CFG } from './config.js';
 import { createPhysics } from './physics.js';
@@ -15,8 +16,7 @@ import { buildCourt, setupLights, applyBackground, RIM_POS } from './court.js';
 import { GameBall } from './ball.js';
 import { Player } from './player.js';
 import { Effects } from './effects.js';
-import { RhythmJudge } from './rhythm.js';
-import { StateMachine, NoBallState, HoldState, DribbleState, ShotState } from './states.js';
+import { StateMachine, NoBallState, HoldState, ShotState, randomShotSpot } from './states.js';
 import { ScoreManager, loadRecord, loadSetting, saveSetting, LS_SHADOW, LS_VOLUME } from './scoring.js';
 import { Sfx } from './audio.js';
 import { UI } from './ui.js';
@@ -32,6 +32,12 @@ renderer.toneMapping = THREE.ACESFilmicToneMapping;
 
 const scene = new THREE.Scene();
 applyBackground(scene);
+/* 室内环境贴图（PMREM）：给漆面地板 / 金属篮圈 / 玻璃篮板提供真实反射 */
+{
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+  pmrem.dispose();
+}
 const camera = new THREE.PerspectiveCamera(75, innerWidth / innerHeight, 0.12, 120);
 
 /* 后期：Bloom 泛光（进球时脉冲增强）
@@ -57,7 +63,6 @@ const { world, ballBody, matRim, matBoard } = createPhysics();
 const ball = new GameBall(scene, world, ballBody);
 const player = new Player(camera);
 const fx = new Effects(scene, camera);
-const rhythm = new RhythmJudge();
 const scoring = new ScoreManager();
 const sfx = new Sfx();
 const ui = new UI();
@@ -65,23 +70,15 @@ const ui = new UI();
 /* ================= 状态机装配 ================= */
 const netSway = { t: 0 };
 const G = {
-  camera, player, ball, rhythm, scoring, sfx, fx, ui,
+  camera, player, ball, scoring, sfx, fx, ui,
   modeDef: CFG.MODES.free,
   netSway: () => { netSway.t = 1; },
 };
 const machine = new StateMachine();
 machine.register('noBall', new NoBallState(G));
 machine.register('hold', new HoldState(G));
-machine.register('dribble', new DribbleState(G));
 machine.register('shot', new ShotState(G));
 G.machine = machine;
-
-/* 节奏条"周期空过"-> 记一次运球失误 */
-rhythm.onCycleMiss = () => {
-  if (machine.name === 'dribble' && G.modeDef.dribbleScore && !scoring.ended) {
-    machine.current.registerFail();
-  }
-};
 
 /* ================= 游戏流程状态：menu | playing | paused | result ================= */
 let gameState = 'menu';
@@ -93,9 +90,7 @@ function refreshMenu() {
   gameState = 'menu';
   machine.set('noBall');
   ball.startPhysics(new THREE.Vector3(1.4, 1, 0.5), null);
-  ui.showMenu({
-    free: loadRecord('free'), dribble: loadRecord('dribble'), shot: loadRecord('shot'),
-  });
+  ui.showMenu({ free: loadRecord('free'), shot: loadRecord('shot') });
   ui.setShadowChecked(shadowOn);
   document.exitPointerLock?.();
 }
@@ -105,15 +100,22 @@ function startMode(id) {
   currentModeId = id;
   G.modeDef = CFG.MODES[id];
   scoring.reset(G.modeDef);
-  // 玩家回中圈，球放脚边
-  player.pos.set(0.6, 0, 1.5);
   player.vel.set(0, 0, 0);
   player.freeYaw = 0; player.freePitch = 0;
   player.yaw = 0; player.pitch = 0;
   player.exitShotAim();
   player.mode = 'free'; player.blend = 0;
-  ball.startPhysics(new THREE.Vector3(1.2, 0.8, 0.4), null);
-  machine.set('noBall');
+  if (id === 'shot') {
+    // 投篮挑战：直接空投到随机投篮点，球已在手
+    const spot = randomShotSpot();
+    player.pos.set(spot.x, 0, spot.z);
+    ball.startHeld();
+    machine.set('shot');
+  } else {
+    player.pos.set(0.6, 0, 1.5);
+    ball.startPhysics(new THREE.Vector3(1.2, 0.8, 0.4), null);
+    machine.set('noBall');
+  }
   gameState = 'playing';
   lastSecond = -1;
   ui.showHud(G.modeDef.name, G.modeDef.timed);
@@ -145,18 +147,19 @@ function finishSession() {
   gameState = 'result';
   player.inputEnabled = false;
   machine.dispatch('onLeftUp');
-  ball.startHeld(); // 结算时无论球在哪（运球/飞行）都收回手中，避免悬空或乱滚
+  ball.startHeld(); // 结算时无论球在哪（飞行中）都收回手中，避免悬空或乱滚
   machine.set('hold');
   const fin = scoring.finalize();
   sfx.play('buzzer', { volume: 0.8 });
   const m = scoring.mode;
-  const scoreLabel = m.id === 'free' ? '总分（运球+投篮）' : m.id === 'dribble' ? '运球得分' : '投篮得分';
+  const scoreLabel = m.id === 'free' ? '总分（拍球+投篮）' : '投篮得分';
   const stats = [];
-  if (m.dribbleScore) stats.push(`⛹ 完美拍球 <b>${scoring.perfectHits}</b> 次 · 最高运球连击 <b>${scoring.dribbleComboMax || 0}</b>`);
+  stats.push(`👋 拍球 <b>${scoring.taps}</b> 次（+${scoring.tapScore} 分）`);
   if (m.shotScore) {
     const pct = scoring.shotTaken ? Math.round((scoring.shotMade / scoring.shotTaken) * 100) : 0;
-    stats.push(`🎯 投篮 <b>${scoring.shotMade}</b> / <b>${scoring.shotTaken}</b> 中（命中率 <b>${pct}%</b>）`);
+    stats.push(`🎯 投篮 <b>${scoring.shotMade}</b> / <b>${scoring.shotTaken}</b> 中（命中率 <b>${pct}%</b>）· 最高连击 <b>${scoring.shotComboMax}</b>`);
   }
+  if (m.id === 'shot') stats.push(`🎲 命中换位 <b>${scoring.spots}</b> 次`);
   stats.push(`🕘 ${m.timed ? '用时 90s 倒计时结束' : '自由练习'}`);
   ui.showResult({
     modeName: m.name, scoreLabel, score: fin.score,
@@ -272,20 +275,14 @@ function tick() {
 
     /* ---- HUD ---- */
     const live = scoring.mode.id === 'free'
-      ? `运球 ${scoring.dribbleScore} + 投篮 ${scoring.shotScore}`
-      : scoring.mode.id === 'dribble'
-        ? `失误 ${scoring.dribbleFail}/3 · 完美 ${scoring.perfectHits}`
-        : `进 ${scoring.shotMade} / 失 ${scoring.shotFail}/3`;
+      ? `拍球 ${scoring.taps} 次 · 投篮 ${scoring.shotMade}/${scoring.shotTaken}`
+      : `进 ${scoring.shotMade} · 换位 ${scoring.spots} 次`;
     ui.setScore(
       scoring.displayScore,
       Math.max(loadRecord(currentModeId), scoring.displayScore),
       live
     );
-    ui.setCombos(
-      scoring.dribbleCombo, scoring.dribbleMultiplier(),
-      scoring.shotCombo, scoring.shotMultiplier()
-    );
-    ui.setFailDots(scoring.dribbleFail);
+    ui.setCombos(scoring.shotCombo, scoring.shotMultiplier());
   } else if (gameState === 'menu') {
     /* ---- 菜单背景：镜头绕场慢游 + 物理照常 ---- */
     world.step(1 / 60, dt, 3);
@@ -330,33 +327,30 @@ refreshMenu();
 tick();
 
 /* ================= 调试/自动化测试钩子 =================
-   ?mode=free|dribble|shot 可直接进入对应模式；
+   ?mode=free|shot 可直接进入对应模式；
    window.GAME 供无头浏览器脚本驱动状态切换截图。 */
 try {
   const params = new URLSearchParams(location.search);
   window.GAME = {
-    startMode, finishSession, machine, scoring, ui, player, ball, fx, rhythm,
+    startMode, finishSession, machine, scoring, ui, player, ball, fx,
     get state() { return gameState; },
     teleport: (x, z) => { player.pos.set(x, 0, z); },
     dispatch: (evt) => machine.dispatch(evt),
   };
   const m = params.get('mode');
-  const demo = params.get('demo'); // dribble|shot：自动演示到对应状态（截图验证用）
+  const demo = params.get('demo'); // shot|result：自动演示（截图验证用）
   if (m && CFG.MODES[m]) setTimeout(() => startMode(m), 400);
-  if (m && demo === 'dribble') {
-    setTimeout(() => machine.dispatch('onLeftDown'), 1500);   // 拾球
-    setTimeout(() => machine.dispatch('onRightDown'), 2300);  // 开始运球
-  }
   if (m && demo === 'shot') {
-    setTimeout(() => machine.dispatch('onLeftDown'), 1500);   // 拾球
+    setTimeout(() => { if (machine.name === 'noBall') machine.dispatch('onLeftDown'); }, 1500); // 拾球
     setTimeout(() => { player.pos.set(0.5, 0, -8); }, 2000);  // 传送到投篮区
     setTimeout(() => machine.dispatch('onLeftDown'), 2900);   // 按住蓄力
   }
   if (demo === 'result') {
     // 结算弹窗冒烟测试（带假数据）
-    setTimeout(() => startMode(m || 'dribble'), 300);
+    setTimeout(() => startMode(m || 'shot'), 300);
     setTimeout(() => {
-      scoring.dribbleScore = 160; scoring.perfectHits = 9; scoring.dribbleComboMax = 7;
+      scoring.shotScore = 210; scoring.shotMade = 7; scoring.shotTaken = 11;
+      scoring.shotComboMax = 5; scoring.spots = 7;
       finishSession();
     }, 1200);
   }

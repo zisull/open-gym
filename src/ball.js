@@ -1,13 +1,12 @@
 /**
  * ball.js —— 篮球（渲染网格 + 物理刚体的统一封装）
  * 三种存在形态：
- *   physics  —— 自由物理（投篮飞行、掉球后弹跳）
- *   held     —— 持球（脱离物理世界，挂在镜头右前方的"手中"）
- *   dribble  —— 运球动画（脱离物理，弹跳节奏与拍球进度条同相位）
+ *   physics —— 自由物理（投篮飞行、掉球后弹跳）
+ *   held    —— 持球（脱离物理世界，挂在镜头右前方的"手中"，可叠加拍球动画）
  */
 import * as THREE from 'three';
 import { CFG } from './config.js';
-import { makeBallTexture } from './textures.js';
+import { makeBallTexture, makeBallBumpTexture } from './textures.js';
 
 export class GameBall {
   /**
@@ -23,8 +22,11 @@ export class GameBall {
     const geo = new THREE.SphereGeometry(CFG.ball.radius, 32, 24);
     const mat = new THREE.MeshStandardMaterial({
       map: makeBallTexture(),
-      roughness: 0.62,
+      bumpMap: makeBallBumpTexture(),   // 麻点+筋沟微观起伏
+      bumpScale: 1.6,
+      roughness: 0.58,
       metalness: 0.02,
+      envMapIntensity: 0.45,
     });
     this.mesh = new THREE.Mesh(geo, mat);
     this.mesh.castShadow = true;
@@ -40,6 +42,8 @@ export class GameBall {
       this.world.addBody(this.body);
       this.body.wakeUp();
     }
+    this._tapT = undefined;
+    this.mesh.scale.set(1, 1, 1);
     this.body.position.set(pos.x, pos.y, pos.z);
     this.body.velocity.set(vel ? vel.x : 0, vel ? vel.y : 0, vel ? vel.z : 0);
     this.body.angularVelocity.set(0, 0, 0);
@@ -53,46 +57,51 @@ export class GameBall {
       this.mode = 'held';
     }
     this._heldTimer = 0;
+    this._tapT = undefined;
+    this.mesh.scale.set(1, 1, 1);
   }
 
-  /** 切为运球动画模式 */
-  startDribbleAnim() {
-    if (this.mode !== 'dribble') {
-      this.world.removeBody(this.body);
-      this.mode = 'dribble';
-    }
+  /**
+   * 拍球（无门槛装饰动作）：仅持球态可触发，球自动向下拍击并回手。
+   * @returns {boolean} 是否成功触发（正在拍球/非持球态返回 false）
+   */
+  tap() {
+    if (this.mode !== 'held' || this._tapT !== undefined) return false;
+    this._tapT = 0;
+    return true;
   }
 
-  /** 持球姿态：跟随相机右手位置，蓄力时举过头顶前倾 */
+  /** 持球姿态：跟随相机右手位置，蓄力时举过头顶前倾；叠加拍球下探动画 */
   updateHeld(dt, camera, charge = 0) {
     this._heldTimer += dt;
     // 基准手部偏移（相机局部系）：右下前方
     const hand = new THREE.Vector3(0.42, -0.32 + charge * 0.62, -0.72 - charge * 0.18);
-    // 轻微呼吸浮动
-    hand.y += Math.sin(this._heldTimer * 2.4) * 0.012;
-    hand.x += Math.sin(this._heldTimer * 1.7) * 0.008;
+    // 轻微呼吸浮动（拍球时冻结，避免抢戏）
+    if (this._tapT === undefined) {
+      hand.y += Math.sin(this._heldTimer * 2.4) * 0.012;
+      hand.x += Math.sin(this._heldTimer * 1.7) * 0.008;
+    }
+    // 拍球：正弦下探回手 + 触底挤压（squash & stretch）
+    let squash = 0;
+    if (this._tapT !== undefined) {
+      this._tapT += dt;
+      const u = this._tapT / CFG.tap.dur;
+      if (u >= 1) {
+        this._tapT = undefined;
+      } else {
+        const k = Math.sin(Math.min(u, 1) * Math.PI);
+        hand.y -= k * 0.92;         // 向下拍至膝下
+        hand.z += k * 0.10;         // 略向前，贴近"原地拍球"手感
+        squash = k;                 // 触底峰值形变
+      }
+    }
+    this.mesh.scale.set(1 + squash * 0.14, 1 - squash * 0.2, 1 + squash * 0.14);
     hand.applyQuaternion(camera.quaternion);
     this.mesh.position.copy(camera.position).add(hand);
     // 持球自转缓慢朝向镜头
     this.mesh.quaternion.copy(camera.quaternion);
-    this.mesh.rotateX(0.4 + charge * 0.5);
+    this.mesh.rotateX(0.4 + charge * 0.5 + squash * 0.9);
     this.mesh.rotateZ(Math.sin(this._heldTimer * 1.3) * 0.1);
-    return this.mesh.position;
-  }
-
-  /**
-   * 运球动画：phase∈[0,1) 与进度条同相位，t=0.5（中央完美区）时球触底
-   * @param {THREE.Vector3} basePos 玩家脚边球位（世界系 xz）
-   */
-  updateDribbleAnim(phase, basePos) {
-    const r = CFG.ball.radius;
-    const A = CFG.dribble.bounceAmp;
-    // t=0.5 谷底，t=0/1 峰顶
-    const h = r + A * (0.5 + 0.5 * Math.cos(2 * Math.PI * phase));
-    this.mesh.position.set(basePos.x, h, basePos.z);
-    // 球体滚动外观：下落/上升时绕侧轴转
-    this.mesh.rotation.x += (1 - h) * 0.4 + 0.05;
-    this.mesh.rotation.z = Math.sin(phase * Math.PI * 2) * 0.3;
     return this.mesh.position;
   }
 

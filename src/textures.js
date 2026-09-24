@@ -196,6 +196,78 @@ export function makeBallTexture() {
   return tex;
 }
 
+/** 球馆墙面吸音板贴图：深色分格竖板 + 顶部管线带 + 细微噪点 */
+export function makeWallTexture() {
+  const W = 1024, H = 512;
+  const cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  const ctx = cv.getContext('2d');
+  const rnd = mulberry32(5150);
+
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, '#3b4757');
+  g.addColorStop(0.5, '#333e4c');
+  g.addColorStop(1, '#2a323e');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+
+  // 竖向吸音板分格（每 64px 一块：左侧高光 + 右侧暗缝）
+  for (let x = 0; x < W; x += 64) {
+    ctx.fillStyle = 'rgba(255,255,255,0.045)';
+    ctx.fillRect(x + 2, 0, 3, H);
+    ctx.fillStyle = 'rgba(0,0,0,0.28)';
+    ctx.fillRect(x + 60, 0, 4, H);
+    // 每块板表面轻微明差
+    ctx.fillStyle = `rgba(${rnd() > 0.5 ? 255 : 0},${rnd() > 0.5 ? 255 : 0},${rnd() > 0.5 ? 255 : 0},0.02)`;
+    ctx.fillRect(x, 0, 64, H);
+  }
+  // 顶部管线带 + 篮球主题腰线
+  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+  ctx.fillRect(0, 0, W, 42);
+  ctx.fillStyle = 'rgba(255,122,47,0.20)';
+  ctx.fillRect(0, 42, W, 5);
+  ctx.fillStyle = 'rgba(255,255,255,0.05)';
+  ctx.fillRect(0, 47, W, 2);
+  // 细微噪点
+  for (let i = 0; i < 4000; i++) {
+    ctx.fillStyle = `rgba(${rnd() > 0.5 ? 255 : 0},${rnd() > 0.5 ? 255 : 0},${rnd() > 0.5 ? 255 : 0},0.018)`;
+    ctx.fillRect(rnd() * W, rnd() * H, 2, 2);
+  }
+
+  const tex = new THREE.CanvasTexture(cv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  return tex;
+}
+
+/** 篮球颗粒凸起贴图（bumpMap）：麻点凹坑 + 筋沟深缝 */
+export function makeBallBumpTexture() {
+  const S = 512;
+  const cv = document.createElement('canvas');
+  cv.width = S; cv.height = S;
+  const ctx = cv.getContext('2d');
+  const rnd = mulberry32(777);
+
+  ctx.fillStyle = '#b4b4b4';       // 中性基面
+  ctx.fillRect(0, 0, S, S);
+  for (let i = 0; i < 9000; i++) { // 麻点：深色=凹坑
+    const v = 60 + rnd() * 90;
+    ctx.fillStyle = `rgba(${v},${v},${v},0.5)`;
+    ctx.beginPath();
+    ctx.arc(rnd() * S, rnd() * S, 0.8 + rnd() * 1.8, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.strokeStyle = '#1c1c1c';     // 筋沟：最深
+  ctx.lineWidth = 11;
+  ctx.beginPath(); ctx.moveTo(S / 2, 0); ctx.lineTo(S / 2, S); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0, S / 2); ctx.lineTo(S, S / 2); ctx.stroke();
+  ctx.beginPath(); ctx.arc(S * 0.25, S / 2, S * 0.34, -Math.PI / 2, Math.PI / 2); ctx.stroke();
+  ctx.beginPath(); ctx.arc(S * 0.75, S / 2, S * 0.34, Math.PI / 2, -Math.PI / 2); ctx.stroke();
+
+  const tex = new THREE.CanvasTexture(cv);
+  return tex;
+}
+
 /** 天空盒/背景：馆内暗色渐变顶棚氛围（球馆无真实天空，用柔和渐变替代） */
 export function makeSkyTexture() {
   const cv = document.createElement('canvas');

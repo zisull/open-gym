@@ -1,6 +1,6 @@
 /**
  * scoring.js —— 计分与本地记录管理
- * 三种模式相互隔离；运球连击与投篮连击两套计数器相互独立。
+ * 两种模式相互隔离；拍球为无门槛装饰得分（仅自由模式计入），投篮连击独立计数。
  * 最高分使用 localStorage 持久保存（键见 CFG.MODES[*].recordKey）。
  */
 import { CFG } from './config.js';
@@ -31,95 +31,61 @@ export class ScoreManager {
   /** 开局/重开：清空当局数据（不影响历史最高分） */
   reset(modeDef) {
     this.mode = modeDef;
-    this.dribbleScore = 0;   // 运球得分
+    this.tapScore = 0;       // 拍球得分（仅自由模式计入）
+    this.taps = 0;           // 统计：拍球次数
     this.shotScore = 0;      // 投篮得分
-    this.dribbleCombo = 0;   // 运球连击
     this.shotCombo = 0;      // 投篮连击
-    this.dribbleFail = 0;    // 运球连续失误计数
+    this.shotComboMax = 0;   // 统计：最高连击
     this.shotFail = 0;       // 投篮连续不中计数
-    this.perfectHits = 0;    // 统计：完美拍球次数
     this.shotMade = 0;       // 统计：进球数
     this.shotTaken = 0;      // 统计：出手数
+    this.spots = 0;          // 统计：投篮挑战命中的站位数（换位次数）
     this.timeLeft = modeDef.timed ? CFG.challenge.duration : Infinity;
     this.ended = false;
   }
 
   /** 当前模式下展示的总分 */
   get displayScore() {
-    if (this.mode.id === 'dribble') return this.dribbleScore;
     if (this.mode.id === 'shot') return this.shotScore;
-    return this.dribbleScore + this.shotScore; // 自由模式：合并计算
+    return this.tapScore + this.shotScore; // 自由模式：合并计算
   }
 
-  /** 运球连击倍数（1→×1，2→×2，3+→×3 封顶） */
-  dribbleMultiplier() {
-    const D = CFG.dribble;
-    return D.comboMul[Math.min(this.dribbleCombo, D.maxComboMul)];
-  }
+  /** 投篮连击倍数（索引=连击数，3+ 封顶） */
   shotMultiplier() {
-    const D = CFG.dribble; // 倍数规则与运球一致
-    return D.comboMul[Math.min(this.shotCombo, D.maxComboMul)];
+    const S = CFG.shot;
+    return S.comboMul[Math.min(this.shotCombo, S.maxComboMul)];
   }
 
-  /**
-   * 完美拍球得分。返回 { points, multiplier }；若当前模式不计运球分则 points=0。
-   */
-  addDribblePerfect() {
-    this.dribbleCombo++;
-    this.dribbleComboMax = Math.max(this.dribbleComboMax || 0, this.dribbleCombo);
-    this.dribbleFail = 0;
-    this.perfectHits++;
-    if (!this.mode.dribbleScore) return { points: 0, multiplier: this.dribbleMultiplier() };
-    const mul = this.dribbleMultiplier();
-    const pts = CFG.dribble.basePoints * mul;
-    this.dribbleScore += pts;
-    return { points: pts, multiplier: mul };
-  }
-
-  /** 及格拍球（不加分不涨连击，仅失误清零） */
-  addDribbleGood() {
-    this.dribbleFail = 0;
-  }
-
-  /** 运球一次失误 */
-  addDribbleFail() {
-    if (!this.mode.dribbleScore) return false; // 投篮挑战模式：运球只是移动手段，不判失误
-    this.dribbleFail++;
-    this.dribbleCombo = 0;
-    return this.dribbleFail >= CFG.dribble.failLimit; // true = 应掉球
-  }
-
-  /** 掉球后：连击清零、失误清零 */
-  onBallDropped() {
-    this.dribbleCombo = 0;
-    this.dribbleFail = 0;
-  }
-
-  /** 取消运球（回到持球），保留连击但不保留"本周期已点击" */
-  onDribbleCancel() {
-    this.dribbleFail = 0;
+  /** 拍球一次（无门槛）。返回 { points } */
+  addTap() {
+    this.taps++;
+    if (!this.mode.tapScore) return { points: 0 };
+    const pts = CFG.tap.points;
+    this.tapScore += pts;
+    return { points: pts };
   }
 
   /** 投篮出手登记 */
   registerShotAttempt() { this.shotTaken++; }
 
-  /** 进球。返回 { points, is3 } */
+  /** 进球。返回 { points, is3, multiplier }；连击 +1 */
   addShotMade(dist) {
     this.shotCombo++;
+    this.shotComboMax = Math.max(this.shotComboMax, this.shotCombo);
     this.shotFail = 0;
     this.shotMade++;
-    if (!this.mode.shotScore) return { points: 0, is3: false };
+    if (!this.mode.shotScore) return { points: 0, is3: false, multiplier: 1 };
     const is3 = dist > CFG.shot.score2Dist;
-    const pts = (is3 ? CFG.shot.base3 : CFG.shot.base2) * this.shotMultiplier();
+    const mul = this.shotMultiplier();
+    const pts = (is3 ? CFG.shot.base3 : CFG.shot.base2) * mul;
     this.shotScore += pts;
-    return { points: pts, is3 };
+    return { points: pts, is3, multiplier: mul };
   }
 
   /** 投篮未中。返回是否达到 3 连败（连击清零） */
   addShotMiss() {
-    if (!this.mode.shotScore) return false;
     this.shotFail++;
-    if (this.shotFail >= CFG.dribble.failLimit) {
+    if (this.shotFail >= 3) {
       this.shotCombo = 0;
       this.shotFail = 0;
       return true;

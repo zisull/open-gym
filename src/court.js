@@ -5,7 +5,7 @@
  */
 import * as THREE from 'three';
 import { CFG } from './config.js';
-import { makeCourtTexture, makeSkyTexture } from './textures.js';
+import { makeCourtTexture, makeSkyTexture, makeWallTexture } from './textures.js';
 
 /** 圈心地面投影（投篮距离计算、粒子特效都以此为原点） */
 export const RIM_POS = new THREE.Vector3(0, CFG.hoop.rimHeight, CFG.hoop.boardFaceZ + CFG.hoop.rimOffset);
@@ -13,13 +13,16 @@ export const RIM_POS = new THREE.Vector3(0, CFG.hoop.rimHeight, CFG.hoop.boardFa
 export function buildCourt(scene) {
   /* ================= 材质 ================= */
   const floorTex = makeCourtTexture();
-  const floorMat = new THREE.MeshStandardMaterial({
+  // 上漆硬木地板：clearcoat 层模拟漆面镜面反射（配合 scene.environment 出高光）
+  const floorMat = new THREE.MeshPhysicalMaterial({
     map: floorTex,
-    roughness: 0.42,     // 上漆木地板的轻微反光
-    metalness: 0.08,
-    envMapIntensity: 0.6,
+    roughness: 0.42,
+    metalness: 0.05,
+    clearcoat: 0.3,
+    clearcoatRoughness: 0.22,
+    envMapIntensity: 0.55,
   });
-  const paintedWood = (color) => new THREE.MeshStandardMaterial({ color, roughness: 0.6, metalness: 0.05 });
+  const paintedWood = (color, rough = 0.6) => new THREE.MeshStandardMaterial({ color, roughness: rough, metalness: 0.05, envMapIntensity: 0.4 });
 
   /* ================= 地板 ================= */
   const floor = new THREE.Mesh(
@@ -30,10 +33,10 @@ export function buildCourt(scene) {
   floor.receiveShadow = true;
   scene.add(floor);
 
-  // 场外地面（深灰水泥环带；与球场地板拉开 6cm，任何深度精度下都不共面闪烁）
+  // 场外地面（深色橡胶运动地垫；与球场地板拉开 6cm，任何深度精度下都不共面闪烁）
   const apron = new THREE.Mesh(
     new THREE.PlaneGeometry(CFG.gym.halfW * 2, CFG.gym.halfL * 2),
-    new THREE.MeshStandardMaterial({ color: 0x2a2e35, roughness: 0.9 })
+    new THREE.MeshStandardMaterial({ color: 0x272b32, roughness: 0.82, metalness: 0, envMapIntensity: 0.25 })
   );
   apron.rotation.x = -Math.PI / 2;
   apron.position.y = -0.06;
@@ -41,7 +44,9 @@ export function buildCourt(scene) {
   scene.add(apron);
 
   /* ================= 墙体 / 顶棚 ================= */
-  const wallMat = new THREE.MeshStandardMaterial({ color: 0x303946, roughness: 0.95, side: THREE.BackSide });
+  const wallTex = makeWallTexture();
+  wallTex.repeat.set(4, 1);
+  const wallMat = new THREE.MeshStandardMaterial({ map: wallTex, color: 0xffffff, roughness: 0.92, metalness: 0, envMapIntensity: 0.25, side: THREE.BackSide });
   const shell = new THREE.Mesh(
     new THREE.BoxGeometry(CFG.gym.halfW * 2, CFG.gym.height, CFG.gym.halfL * 2),
     wallMat
@@ -63,7 +68,7 @@ export function buildCourt(scene) {
   mkSkirt(CFG.gym.halfL * 2, CFG.gym.halfW - 0.03, 0, Math.PI / 2);
 
   /* ================= 顶棚灯板（自发光，Bloom 提亮） ================= */
-  const lampMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xdfe8ff, emissiveIntensity: 2.2 });
+  const lampMat = new THREE.MeshStandardMaterial({ color: 0x222528, emissive: 0xeaf0ff, emissiveIntensity: 3.0 });
   for (let ix = -1; ix <= 1; ix++) {
     for (let iz = -2; iz <= 2; iz++) {
       const lamp = new THREE.Mesh(new THREE.BoxGeometry(3.4, 0.08, 1.5), lampMat);
@@ -75,11 +80,16 @@ export function buildCourt(scene) {
   /* ================= 进攻端篮架（可计分） ================= */
   const hoopGroup = new THREE.Group();
   scene.add(hoopGroup);
-  const steelMat = new THREE.MeshStandardMaterial({ color: 0xb8420e, roughness: 0.5, metalness: 0.35 });
-  const rimMat = new THREE.MeshStandardMaterial({ color: 0xff5a1f, roughness: 0.35, metalness: 0.5, emissive: 0x3a0d00, emissiveIntensity: 0.6 });
+  const steelMat = new THREE.MeshStandardMaterial({ color: 0xb8420e, roughness: 0.32, metalness: 0.8, envMapIntensity: 0.9 });
+  const rimMat = new THREE.MeshStandardMaterial({ color: 0xff5a1f, roughness: 0.22, metalness: 0.85, emissive: 0x5a1400, emissiveIntensity: 0.8, envMapIntensity: 1.0 });
 
-  // 透明篮板
-  const glass = new THREE.MeshPhysicalMaterial({ color: 0xdfeaf5, transparent: true, opacity: 0.16, roughness: 0.05, metalness: 0, transmission: 0 });
+  // 透明钢化玻璃篮板（低粗糙度 + 清漆层，靠环境贴图出玻璃高光）
+  const glass = new THREE.MeshPhysicalMaterial({
+    color: 0xdfeaf5, transparent: true, opacity: 0.12,
+    roughness: 0.06, metalness: 0,
+    clearcoat: 0.7, clearcoatRoughness: 0.1,
+    envMapIntensity: 0.8,
+  });
   const board = new THREE.Mesh(
     new THREE.BoxGeometry(CFG.hoop.boardW, CFG.hoop.boardH, 0.04),
     glass
@@ -122,7 +132,7 @@ export function buildCourt(scene) {
   pole.position.set(0, 1.85, CFG.hoop.boardFaceZ - 0.95);
   pole.castShadow = true;
   hoopGroup.add(pole);
-  const pad = new THREE.Mesh(new THREE.BoxGeometry(0.7, 1.7, 0.35), paintedWood(0x2456a8));
+  const pad = new THREE.Mesh(new THREE.BoxGeometry(0.7, 1.7, 0.35), paintedWood(0x2456a8, 0.82));
   pad.position.set(0, 0.85, CFG.hoop.boardFaceZ - 0.95);
   hoopGroup.add(pad);
 
@@ -173,7 +183,7 @@ export function buildCourt(scene) {
     bleacher.add(step);
     // 该排座椅（InstancedMesh：一实例一座，橙蓝黄绿相间）
     const seatGeo = new THREE.BoxGeometry(0.38, 0.1, 0.44);
-    const seatMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.7 });
+    const seatMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.55, metalness: 0.15, envMapIntensity: 0.5 });
     const N = 26;
     const seats = new THREE.InstancedMesh(seatGeo, seatMat, N);
     const dummy = new THREE.Object3D();
@@ -196,7 +206,7 @@ export function buildCourt(scene) {
   scene.add(bleacher);
 
   /* ================= 场边围栏 + LED 广告屏（-x 侧与两端） ================= */
-  const railMat = new THREE.MeshStandardMaterial({ color: 0x9aa3ad, roughness: 0.35, metalness: 0.8 });
+  const railMat = new THREE.MeshStandardMaterial({ color: 0xb6bec7, roughness: 0.18, metalness: 0.92, envMapIntensity: 1.0 });
   const mkRail = (len, x, z, ry) => {
     const g = new THREE.Group();
     const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, len, 8), railMat);
@@ -226,7 +236,7 @@ export function buildCourt(scene) {
   const adCtx = adCv.getContext('2d');
   adCtx.fillStyle = '#050a14'; adCtx.fillRect(0, 0, 1024, 64);
   adCtx.fillStyle = '#4d9fff'; adCtx.font = 'bold 40px system-ui'; adCtx.textBaseline = 'middle';
-  adCtx.fillText('JUMP  ·  SHOOT  ·  SCORE  ·  运球卡点  ·  完美节奏  ·  ', 10, 34);
+  adCtx.fillText('JUMP  ·  SHOOT  ·  SCORE  ·  精准出手  ·  连击挑战  ·  ', 10, 34);
   const adTex = new THREE.CanvasTexture(adCv);
   adTex.wrapS = THREE.RepeatWrapping; adTex.repeat.x = 2;
   ad1.material = new THREE.MeshStandardMaterial({ map: adTex, emissiveMap: adTex, emissive: 0x88aaff, emissiveIntensity: 1.2 });

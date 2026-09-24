@@ -43,9 +43,8 @@ export const CFG = {
   player: {
     eye: 1.68,           // 视高
     speedIdle: 5.4,      // 无球跑动
-    speedHold: 1.9,      // 原地持球（缓慢）
-    speedDribble: 5.0,   // 行进运球
-    speedShot: 1.2,      // 投篮区域内微调站位
+    speedHold: 3.2,      // 持球移动
+    speedShot: 0.9,      // 投篮站位微调
     accel: 14,           // 速度平滑加速度
     sens: 0.0023,        // 鼠标灵敏度（弧度/像素）
     lookDamping: 16,     // 视角阻尼（指数趋近系数，越大越跟手）
@@ -66,22 +65,15 @@ export const CFG = {
     score2Dist: 6.75,    // 三分线距离：出手点距圈心水平距离大于此为 3 分
     base2: 20,           // 两分基础分
     base3: 30,           // 三分基础分
-  },
-  /* ---------- 运球节奏条 ---------- */
-  dribble: {
-    basePeriod: 0.92,    // 连击 0 时滚动周期（秒）
-    minPeriod: 0.44,     // 周期下限（最快）
-    periodStep: 0.055,   // 每 1 连击缩短量
-    perfectHalf: 0.058,  // 完美区半宽（进度比例）
-    perfectMin: 0.032,   // 完美区收缩下限
-    goodHalf: 0.175,     // 及格区半宽
-    goodMin: 0.115,      // 及格区收缩下限
-    shrinkPerCombo: 0.004, // 每连击区域收缩
-    basePoints: 10,      // 完美拍球基础分
     maxComboMul: 3,      // 连击倍数上限
     comboMul: [1, 1, 2, 3], // 连击 n 的倍数（索引=连击数，3+ 封顶）
-    failLimit: 3,        // 连续失败 N 次掉球
-    bounceAmp: 0.72,     // 运球动画弹跳幅度（米）
+    // 投篮挑战随机换位站位（距圈心水平距离范围）
+    randomSpotMin: 2.6, randomSpotMax: 6.4,
+  },
+  /* ---------- 拍球（无门槛装饰动作） ---------- */
+  tap: {
+    points: 2,           // 自由模式每次拍球得分
+    dur: 0.42,           // 拍球动画时长（秒）
   },
   /* ---------- 挑战模式 ---------- */
   challenge: {
@@ -90,9 +82,8 @@ export const CFG = {
   },
   /* ---------- 计分模式枚举 ---------- */
   MODES: {
-    free:    { id: 'free',    name: '自由模式',     recordKey: 'fpbb.record.free',    timed: false, dribbleScore: true,  shotScore: true  },
-    dribble: { id: 'dribble', name: '运球限时挑战', recordKey: 'fpbb.record.dribble', timed: true,  dribbleScore: true,  shotScore: false },
-    shot:    { id: 'shot',    name: '投篮限时挑战', recordKey: 'fpbb.record.shot',    timed: true,  dribbleScore: false, shotScore: true  },
+    free: { id: 'free', name: '自由模式', recordKey: 'fpbb.record.free', timed: false, tapScore: true, shotScore: true },
+    shot: { id: 'shot', name: '投篮限时挑战', recordKey: 'fpbb.record.shot', timed: true, tapScore: false, shotScore: true },
   },
   /* ---------- 视觉 ---------- */
   fx: {

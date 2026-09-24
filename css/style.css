@@ -117,51 +117,6 @@ body {
   100% { opacity: 0; transform: translateX(-50%) translateY(-46px); }
 }
 
-/* ---------------- 运球节奏条 ---------------- */
-#dribble-bar {
-  position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%);
-  text-align: center; z-index: 7; pointer-events: none;
-}
-.db-track {
-  position: relative; width: 520px; height: 34px; margin: 0 auto;
-  background: linear-gradient(180deg, rgba(20, 26, 36, 0.85), rgba(12, 16, 23, 0.9));
-  border: 1px solid var(--glass-line); border-radius: 10px;
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  overflow: hidden;
-}
-.db-zone-good {
-  position: absolute; top: 0; bottom: 0;
-  background: rgba(53, 208, 127, 0.16);
-  border-left: 1px dashed rgba(53, 208, 127, 0.45);
-  border-right: 1px dashed rgba(53, 208, 127, 0.45);
-}
-.db-zone-perfect {
-  position: absolute; top: 0; bottom: 0;
-  background: linear-gradient(180deg, rgba(255, 160, 77, 0.4), rgba(255, 122, 47, 0.55));
-  box-shadow: 0 0 16px rgba(255, 140, 60, 0.55);
-}
-.db-center-line {
-  position: absolute; left: 50%; top: 0; bottom: 0; width: 1px;
-  background: rgba(255, 255, 255, 0.75);
-}
-.db-marker {
-  position: absolute; top: -3px; bottom: -3px; width: 6px; margin-left: -3px;
-  background: #fff; border-radius: 3px;
-  box-shadow: 0 0 12px rgba(255, 255, 255, 0.9);
-}
-.db-faildots { margin-top: 8px; display: flex; gap: 8px; justify-content: center; }
-.db-faildots i {
-  width: 10px; height: 10px; border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.3); background: transparent;
-  transition: background 0.2s;
-}
-.db-faildots i.on { background: var(--bad); border-color: var(--bad); box-shadow: 0 0 8px rgba(255, 77, 94, 0.8); }
-#dribble-bar.flash-perfect .db-track { animation: bar-flash 0.28s ease; }
-#dribble-bar.flash-good .db-track { box-shadow: 0 0 24px rgba(53, 208, 127, 0.45); }
-#dribble-bar.flash-miss .db-track { animation: bar-shake 0.28s ease; border-color: rgba(255, 77, 94, 0.7); }
-@keyframes bar-flash { 30% { box-shadow: 0 0 40px rgba(255, 170, 80, 0.9); transform: scale(1.02); } }
-@keyframes bar-shake { 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
-
 /* ---------------- 投篮力度条 ---------------- */
 #power-bar {
   position: absolute; right: 54px; top: 50%; transform: translateY(-50%);
@@ -299,6 +254,5 @@ body {
 
 /* 小屏适配 */
 @media (max-width: 900px) {
-  .db-track { width: 82vw; }
   #menu h1 { font-size: 38px; }
 }

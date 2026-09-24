@@ -1,6 +1,6 @@
 /**
  * states.js —— 独立游戏状态机
- * 四种状态：无球(noBall) / 原地持球(hold) / 行进运球(dribble) / 投篮蓄力(shot)
+ * 三种状态：无球(noBall) / 持球(hold) / 投篮蓄力(shot)
  * 每个状态是一个独立类，逻辑解耦；状态间只通过 G（游戏上下文）通信。
  *
  * 事件接口：enter() / exit() / update(dt) / onLeftDown() / onLeftUp() / onRightDown()
@@ -46,6 +46,25 @@ function shotVelocity(releasePos, power, player) {
   ).multiplyScalar(v);
 }
 
+/**
+ * 随机投篮站位（投篮挑战用）：以圈心为极坐标原点，
+ * 距离 ∈ [randomSpotMin, randomSpotMax]，扇形朝半场内侧（z 更大方向），
+ * 并保证落在场内与投篮触发区内。
+ */
+export function randomShotSpot() {
+  const S = CFG.shot, C = CFG.court;
+  for (let i = 0; i < 24; i++) {
+    const r = THREE.MathUtils.lerp(S.randomSpotMin, S.randomSpotMax, Math.random());
+    const a = (Math.random() * 2 - 1) * 1.15; // ±66°，面向半场
+    const x = RIM_POS.x + Math.sin(a) * r;
+    const z = RIM_POS.z + Math.cos(a) * r;
+    if (Math.abs(x) > C.halfW - 0.6) continue;
+    if (z > S.zoneMaxZ - 0.3) continue;      // 留出边界余量，避免贴线抖动
+    return { x, z };
+  }
+  return { x: 0, z: RIM_POS.z + 4.6 }; // 兜底：正面罚球位
+}
+
 /* ================= 基类 ================= */
 class State {
   constructor(G) { this.G = G; }
@@ -78,22 +97,24 @@ export class NoBallState extends State {
   }
   onLeftDown() {
     if (!this._near) return;
-    const { ball, machine, sfx, scoring } = this.G;
+    const { ball, machine, sfx } = this.G;
     ball.startHeld();
     sfx.play('ui', { volume: 0.5 });
     machine.set('hold');
   }
 }
 
-/* ================= 2. 原地持球 ================= */
+/* ================= 2. 持球 ================= */
 export class HoldState extends State {
   enter() {
-    const { player, ui } = this.G;
+    const { player, ui, modeDef } = this.G;
     player.speed = CFG.player.speedHold;
-    ui.setPrompt('<b>右键</b> 行进运球' + (this.G.modeDef.shotScore ? ' · 走入投篮区开始进攻' : ''));
+    ui.setPrompt(modeDef.id === 'free'
+      ? '<b>左键</b> 拍球 · WASD 走位，进入投篮区自动进入瞄准'
+      : 'WASD 走位，进入投篮区开始进攻');
   }
   update(dt) {
-    const { player, ball, camera, ui, scoring, machine } = this.G;
+    const { player, ball, camera, scoring, machine } = this.G;
     ball.updateHeld(dt, camera);
     if (scoring.ended) return;
     // 持球移动进入投篮触发区 -> 自动切入投篮瞄准（仅计分投篮的模式）
@@ -101,95 +122,19 @@ export class HoldState extends State {
       machine.set('shot');
     }
   }
-  onRightDown() {
-    // 右键开启/结束行进运球（投篮挑战模式下运球仅是位移手段，无节奏判定）
-    this.G.machine.set('dribble');
-  }
-}
-
-/* ================= 3. 行进运球（卡点拍球） ================= */
-export class DribbleState extends State {
-  enter() {
-    const { player, ball, rhythm, ui, modeDef } = this.G;
-    player.speed = CFG.player.speedDribble;
-    this.rhythmActive = modeDef.dribbleScore; // 投篮挑战模式下仅带球跑
-    ball.startDribbleAnim();
-    if (this.rhythmActive) {
-      rhythm.reset();
-      ui.showDribbleBar(true);
-      this._cycleFlashed = false;
-    }
-    ui.setPrompt(this.rhythmActive
-      ? '滚动条进入中央 <b>左键卡点拍球</b> · 右键结束运球'
-      : '带球移动中 · <b>右键</b> 结束运球');
-  }
-  exit() {
-    this.G.ui.showDribbleBar(false);
-  }
-  update(dt) {
-    const { player, ball, rhythm, ui, scoring, fx, sfx } = this.G;
-    rhythm.combo = scoring.dribbleCombo;
-
-    // 球在身体右侧前方弹跳
-    const fx1 = -Math.sin(player.yaw), fz1 = -Math.cos(player.yaw);
-    const rx1 = Math.cos(player.yaw), rz1 = -Math.sin(player.yaw);
-    const base = new THREE.Vector3(
-      player.pos.x + rx1 * 0.5 + fx1 * 0.35, 0,
-      player.pos.z + rz1 * 0.5 + fz1 * 0.35
-    );
-    ball.updateDribbleAnim(this.rhythmActive ? rhythm.t : (this._freePhase = (this._freePhase || 0) + dt * 1.6) % 1, base);
-
-    if (!this.rhythmActive || scoring.ended) return;
-
-    // 推进滚动标记；周期走完未点击时，onCycleMiss 回调自动记失误
-    rhythm.update(dt);
-    ui.updateDribbleBar(rhythm.t, rhythm.zones());
-  }
   onLeftDown() {
-    if (!this.rhythmActive) return;
-    const { rhythm, scoring, ui, fx, sfx, machine, player, ball } = this.G;
-    const r = rhythm.hit();
-    if (r === 'perfect') {
-      const { points, multiplier } = scoring.addDribblePerfect();
-      sfx.play('tick');
-      sfx.play('tap', { volume: 0.7, rate: 1 + Math.random() * 0.08 });
-      if (multiplier >= CFG.dribble.maxComboMul) sfx.play('combo', { volume: 0.5 });
+    // 无门槛拍球：自动跟手，左键即拍
+    const { ball, sfx, fx, ui, scoring } = this.G;
+    if (ball.tap()) {
+      sfx.play('tap', { rate: 1.85 + Math.random() * 0.12, volume: 0.85 });
+      const { points } = scoring.addTap();
+      if (points > 0) ui.showScorePopup(points, null, 0);
       fx.burstTap(ball.position);
-      ui.flashPerfect(points);
-    } else if (r === 'good') {
-      scoring.addDribbleGood();
-      sfx.play('tap', { rate: 0.94 + Math.random() * 0.1 });
-      ui.flashGood();
-    } else {
-      // 区间外乱拍 / 同周期重复拍 = 一次运球失误
-      this.registerFail();
     }
-    ui.updateDribbleBar(rhythm.t, rhythm.zones());
-  }
-  /** 记一次运球失误；满 3 次掉球 */
-  registerFail() {
-    const { scoring, sfx, fx, machine, player, ball, ui } = this.G;
-    const dropped = scoring.addDribbleFail();
-    sfx.play('fail', { volume: dropped ? 0.9 : 0.45, rate: dropped ? 1 : 1.25 });
-    ui.flashMiss();
-    if (dropped) {
-      // 连续 3 次失误：掉球！连击清零，回到无球状态
-      scoring.onBallDropped();
-      const dropPos = ball.position.clone();
-      ball.startPhysics(dropPos, new THREE.Vector3(
-        (Math.random() - 0.5) * 2.2, 1.2, (Math.random() - 0.5) * 2.2
-      ));
-      sfx.play('bounce', { volume: 0.8 });
-      machine.set('noBall');
-    }
-  }
-  onRightDown() {
-    this.G.scoring.onDribbleCancel();
-    this.G.machine.set('hold');
   }
 }
 
-/* ================= 4. 投篮蓄力 ================= */
+/* ================= 3. 投篮蓄力 ================= */
 export class ShotState extends State {
   enter() {
     const { player, ui, modeDef } = this.G;
@@ -213,7 +158,7 @@ export class ShotState extends State {
   }
 
   update(dt) {
-    const { player, ball, camera, ui, scoring, world } = this.G;
+    const { player, ball, camera, ui, scoring } = this.G;
 
     if (!this.flying) {
       /* ---- 持球瞄准阶段 ---- */
@@ -251,7 +196,7 @@ export class ShotState extends State {
       }
 
       // 触地（或长时间飞行/卡筐超时）-> 结算并自动回球
-      this.flightT = (this.flightT || 0) + dt;
+      this.flightT += dt;
       const stuck = this.flightT > 6; // 卡在篮圈上/滚到死角时的保底回收
       if (!this.resolved && (stuck || (bp.y <= CFG.ball.radius + 0.07 && bv.length() < 6))) {
         this.resolved = true;
@@ -261,10 +206,24 @@ export class ShotState extends State {
         if (this.returnTimer > 0.4) {
           scoring.ended
             ? this.G.machine.set('hold') // 时间结束：仅收球，UI 弹窗已接管
-            : this.G.machine.set(this.G.player.inShotZone() && this.G.modeDef.shotScore ? 'shot' : 'hold');
+            : this.relocateAndContinue();
         }
       }
     }
+  }
+
+  /** 回球入手的去向：投篮挑战命中后已换新站位；否则原地继续 */
+  relocateAndContinue() {
+    const { scoring, player, ui } = this.G;
+    if (this.scored && this.G.modeDef.id === 'shot') {
+      const spot = randomShotSpot();
+      player.pos.set(spot.x, 0, spot.z);
+      player.vel.set(0, 0, 0);
+      scoring.spots++;
+      this.G.sfx.play('combo', { volume: 0.55 });
+      ui.showScorePopup(0, '🎲 命中！传送至新投篮点', 0);
+    }
+    this.G.machine.set(this.G.player.inShotZone() && this.G.modeDef.shotScore ? 'shot' : 'hold');
   }
 
   onLeftDown() {
@@ -314,7 +273,7 @@ export class ShotState extends State {
 
   /** 球落地后结算（进或不进都走到这里） */
   onResolve() {
-    const { scoring, sfx, ui, machine } = this.G;
+    const { scoring, sfx, ui } = this.G;
     if (!this.scored) {
       sfx.play('bounce', { volume: 0.9 });
       const comboReset = scoring.addShotMiss();
@@ -327,7 +286,7 @@ export class ShotState extends State {
     ui.setPrompt('篮球回到手中…');
   }
 
-  /** 记录出手点（用于 2/3 分判定），由 main 在释放前调用不便，直接在 onLeftUp 抓 */
+  /** 记录出手点（用于 2/3 分判定） */
   markRelease() {
     const { player } = this.G;
     this.releaseDist = Math.hypot(

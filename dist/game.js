@@ -21596,6 +21596,103 @@
     }
   });
 
+  // node_modules/three/examples/jsm/environments/RoomEnvironment.js
+  function createAreaLightMaterial(intensity) {
+    const material = new MeshBasicMaterial();
+    material.color.setScalar(intensity);
+    return material;
+  }
+  var RoomEnvironment;
+  var init_RoomEnvironment = __esm({
+    "node_modules/three/examples/jsm/environments/RoomEnvironment.js"() {
+      init_three_module();
+      RoomEnvironment = class extends Scene {
+        constructor(renderer = null) {
+          super();
+          const geometry = new BoxGeometry();
+          geometry.deleteAttribute("uv");
+          const roomMaterial = new MeshStandardMaterial({ side: BackSide });
+          const boxMaterial = new MeshStandardMaterial();
+          let intensity = 5;
+          if (renderer !== null && renderer._useLegacyLights === false) intensity = 900;
+          const mainLight = new PointLight(16777215, intensity, 28, 2);
+          mainLight.position.set(0.418, 16.199, 0.3);
+          this.add(mainLight);
+          const room = new Mesh(geometry, roomMaterial);
+          room.position.set(-0.757, 13.219, 0.717);
+          room.scale.set(31.713, 28.305, 28.591);
+          this.add(room);
+          const box1 = new Mesh(geometry, boxMaterial);
+          box1.position.set(-10.906, 2.009, 1.846);
+          box1.rotation.set(0, -0.195, 0);
+          box1.scale.set(2.328, 7.905, 4.651);
+          this.add(box1);
+          const box2 = new Mesh(geometry, boxMaterial);
+          box2.position.set(-5.607, -0.754, -0.758);
+          box2.rotation.set(0, 0.994, 0);
+          box2.scale.set(1.97, 1.534, 3.955);
+          this.add(box2);
+          const box3 = new Mesh(geometry, boxMaterial);
+          box3.position.set(6.167, 0.857, 7.803);
+          box3.rotation.set(0, 0.561, 0);
+          box3.scale.set(3.927, 6.285, 3.687);
+          this.add(box3);
+          const box4 = new Mesh(geometry, boxMaterial);
+          box4.position.set(-2.017, 0.018, 6.124);
+          box4.rotation.set(0, 0.333, 0);
+          box4.scale.set(2.002, 4.566, 2.064);
+          this.add(box4);
+          const box5 = new Mesh(geometry, boxMaterial);
+          box5.position.set(2.291, -0.756, -2.621);
+          box5.rotation.set(0, -0.286, 0);
+          box5.scale.set(1.546, 1.552, 1.496);
+          this.add(box5);
+          const box6 = new Mesh(geometry, boxMaterial);
+          box6.position.set(-2.193, -0.369, -5.547);
+          box6.rotation.set(0, 0.516, 0);
+          box6.scale.set(3.875, 3.487, 2.986);
+          this.add(box6);
+          const light1 = new Mesh(geometry, createAreaLightMaterial(50));
+          light1.position.set(-16.116, 14.37, 8.208);
+          light1.scale.set(0.1, 2.428, 2.739);
+          this.add(light1);
+          const light2 = new Mesh(geometry, createAreaLightMaterial(50));
+          light2.position.set(-16.109, 18.021, -8.207);
+          light2.scale.set(0.1, 2.425, 2.751);
+          this.add(light2);
+          const light3 = new Mesh(geometry, createAreaLightMaterial(17));
+          light3.position.set(14.904, 12.198, -1.832);
+          light3.scale.set(0.15, 4.265, 6.331);
+          this.add(light3);
+          const light4 = new Mesh(geometry, createAreaLightMaterial(43));
+          light4.position.set(-0.462, 8.89, 14.52);
+          light4.scale.set(4.38, 5.441, 0.088);
+          this.add(light4);
+          const light5 = new Mesh(geometry, createAreaLightMaterial(20));
+          light5.position.set(3.235, 11.486, -12.541);
+          light5.scale.set(2.5, 2, 0.1);
+          this.add(light5);
+          const light6 = new Mesh(geometry, createAreaLightMaterial(100));
+          light6.position.set(0, 20, 0);
+          light6.scale.set(1, 0.1, 1);
+          this.add(light6);
+        }
+        dispose() {
+          const resources = /* @__PURE__ */ new Set();
+          this.traverse((object) => {
+            if (object.isMesh) {
+              resources.add(object.geometry);
+              resources.add(object.material);
+            }
+          });
+          for (const resource of resources) {
+            resource.dispose();
+          }
+        }
+      };
+    }
+  });
+
   // src/config.js
   var CFG;
   var init_config = __esm({
@@ -21655,12 +21752,10 @@
           // 视高
           speedIdle: 5.4,
           // 无球跑动
-          speedHold: 1.9,
-          // 原地持球（缓慢）
-          speedDribble: 5,
-          // 行进运球
-          speedShot: 1.2,
-          // 投篮区域内微调站位
+          speedHold: 3.2,
+          // 持球移动
+          speedShot: 0.9,
+          // 投篮站位微调
           accel: 14,
           // 速度平滑加速度
           sens: 23e-4,
@@ -21696,37 +21791,22 @@
           // 三分线距离：出手点距圈心水平距离大于此为 3 分
           base2: 20,
           // 两分基础分
-          base3: 30
+          base3: 30,
           // 三分基础分
-        },
-        /* ---------- 运球节奏条 ---------- */
-        dribble: {
-          basePeriod: 0.92,
-          // 连击 0 时滚动周期（秒）
-          minPeriod: 0.44,
-          // 周期下限（最快）
-          periodStep: 0.055,
-          // 每 1 连击缩短量
-          perfectHalf: 0.058,
-          // 完美区半宽（进度比例）
-          perfectMin: 0.032,
-          // 完美区收缩下限
-          goodHalf: 0.175,
-          // 及格区半宽
-          goodMin: 0.115,
-          // 及格区收缩下限
-          shrinkPerCombo: 4e-3,
-          // 每连击区域收缩
-          basePoints: 10,
-          // 完美拍球基础分
           maxComboMul: 3,
           // 连击倍数上限
           comboMul: [1, 1, 2, 3],
           // 连击 n 的倍数（索引=连击数，3+ 封顶）
-          failLimit: 3,
-          // 连续失败 N 次掉球
-          bounceAmp: 0.72
-          // 运球动画弹跳幅度（米）
+          // 投篮挑战随机换位站位（距圈心水平距离范围）
+          randomSpotMin: 2.6,
+          randomSpotMax: 6.4
+        },
+        /* ---------- 拍球（无门槛装饰动作） ---------- */
+        tap: {
+          points: 2,
+          // 自由模式每次拍球得分
+          dur: 0.42
+          // 拍球动画时长（秒）
         },
         /* ---------- 挑战模式 ---------- */
         challenge: {
@@ -21737,9 +21817,8 @@
         },
         /* ---------- 计分模式枚举 ---------- */
         MODES: {
-          free: { id: "free", name: "\u81EA\u7531\u6A21\u5F0F", recordKey: "fpbb.record.free", timed: false, dribbleScore: true, shotScore: true },
-          dribble: { id: "dribble", name: "\u8FD0\u7403\u9650\u65F6\u6311\u6218", recordKey: "fpbb.record.dribble", timed: true, dribbleScore: true, shotScore: false },
-          shot: { id: "shot", name: "\u6295\u7BEE\u9650\u65F6\u6311\u6218", recordKey: "fpbb.record.shot", timed: true, dribbleScore: false, shotScore: true }
+          free: { id: "free", name: "\u81EA\u7531\u6A21\u5F0F", recordKey: "fpbb.record.free", timed: false, tapScore: true, shotScore: true },
+          shot: { id: "shot", name: "\u6295\u7BEE\u9650\u65F6\u6311\u6218", recordKey: "fpbb.record.shot", timed: true, tapScore: false, shotScore: true }
         },
         /* ---------- 视觉 ---------- */
         fx: {
@@ -28990,6 +29069,77 @@
     tex.colorSpace = SRGBColorSpace;
     return tex;
   }
+  function makeWallTexture() {
+    const W = 1024, H = 512;
+    const cv = document.createElement("canvas");
+    cv.width = W;
+    cv.height = H;
+    const ctx = cv.getContext("2d");
+    const rnd = mulberry32(5150);
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, "#3b4757");
+    g.addColorStop(0.5, "#333e4c");
+    g.addColorStop(1, "#2a323e");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+    for (let x = 0; x < W; x += 64) {
+      ctx.fillStyle = "rgba(255,255,255,0.045)";
+      ctx.fillRect(x + 2, 0, 3, H);
+      ctx.fillStyle = "rgba(0,0,0,0.28)";
+      ctx.fillRect(x + 60, 0, 4, H);
+      ctx.fillStyle = `rgba(${rnd() > 0.5 ? 255 : 0},${rnd() > 0.5 ? 255 : 0},${rnd() > 0.5 ? 255 : 0},0.02)`;
+      ctx.fillRect(x, 0, 64, H);
+    }
+    ctx.fillStyle = "rgba(0,0,0,0.35)";
+    ctx.fillRect(0, 0, W, 42);
+    ctx.fillStyle = "rgba(255,122,47,0.20)";
+    ctx.fillRect(0, 42, W, 5);
+    ctx.fillStyle = "rgba(255,255,255,0.05)";
+    ctx.fillRect(0, 47, W, 2);
+    for (let i = 0; i < 4e3; i++) {
+      ctx.fillStyle = `rgba(${rnd() > 0.5 ? 255 : 0},${rnd() > 0.5 ? 255 : 0},${rnd() > 0.5 ? 255 : 0},0.018)`;
+      ctx.fillRect(rnd() * W, rnd() * H, 2, 2);
+    }
+    const tex = new CanvasTexture(cv);
+    tex.colorSpace = SRGBColorSpace;
+    tex.wrapS = tex.wrapT = RepeatWrapping;
+    return tex;
+  }
+  function makeBallBumpTexture() {
+    const S = 512;
+    const cv = document.createElement("canvas");
+    cv.width = S;
+    cv.height = S;
+    const ctx = cv.getContext("2d");
+    const rnd = mulberry32(777);
+    ctx.fillStyle = "#b4b4b4";
+    ctx.fillRect(0, 0, S, S);
+    for (let i = 0; i < 9e3; i++) {
+      const v = 60 + rnd() * 90;
+      ctx.fillStyle = `rgba(${v},${v},${v},0.5)`;
+      ctx.beginPath();
+      ctx.arc(rnd() * S, rnd() * S, 0.8 + rnd() * 1.8, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.strokeStyle = "#1c1c1c";
+    ctx.lineWidth = 11;
+    ctx.beginPath();
+    ctx.moveTo(S / 2, 0);
+    ctx.lineTo(S / 2, S);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(0, S / 2);
+    ctx.lineTo(S, S / 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(S * 0.25, S / 2, S * 0.34, -Math.PI / 2, Math.PI / 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(S * 0.75, S / 2, S * 0.34, Math.PI / 2, -Math.PI / 2);
+    ctx.stroke();
+    const tex = new CanvasTexture(cv);
+    return tex;
+  }
   function makeSkyTexture() {
     const cv = document.createElement("canvas");
     cv.width = 16;
@@ -29015,14 +29165,15 @@
   // src/court.js
   function buildCourt(scene) {
     const floorTex = makeCourtTexture();
-    const floorMat = new MeshStandardMaterial({
+    const floorMat = new MeshPhysicalMaterial({
       map: floorTex,
       roughness: 0.42,
-      // 上漆木地板的轻微反光
-      metalness: 0.08,
-      envMapIntensity: 0.6
+      metalness: 0.05,
+      clearcoat: 0.3,
+      clearcoatRoughness: 0.22,
+      envMapIntensity: 0.55
     });
-    const paintedWood = (color) => new MeshStandardMaterial({ color, roughness: 0.6, metalness: 0.05 });
+    const paintedWood = (color, rough = 0.6) => new MeshStandardMaterial({ color, roughness: rough, metalness: 0.05, envMapIntensity: 0.4 });
     const floor = new Mesh(
       new PlaneGeometry(CFG.court.halfW * 2, CFG.court.halfL * 2),
       floorMat
@@ -29032,13 +29183,15 @@
     scene.add(floor);
     const apron = new Mesh(
       new PlaneGeometry(CFG.gym.halfW * 2, CFG.gym.halfL * 2),
-      new MeshStandardMaterial({ color: 2764341, roughness: 0.9 })
+      new MeshStandardMaterial({ color: 2566962, roughness: 0.82, metalness: 0, envMapIntensity: 0.25 })
     );
     apron.rotation.x = -Math.PI / 2;
     apron.position.y = -0.06;
     apron.receiveShadow = true;
     scene.add(apron);
-    const wallMat = new MeshStandardMaterial({ color: 3160390, roughness: 0.95, side: BackSide });
+    const wallTex = makeWallTexture();
+    wallTex.repeat.set(4, 1);
+    const wallMat = new MeshStandardMaterial({ map: wallTex, color: 16777215, roughness: 0.92, metalness: 0, envMapIntensity: 0.25, side: BackSide });
     const shell = new Mesh(
       new BoxGeometry(CFG.gym.halfW * 2, CFG.gym.height, CFG.gym.halfL * 2),
       wallMat
@@ -29057,7 +29210,7 @@
     mkSkirt(CFG.gym.halfW * 2, 0, CFG.gym.halfL - 0.03, 0);
     mkSkirt(CFG.gym.halfL * 2, -CFG.gym.halfW + 0.03, 0, Math.PI / 2);
     mkSkirt(CFG.gym.halfL * 2, CFG.gym.halfW - 0.03, 0, Math.PI / 2);
-    const lampMat = new MeshStandardMaterial({ color: 16777215, emissive: 14674175, emissiveIntensity: 2.2 });
+    const lampMat = new MeshStandardMaterial({ color: 2237736, emissive: 15397119, emissiveIntensity: 3 });
     for (let ix = -1; ix <= 1; ix++) {
       for (let iz = -2; iz <= 2; iz++) {
         const lamp = new Mesh(new BoxGeometry(3.4, 0.08, 1.5), lampMat);
@@ -29067,9 +29220,18 @@
     }
     const hoopGroup = new Group();
     scene.add(hoopGroup);
-    const steelMat = new MeshStandardMaterial({ color: 12075534, roughness: 0.5, metalness: 0.35 });
-    const rimMat = new MeshStandardMaterial({ color: 16734751, roughness: 0.35, metalness: 0.5, emissive: 3804416, emissiveIntensity: 0.6 });
-    const glass = new MeshPhysicalMaterial({ color: 14674677, transparent: true, opacity: 0.16, roughness: 0.05, metalness: 0, transmission: 0 });
+    const steelMat = new MeshStandardMaterial({ color: 12075534, roughness: 0.32, metalness: 0.8, envMapIntensity: 0.9 });
+    const rimMat = new MeshStandardMaterial({ color: 16734751, roughness: 0.22, metalness: 0.85, emissive: 5903360, emissiveIntensity: 0.8, envMapIntensity: 1 });
+    const glass = new MeshPhysicalMaterial({
+      color: 14674677,
+      transparent: true,
+      opacity: 0.12,
+      roughness: 0.06,
+      metalness: 0,
+      clearcoat: 0.7,
+      clearcoatRoughness: 0.1,
+      envMapIntensity: 0.8
+    });
     const board = new Mesh(
       new BoxGeometry(CFG.hoop.boardW, CFG.hoop.boardH, 0.04),
       glass
@@ -29107,7 +29269,7 @@
     pole.position.set(0, 1.85, CFG.hoop.boardFaceZ - 0.95);
     pole.castShadow = true;
     hoopGroup.add(pole);
-    const pad = new Mesh(new BoxGeometry(0.7, 1.7, 0.35), paintedWood(2381480));
+    const pad = new Mesh(new BoxGeometry(0.7, 1.7, 0.35), paintedWood(2381480, 0.82));
     pad.position.set(0, 0.85, CFG.hoop.boardFaceZ - 0.95);
     hoopGroup.add(pad);
     const netGroup = new Group();
@@ -29151,7 +29313,7 @@
       step.receiveShadow = true;
       bleacher.add(step);
       const seatGeo = new BoxGeometry(0.38, 0.1, 0.44);
-      const seatMat = new MeshStandardMaterial({ color: 16777215, roughness: 0.7 });
+      const seatMat = new MeshStandardMaterial({ color: 16777215, roughness: 0.55, metalness: 0.15, envMapIntensity: 0.5 });
       const N = 26;
       const seats = new InstancedMesh(seatGeo, seatMat, N);
       const dummy = new Object3D();
@@ -29171,7 +29333,7 @@
       bleacher.add(back);
     }
     scene.add(bleacher);
-    const railMat = new MeshStandardMaterial({ color: 10134445, roughness: 0.35, metalness: 0.8 });
+    const railMat = new MeshStandardMaterial({ color: 11976391, roughness: 0.18, metalness: 0.92, envMapIntensity: 1 });
     const mkRail = (len, x, z, ry) => {
       const g = new Group();
       const bar = new Mesh(new CylinderGeometry(0.03, 0.03, len, 8), railMat);
@@ -29203,7 +29365,7 @@
     adCtx.fillStyle = "#4d9fff";
     adCtx.font = "bold 40px system-ui";
     adCtx.textBaseline = "middle";
-    adCtx.fillText("JUMP  \xB7  SHOOT  \xB7  SCORE  \xB7  \u8FD0\u7403\u5361\u70B9  \xB7  \u5B8C\u7F8E\u8282\u594F  \xB7  ", 10, 34);
+    adCtx.fillText("JUMP  \xB7  SHOOT  \xB7  SCORE  \xB7  \u7CBE\u51C6\u51FA\u624B  \xB7  \u8FDE\u51FB\u6311\u6218  \xB7  ", 10, 34);
     const adTex = new CanvasTexture(adCv);
     adTex.wrapS = RepeatWrapping;
     adTex.repeat.x = 2;
@@ -29273,8 +29435,12 @@
           const geo = new SphereGeometry(CFG.ball.radius, 32, 24);
           const mat = new MeshStandardMaterial({
             map: makeBallTexture(),
-            roughness: 0.62,
-            metalness: 0.02
+            bumpMap: makeBallBumpTexture(),
+            // 麻点+筋沟微观起伏
+            bumpScale: 1.6,
+            roughness: 0.58,
+            metalness: 0.02,
+            envMapIntensity: 0.45
           });
           this.mesh = new Mesh(geo, mat);
           this.mesh.castShadow = true;
@@ -29288,6 +29454,8 @@
             this.world.addBody(this.body);
             this.body.wakeUp();
           }
+          this._tapT = void 0;
+          this.mesh.scale.set(1, 1, 1);
           this.body.position.set(pos.x, pos.y, pos.z);
           this.body.velocity.set(vel ? vel.x : 0, vel ? vel.y : 0, vel ? vel.z : 0);
           this.body.angularVelocity.set(0, 0, 0);
@@ -29300,38 +29468,45 @@
             this.mode = "held";
           }
           this._heldTimer = 0;
+          this._tapT = void 0;
+          this.mesh.scale.set(1, 1, 1);
         }
-        /** 切为运球动画模式 */
-        startDribbleAnim() {
-          if (this.mode !== "dribble") {
-            this.world.removeBody(this.body);
-            this.mode = "dribble";
-          }
+        /**
+         * 拍球（无门槛装饰动作）：仅持球态可触发，球自动向下拍击并回手。
+         * @returns {boolean} 是否成功触发（正在拍球/非持球态返回 false）
+         */
+        tap() {
+          if (this.mode !== "held" || this._tapT !== void 0) return false;
+          this._tapT = 0;
+          return true;
         }
-        /** 持球姿态：跟随相机右手位置，蓄力时举过头顶前倾 */
+        /** 持球姿态：跟随相机右手位置，蓄力时举过头顶前倾；叠加拍球下探动画 */
         updateHeld(dt, camera, charge = 0) {
           this._heldTimer += dt;
           const hand = new Vector3(0.42, -0.32 + charge * 0.62, -0.72 - charge * 0.18);
-          hand.y += Math.sin(this._heldTimer * 2.4) * 0.012;
-          hand.x += Math.sin(this._heldTimer * 1.7) * 8e-3;
+          if (this._tapT === void 0) {
+            hand.y += Math.sin(this._heldTimer * 2.4) * 0.012;
+            hand.x += Math.sin(this._heldTimer * 1.7) * 8e-3;
+          }
+          let squash = 0;
+          if (this._tapT !== void 0) {
+            this._tapT += dt;
+            const u = this._tapT / CFG.tap.dur;
+            if (u >= 1) {
+              this._tapT = void 0;
+            } else {
+              const k = Math.sin(Math.min(u, 1) * Math.PI);
+              hand.y -= k * 0.92;
+              hand.z += k * 0.1;
+              squash = k;
+            }
+          }
+          this.mesh.scale.set(1 + squash * 0.14, 1 - squash * 0.2, 1 + squash * 0.14);
           hand.applyQuaternion(camera.quaternion);
           this.mesh.position.copy(camera.position).add(hand);
           this.mesh.quaternion.copy(camera.quaternion);
-          this.mesh.rotateX(0.4 + charge * 0.5);
+          this.mesh.rotateX(0.4 + charge * 0.5 + squash * 0.9);
           this.mesh.rotateZ(Math.sin(this._heldTimer * 1.3) * 0.1);
-          return this.mesh.position;
-        }
-        /**
-         * 运球动画：phase∈[0,1) 与进度条同相位，t=0.5（中央完美区）时球触底
-         * @param {THREE.Vector3} basePos 玩家脚边球位（世界系 xz）
-         */
-        updateDribbleAnim(phase, basePos) {
-          const r = CFG.ball.radius;
-          const A = CFG.dribble.bounceAmp;
-          const h = r + A * (0.5 + 0.5 * Math.cos(2 * Math.PI * phase));
-          this.mesh.position.set(basePos.x, h, basePos.z);
-          this.mesh.rotation.x += (1 - h) * 0.4 + 0.05;
-          this.mesh.rotation.z = Math.sin(phase * Math.PI * 2) * 0.3;
           return this.mesh.position;
         }
         /** 物理模式：把刚体状态同步到网格 */
@@ -29635,69 +29810,6 @@
     }
   });
 
-  // src/rhythm.js
-  var RhythmJudge;
-  var init_rhythm = __esm({
-    "src/rhythm.js"() {
-      init_config();
-      RhythmJudge = class {
-        constructor() {
-          this.t = 0.13;
-          this.combo = 0;
-          this.clickedThisCycle = false;
-          this.onCycleMiss = null;
-        }
-        reset() {
-          this.t = 0.13;
-          this.combo = 0;
-          this.clickedThisCycle = false;
-        }
-        /** 当前滚动周期（秒）：随连击加快 */
-        period() {
-          const D = CFG.dribble;
-          return Math.max(D.minPeriod, D.basePeriod - this.combo * D.periodStep);
-        }
-        /** 完美/及格区半宽（随连击收缩） */
-        zones() {
-          const D = CFG.dribble;
-          const shrink = Math.min(this.combo * D.shrinkPerCombo, 1);
-          return {
-            perfect: Math.max(D.perfectMin, D.perfectHalf - D.shrinkPerCombo * this.combo),
-            good: Math.max(D.goodMin, D.goodHalf - D.shrinkPerCombo * 0.5 * this.combo)
-          };
-        }
-        /**
-         * 每帧推进。返回是否发生了"周期空过"（一轮结束没点击 = 记一次失误）。
-         */
-        update(dt) {
-          const prev = this.t;
-          this.t += dt / this.period();
-          if (this.t >= 1) {
-            this.t -= 1;
-            const missed = !this.clickedThisCycle;
-            this.clickedThisCycle = false;
-            if (missed && this.onCycleMiss) this.onCycleMiss();
-            return true;
-          }
-          return false;
-        }
-        /**
-         * 点击判定。
-         * @returns {'perfect'|'good'|'miss'}
-         */
-        hit() {
-          if (this.clickedThisCycle) return "miss";
-          this.clickedThisCycle = true;
-          const d = Math.abs(this.t - 0.5);
-          const z = this.zones();
-          if (d <= z.perfect) return "perfect";
-          if (d <= z.good) return "good";
-          return "miss";
-        }
-      };
-    }
-  });
-
   // src/states.js
   function idealPower(releasePos) {
     const g = 9.82, a2 = CFG.shot.elevAngle;
@@ -29724,7 +29836,20 @@
       -Math.cos(dirYaw) * Math.cos(elev)
     ).multiplyScalar(v);
   }
-  var State, NoBallState, HoldState, DribbleState, ShotState, StateMachine;
+  function randomShotSpot() {
+    const S = CFG.shot, C = CFG.court;
+    for (let i = 0; i < 24; i++) {
+      const r = MathUtils.lerp(S.randomSpotMin, S.randomSpotMax, Math.random());
+      const a2 = (Math.random() * 2 - 1) * 1.15;
+      const x = RIM_POS.x + Math.sin(a2) * r;
+      const z = RIM_POS.z + Math.cos(a2) * r;
+      if (Math.abs(x) > C.halfW - 0.6) continue;
+      if (z > S.zoneMaxZ - 0.3) continue;
+      return { x, z };
+    }
+    return { x: 0, z: RIM_POS.z + 4.6 };
+  }
+  var State, NoBallState, HoldState, ShotState, StateMachine;
   var init_states = __esm({
     "src/states.js"() {
       init_three_module();
@@ -29763,7 +29888,7 @@
         }
         onLeftDown() {
           if (!this._near) return;
-          const { ball, machine, sfx, scoring } = this.G;
+          const { ball, machine, sfx } = this.G;
           ball.startHeld();
           sfx.play("ui", { volume: 0.5 });
           machine.set("hold");
@@ -29771,94 +29896,26 @@
       };
       HoldState = class extends State {
         enter() {
-          const { player, ui } = this.G;
+          const { player, ui, modeDef } = this.G;
           player.speed = CFG.player.speedHold;
-          ui.setPrompt("<b>\u53F3\u952E</b> \u884C\u8FDB\u8FD0\u7403" + (this.G.modeDef.shotScore ? " \xB7 \u8D70\u5165\u6295\u7BEE\u533A\u5F00\u59CB\u8FDB\u653B" : ""));
+          ui.setPrompt(modeDef.id === "free" ? "<b>\u5DE6\u952E</b> \u62CD\u7403 \xB7 WASD \u8D70\u4F4D\uFF0C\u8FDB\u5165\u6295\u7BEE\u533A\u81EA\u52A8\u8FDB\u5165\u7784\u51C6" : "WASD \u8D70\u4F4D\uFF0C\u8FDB\u5165\u6295\u7BEE\u533A\u5F00\u59CB\u8FDB\u653B");
         }
         update(dt) {
-          const { player, ball, camera, ui, scoring, machine } = this.G;
+          const { player, ball, camera, scoring, machine } = this.G;
           ball.updateHeld(dt, camera);
           if (scoring.ended) return;
           if (this.G.modeDef.shotScore && player.inShotZone() && player.mode !== "shot") {
             machine.set("shot");
           }
         }
-        onRightDown() {
-          this.G.machine.set("dribble");
-        }
-      };
-      DribbleState = class extends State {
-        enter() {
-          const { player, ball, rhythm, ui, modeDef } = this.G;
-          player.speed = CFG.player.speedDribble;
-          this.rhythmActive = modeDef.dribbleScore;
-          ball.startDribbleAnim();
-          if (this.rhythmActive) {
-            rhythm.reset();
-            ui.showDribbleBar(true);
-            this._cycleFlashed = false;
-          }
-          ui.setPrompt(this.rhythmActive ? "\u6EDA\u52A8\u6761\u8FDB\u5165\u4E2D\u592E <b>\u5DE6\u952E\u5361\u70B9\u62CD\u7403</b> \xB7 \u53F3\u952E\u7ED3\u675F\u8FD0\u7403" : "\u5E26\u7403\u79FB\u52A8\u4E2D \xB7 <b>\u53F3\u952E</b> \u7ED3\u675F\u8FD0\u7403");
-        }
-        exit() {
-          this.G.ui.showDribbleBar(false);
-        }
-        update(dt) {
-          const { player, ball, rhythm, ui, scoring, fx, sfx } = this.G;
-          rhythm.combo = scoring.dribbleCombo;
-          const fx1 = -Math.sin(player.yaw), fz1 = -Math.cos(player.yaw);
-          const rx1 = Math.cos(player.yaw), rz1 = -Math.sin(player.yaw);
-          const base = new Vector3(
-            player.pos.x + rx1 * 0.5 + fx1 * 0.35,
-            0,
-            player.pos.z + rz1 * 0.5 + fz1 * 0.35
-          );
-          ball.updateDribbleAnim(this.rhythmActive ? rhythm.t : (this._freePhase = (this._freePhase || 0) + dt * 1.6) % 1, base);
-          if (!this.rhythmActive || scoring.ended) return;
-          rhythm.update(dt);
-          ui.updateDribbleBar(rhythm.t, rhythm.zones());
-        }
         onLeftDown() {
-          if (!this.rhythmActive) return;
-          const { rhythm, scoring, ui, fx, sfx, machine, player, ball } = this.G;
-          const r = rhythm.hit();
-          if (r === "perfect") {
-            const { points, multiplier } = scoring.addDribblePerfect();
-            sfx.play("tick");
-            sfx.play("tap", { volume: 0.7, rate: 1 + Math.random() * 0.08 });
-            if (multiplier >= CFG.dribble.maxComboMul) sfx.play("combo", { volume: 0.5 });
+          const { ball, sfx, fx, ui, scoring } = this.G;
+          if (ball.tap()) {
+            sfx.play("tap", { rate: 1.85 + Math.random() * 0.12, volume: 0.85 });
+            const { points } = scoring.addTap();
+            if (points > 0) ui.showScorePopup(points, null, 0);
             fx.burstTap(ball.position);
-            ui.flashPerfect(points);
-          } else if (r === "good") {
-            scoring.addDribbleGood();
-            sfx.play("tap", { rate: 0.94 + Math.random() * 0.1 });
-            ui.flashGood();
-          } else {
-            this.registerFail();
           }
-          ui.updateDribbleBar(rhythm.t, rhythm.zones());
-        }
-        /** 记一次运球失误；满 3 次掉球 */
-        registerFail() {
-          const { scoring, sfx, fx, machine, player, ball, ui } = this.G;
-          const dropped = scoring.addDribbleFail();
-          sfx.play("fail", { volume: dropped ? 0.9 : 0.45, rate: dropped ? 1 : 1.25 });
-          ui.flashMiss();
-          if (dropped) {
-            scoring.onBallDropped();
-            const dropPos = ball.position.clone();
-            ball.startPhysics(dropPos, new Vector3(
-              (Math.random() - 0.5) * 2.2,
-              1.2,
-              (Math.random() - 0.5) * 2.2
-            ));
-            sfx.play("bounce", { volume: 0.8 });
-            machine.set("noBall");
-          }
-        }
-        onRightDown() {
-          this.G.scoring.onDribbleCancel();
-          this.G.machine.set("hold");
         }
       };
       ShotState = class extends State {
@@ -29883,7 +29940,7 @@
           ui.showPowerBar(false);
         }
         update(dt) {
-          const { player, ball, camera, ui, scoring, world } = this.G;
+          const { player, ball, camera, ui, scoring } = this.G;
           if (!this.flying) {
             const raised = ball.updateHeld(dt, camera, this.charge * 0.9);
             if (this.charging) this.charge = Math.min(1, this.charge + dt / CFG.shot.chargeTime);
@@ -29914,7 +29971,7 @@
               bv.x *= 0.75;
               bv.z *= 0.75;
             }
-            this.flightT = (this.flightT || 0) + dt;
+            this.flightT += dt;
             const stuck = this.flightT > 6;
             if (!this.resolved && (stuck || bp.y <= CFG.ball.radius + 0.07 && bv.length() < 6)) {
               this.resolved = true;
@@ -29922,10 +29979,23 @@
             } else if (this.resolved) {
               this.returnTimer += dt;
               if (this.returnTimer > 0.4) {
-                scoring.ended ? this.G.machine.set("hold") : this.G.machine.set(this.G.player.inShotZone() && this.G.modeDef.shotScore ? "shot" : "hold");
+                scoring.ended ? this.G.machine.set("hold") : this.relocateAndContinue();
               }
             }
           }
+        }
+        /** 回球入手的去向：投篮挑战命中后已换新站位；否则原地继续 */
+        relocateAndContinue() {
+          const { scoring, player, ui } = this.G;
+          if (this.scored && this.G.modeDef.id === "shot") {
+            const spot = randomShotSpot();
+            player.pos.set(spot.x, 0, spot.z);
+            player.vel.set(0, 0, 0);
+            scoring.spots++;
+            this.G.sfx.play("combo", { volume: 0.55 });
+            ui.showScorePopup(0, "\u{1F3B2} \u547D\u4E2D\uFF01\u4F20\u9001\u81F3\u65B0\u6295\u7BEE\u70B9", 0);
+          }
+          this.G.machine.set(this.G.player.inShotZone() && this.G.modeDef.shotScore ? "shot" : "hold");
         }
         onLeftDown() {
           if (this.flying) return;
@@ -29971,7 +30041,7 @@
         }
         /** 球落地后结算（进或不进都走到这里） */
         onResolve() {
-          const { scoring, sfx, ui, machine } = this.G;
+          const { scoring, sfx, ui } = this.G;
           if (!this.scored) {
             sfx.play("bounce", { volume: 0.9 });
             const comboReset = scoring.addShotMiss();
@@ -29983,7 +30053,7 @@
           }
           ui.setPrompt("\u7BEE\u7403\u56DE\u5230\u624B\u4E2D\u2026");
         }
-        /** 记录出手点（用于 2/3 分判定），由 main 在释放前调用不便，直接在 onLeftUp 抓 */
+        /** 记录出手点（用于 2/3 分判定） */
         markRelease() {
           const { player } = this.G;
           this.releaseDist = Math.hypot(
@@ -30060,87 +30130,57 @@
         /** 开局/重开：清空当局数据（不影响历史最高分） */
         reset(modeDef) {
           this.mode = modeDef;
-          this.dribbleScore = 0;
+          this.tapScore = 0;
+          this.taps = 0;
           this.shotScore = 0;
-          this.dribbleCombo = 0;
           this.shotCombo = 0;
-          this.dribbleFail = 0;
+          this.shotComboMax = 0;
           this.shotFail = 0;
-          this.perfectHits = 0;
           this.shotMade = 0;
           this.shotTaken = 0;
+          this.spots = 0;
           this.timeLeft = modeDef.timed ? CFG.challenge.duration : Infinity;
           this.ended = false;
         }
         /** 当前模式下展示的总分 */
         get displayScore() {
-          if (this.mode.id === "dribble") return this.dribbleScore;
           if (this.mode.id === "shot") return this.shotScore;
-          return this.dribbleScore + this.shotScore;
+          return this.tapScore + this.shotScore;
         }
-        /** 运球连击倍数（1→×1，2→×2，3+→×3 封顶） */
-        dribbleMultiplier() {
-          const D = CFG.dribble;
-          return D.comboMul[Math.min(this.dribbleCombo, D.maxComboMul)];
-        }
+        /** 投篮连击倍数（索引=连击数，3+ 封顶） */
         shotMultiplier() {
-          const D = CFG.dribble;
-          return D.comboMul[Math.min(this.shotCombo, D.maxComboMul)];
+          const S = CFG.shot;
+          return S.comboMul[Math.min(this.shotCombo, S.maxComboMul)];
         }
-        /**
-         * 完美拍球得分。返回 { points, multiplier }；若当前模式不计运球分则 points=0。
-         */
-        addDribblePerfect() {
-          this.dribbleCombo++;
-          this.dribbleComboMax = Math.max(this.dribbleComboMax || 0, this.dribbleCombo);
-          this.dribbleFail = 0;
-          this.perfectHits++;
-          if (!this.mode.dribbleScore) return { points: 0, multiplier: this.dribbleMultiplier() };
-          const mul = this.dribbleMultiplier();
-          const pts = CFG.dribble.basePoints * mul;
-          this.dribbleScore += pts;
-          return { points: pts, multiplier: mul };
-        }
-        /** 及格拍球（不加分不涨连击，仅失误清零） */
-        addDribbleGood() {
-          this.dribbleFail = 0;
-        }
-        /** 运球一次失误 */
-        addDribbleFail() {
-          if (!this.mode.dribbleScore) return false;
-          this.dribbleFail++;
-          this.dribbleCombo = 0;
-          return this.dribbleFail >= CFG.dribble.failLimit;
-        }
-        /** 掉球后：连击清零、失误清零 */
-        onBallDropped() {
-          this.dribbleCombo = 0;
-          this.dribbleFail = 0;
-        }
-        /** 取消运球（回到持球），保留连击但不保留"本周期已点击" */
-        onDribbleCancel() {
-          this.dribbleFail = 0;
+        /** 拍球一次（无门槛）。返回 { points } */
+        addTap() {
+          this.taps++;
+          if (!this.mode.tapScore) return { points: 0 };
+          const pts = CFG.tap.points;
+          this.tapScore += pts;
+          return { points: pts };
         }
         /** 投篮出手登记 */
         registerShotAttempt() {
           this.shotTaken++;
         }
-        /** 进球。返回 { points, is3 } */
+        /** 进球。返回 { points, is3, multiplier }；连击 +1 */
         addShotMade(dist) {
           this.shotCombo++;
+          this.shotComboMax = Math.max(this.shotComboMax, this.shotCombo);
           this.shotFail = 0;
           this.shotMade++;
-          if (!this.mode.shotScore) return { points: 0, is3: false };
+          if (!this.mode.shotScore) return { points: 0, is3: false, multiplier: 1 };
           const is3 = dist > CFG.shot.score2Dist;
-          const pts = (is3 ? CFG.shot.base3 : CFG.shot.base2) * this.shotMultiplier();
+          const mul = this.shotMultiplier();
+          const pts = (is3 ? CFG.shot.base3 : CFG.shot.base2) * mul;
           this.shotScore += pts;
-          return { points: pts, is3 };
+          return { points: pts, is3, multiplier: mul };
         }
         /** 投篮未中。返回是否达到 3 连败（连击清零） */
         addShotMiss() {
-          if (!this.mode.shotScore) return false;
           this.shotFail++;
-          if (this.shotFail >= CFG.dribble.failLimit) {
+          if (this.shotFail >= 3) {
             this.shotCombo = 0;
             this.shotFail = 0;
             return true;
@@ -30274,19 +30314,11 @@
             timerBox: $("hud-timer"),
             timerText: $("timer-text"),
             timerFill: $("timer-fill"),
-            chipD: $("chip-d"),
-            comboD: $("combo-d"),
-            mulD: $("mul-d"),
             chipS: $("chip-s"),
             comboS: $("combo-s"),
             mulS: $("mul-s"),
             prompt: $("hud-prompt"),
             popup: $("score-popup"),
-            dbar: $("dribble-bar"),
-            dMarker: $("db-marker"),
-            dGood: $("db-good"),
-            dPerfect: $("db-perfect"),
-            dFails: $("db-faildots").children,
             pbar: $("power-bar"),
             pFill: $("pb-fill"),
             pSweet: $("pb-sweet"),
@@ -30300,13 +30332,11 @@
             resLines: $("res-lines"),
             resShare: $("res-share"),
             recFree: $("rec-free"),
-            recDribble: $("rec-dribble"),
             recShot: $("rec-shot"),
             setShadow: $("set-shadow"),
             setVolume: $("set-volume"),
             pauseShadow: $("pause-shadow")
           };
-          this._lastComboD = -1;
           this._lastComboS = -1;
           this._prompt = "";
           this._bindButtons();
@@ -30340,7 +30370,6 @@
           this.el.result.classList.add("hidden");
           this.el.pause.classList.add("hidden");
           this.el.recFree.textContent = records.free;
-          this.el.recDribble.textContent = records.dribble;
           this.el.recShot.textContent = records.shot;
         }
         hideMenu() {
@@ -30362,15 +30391,7 @@
           this.el.best.textContent = best;
           this.el.sub.textContent = subText || "";
         }
-        setCombos(cd, mulD, cs, mulS) {
-          if (cd !== this._lastComboD) {
-            this.el.comboD.textContent = cd;
-            this.el.mulD.textContent = `\xD7${mulD}`;
-            this.el.chipD.classList.remove("pulse");
-            void this.el.chipD.offsetWidth;
-            if (cd > 0) this.el.chipD.classList.add("pulse");
-            this._lastComboD = cd;
-          }
+        setCombos(cs, mulS) {
           if (cs !== this._lastComboS) {
             this.el.comboS.textContent = cs;
             this.el.mulS.textContent = `\xD7${mulS}`;
@@ -30399,36 +30420,6 @@
           el.classList.remove("show");
           void el.offsetWidth;
           el.classList.add("show");
-        }
-        /* ---------- 运球节奏条 ---------- */
-        showDribbleBar(show) {
-          this.el.dbar.classList.toggle("hidden", !show);
-        }
-        updateDribbleBar(t, zones) {
-          this.el.dMarker.style.left = `${t * 100}%`;
-          this.el.dGood.style.left = `${(0.5 - zones.good) * 100}%`;
-          this.el.dGood.style.width = `${zones.good * 2 * 100}%`;
-          this.el.dPerfect.style.left = `${(0.5 - zones.perfect) * 100}%`;
-          this.el.dPerfect.style.width = `${zones.perfect * 2 * 100}%`;
-        }
-        _barFlash(cls) {
-          const bar = this.el.dbar;
-          ["flash-perfect", "flash-good", "flash-miss"].forEach((c2) => bar.classList.remove(c2));
-          void bar.offsetWidth;
-          bar.classList.add(cls);
-        }
-        flashPerfect() {
-          this._barFlash("flash-perfect");
-        }
-        flashGood() {
-          this._barFlash("flash-good");
-        }
-        flashMiss() {
-          this._barFlash("flash-miss");
-        }
-        /** 连续失误指示灯（0~3） */
-        setFailDots(n) {
-          for (let i = 0; i < 3; i++) this.el.dFails[i].classList.toggle("on", i < n);
         }
         /* ---------- 投篮力度条 ---------- */
         showPowerBar(show) {
@@ -30481,13 +30472,13 @@
       init_RenderPass();
       init_UnrealBloomPass();
       init_OutputPass();
+      init_RoomEnvironment();
       init_config();
       init_physics();
       init_court();
       init_ball();
       init_player();
       init_effects();
-      init_rhythm();
       init_states();
       init_scoring();
       init_audio();
@@ -30501,6 +30492,11 @@
       renderer.toneMapping = ACESFilmicToneMapping;
       var scene = new Scene();
       applyBackground(scene);
+      {
+        const pmrem = new PMREMGenerator(renderer);
+        scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+        pmrem.dispose();
+      }
       var camera = new PerspectiveCamera(75, innerWidth / innerHeight, 0.12, 120);
       var drawSize = renderer.getDrawingBufferSize(new Vector2());
       var composerTarget = new WebGLRenderTarget(drawSize.x, drawSize.y, {
@@ -30518,7 +30514,6 @@
       var ball = new GameBall(scene, world, ballBody);
       var player = new Player(camera);
       var fx = new Effects(scene, camera);
-      var rhythm = new RhythmJudge();
       var scoring = new ScoreManager();
       var sfx = new Sfx();
       var ui = new UI();
@@ -30527,7 +30522,6 @@
         camera,
         player,
         ball,
-        rhythm,
         scoring,
         sfx,
         fx,
@@ -30540,14 +30534,8 @@
       var machine = new StateMachine();
       machine.register("noBall", new NoBallState(G));
       machine.register("hold", new HoldState(G));
-      machine.register("dribble", new DribbleState(G));
       machine.register("shot", new ShotState(G));
       G.machine = machine;
-      rhythm.onCycleMiss = () => {
-        if (machine.name === "dribble" && G.modeDef.dribbleScore && !scoring.ended) {
-          machine.current.registerFail();
-        }
-      };
       var gameState = "menu";
       var currentModeId = "free";
       var menuCamAngle = 0;
@@ -30556,11 +30544,7 @@
         gameState = "menu";
         machine.set("noBall");
         ball.startPhysics(new Vector3(1.4, 1, 0.5), null);
-        ui.showMenu({
-          free: loadRecord("free"),
-          dribble: loadRecord("dribble"),
-          shot: loadRecord("shot")
-        });
+        ui.showMenu({ free: loadRecord("free"), shot: loadRecord("shot") });
         ui.setShadowChecked(shadowOn);
         document.exitPointerLock?.();
       }
@@ -30569,7 +30553,6 @@
         currentModeId = id;
         G.modeDef = CFG.MODES[id];
         scoring.reset(G.modeDef);
-        player.pos.set(0.6, 0, 1.5);
         player.vel.set(0, 0, 0);
         player.freeYaw = 0;
         player.freePitch = 0;
@@ -30578,8 +30561,16 @@
         player.exitShotAim();
         player.mode = "free";
         player.blend = 0;
-        ball.startPhysics(new Vector3(1.2, 0.8, 0.4), null);
-        machine.set("noBall");
+        if (id === "shot") {
+          const spot = randomShotSpot();
+          player.pos.set(spot.x, 0, spot.z);
+          ball.startHeld();
+          machine.set("shot");
+        } else {
+          player.pos.set(0.6, 0, 1.5);
+          ball.startPhysics(new Vector3(1.2, 0.8, 0.4), null);
+          machine.set("noBall");
+        }
         gameState = "playing";
         lastSecond = -1;
         ui.showHud(G.modeDef.name, G.modeDef.timed);
@@ -30612,13 +30603,14 @@
         const fin = scoring.finalize();
         sfx.play("buzzer", { volume: 0.8 });
         const m = scoring.mode;
-        const scoreLabel = m.id === "free" ? "\u603B\u5206\uFF08\u8FD0\u7403+\u6295\u7BEE\uFF09" : m.id === "dribble" ? "\u8FD0\u7403\u5F97\u5206" : "\u6295\u7BEE\u5F97\u5206";
+        const scoreLabel = m.id === "free" ? "\u603B\u5206\uFF08\u62CD\u7403+\u6295\u7BEE\uFF09" : "\u6295\u7BEE\u5F97\u5206";
         const stats = [];
-        if (m.dribbleScore) stats.push(`\u26F9 \u5B8C\u7F8E\u62CD\u7403 <b>${scoring.perfectHits}</b> \u6B21 \xB7 \u6700\u9AD8\u8FD0\u7403\u8FDE\u51FB <b>${scoring.dribbleComboMax || 0}</b>`);
+        stats.push(`\u{1F44B} \u62CD\u7403 <b>${scoring.taps}</b> \u6B21\uFF08+${scoring.tapScore} \u5206\uFF09`);
         if (m.shotScore) {
           const pct = scoring.shotTaken ? Math.round(scoring.shotMade / scoring.shotTaken * 100) : 0;
-          stats.push(`\u{1F3AF} \u6295\u7BEE <b>${scoring.shotMade}</b> / <b>${scoring.shotTaken}</b> \u4E2D\uFF08\u547D\u4E2D\u7387 <b>${pct}%</b>\uFF09`);
+          stats.push(`\u{1F3AF} \u6295\u7BEE <b>${scoring.shotMade}</b> / <b>${scoring.shotTaken}</b> \u4E2D\uFF08\u547D\u4E2D\u7387 <b>${pct}%</b>\uFF09\xB7 \u6700\u9AD8\u8FDE\u51FB <b>${scoring.shotComboMax}</b>`);
         }
+        if (m.id === "shot") stats.push(`\u{1F3B2} \u547D\u4E2D\u6362\u4F4D <b>${scoring.spots}</b> \u6B21`);
         stats.push(`\u{1F558} ${m.timed ? "\u7528\u65F6 90s \u5012\u8BA1\u65F6\u7ED3\u675F" : "\u81EA\u7531\u7EC3\u4E60"}`);
         ui.showResult({
           modeName: m.name,
@@ -30729,19 +30721,13 @@
             if (justEnd) finishSession();
             ui.setTimer(scoring.timeLeft, scoring.timeLeft / CFG.challenge.duration, scoring.timeLeft <= 10);
           }
-          const live = scoring.mode.id === "free" ? `\u8FD0\u7403 ${scoring.dribbleScore} + \u6295\u7BEE ${scoring.shotScore}` : scoring.mode.id === "dribble" ? `\u5931\u8BEF ${scoring.dribbleFail}/3 \xB7 \u5B8C\u7F8E ${scoring.perfectHits}` : `\u8FDB ${scoring.shotMade} / \u5931 ${scoring.shotFail}/3`;
+          const live = scoring.mode.id === "free" ? `\u62CD\u7403 ${scoring.taps} \u6B21 \xB7 \u6295\u7BEE ${scoring.shotMade}/${scoring.shotTaken}` : `\u8FDB ${scoring.shotMade} \xB7 \u6362\u4F4D ${scoring.spots} \u6B21`;
           ui.setScore(
             scoring.displayScore,
             Math.max(loadRecord(currentModeId), scoring.displayScore),
             live
           );
-          ui.setCombos(
-            scoring.dribbleCombo,
-            scoring.dribbleMultiplier(),
-            scoring.shotCombo,
-            scoring.shotMultiplier()
-          );
-          ui.setFailDots(scoring.dribbleFail);
+          ui.setCombos(scoring.shotCombo, scoring.shotMultiplier());
         } else if (gameState === "menu") {
           world.step(1 / 60, dt, 3);
           ball.syncFromPhysics();
@@ -30785,7 +30771,6 @@
           player,
           ball,
           fx,
-          rhythm,
           get state() {
             return gameState;
           },
@@ -30797,23 +30782,23 @@
         const m = params.get("mode");
         const demo = params.get("demo");
         if (m && CFG.MODES[m]) setTimeout(() => startMode(m), 400);
-        if (m && demo === "dribble") {
-          setTimeout(() => machine.dispatch("onLeftDown"), 1500);
-          setTimeout(() => machine.dispatch("onRightDown"), 2300);
-        }
         if (m && demo === "shot") {
-          setTimeout(() => machine.dispatch("onLeftDown"), 1500);
+          setTimeout(() => {
+            if (machine.name === "noBall") machine.dispatch("onLeftDown");
+          }, 1500);
           setTimeout(() => {
             player.pos.set(0.5, 0, -8);
           }, 2e3);
           setTimeout(() => machine.dispatch("onLeftDown"), 2900);
         }
         if (demo === "result") {
-          setTimeout(() => startMode(m || "dribble"), 300);
+          setTimeout(() => startMode(m || "shot"), 300);
           setTimeout(() => {
-            scoring.dribbleScore = 160;
-            scoring.perfectHits = 9;
-            scoring.dribbleComboMax = 7;
+            scoring.shotScore = 210;
+            scoring.shotMade = 7;
+            scoring.shotTaken = 11;
+            scoring.shotComboMax = 5;
+            scoring.spots = 7;
             finishSession();
           }, 1200);
         }
