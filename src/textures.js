@@ -352,7 +352,7 @@ export function makeScreenPlaceholderTexture() {
   ctx.fillText('≤25MB 短片自动进放映单；大文件点“选择视频”', 512, 392);
   ctx.fillStyle = '#39445a';
   ctx.font = `24px 'Microsoft YaHei', system-ui`;
-  ctx.fillText('面朝任意一面墙点“选择视频”，只换那块屏 · 排布自动记住', 512, 448);
+  ctx.fillText('“选择视频”可多选：一部片一块银幕，环绕排布自动记住', 512, 448);
   ctx.fillText('MP4 · WebM · MOV · M4V · Ogg（以浏览器可解码为准）', 512, 486);
   const tex = new THREE.CanvasTexture(cv);
   tex.colorSpace = THREE.SRGBColorSpace;

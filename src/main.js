@@ -273,7 +273,7 @@ document.addEventListener('mousemove', (e) => {
   if (document.pointerLockElement === canvas) {
     player.look(e.movementX, e.movementY);
   } else if (playerLoc === 'cinema' && cinema.seated && (e.buttons & 1) && e.target === canvas) {
-    // 沙发上未锁指针：按住左键拖拽转向（任意角度环视四面墙）
+    // 沙发上未锁指针：按住左键拖拽转向（任意角度环视环墙银幕）
     player.look(e.movementX, e.movementY);
     if (seatAim.t) seatAim.moved += Math.abs(e.movementX) + Math.abs(e.movementY);
   }
@@ -475,10 +475,13 @@ try {
     };
   }
   if (demo === 'save') {
-    // 两段式持久化断言：本钩子写死「只有右墙放片单第 1 部」，第二次启动应复原成 src=0001
-    const it = (window.BB_VIDEOS || [])[0];
-    localStorage.setItem('bb.cinema.screens', JSON.stringify([null, null, null, it ? { n: it.name, k: 0 } : null]));
-    mark(`SAVED ${it ? it.name : '(片单空)'}`);
+    // 两段式持久化断言：写死「环上 5 部片（第 1/3/5 有片、第 2/4 是空洞）」，
+    // 第二次启动应复原成 n=5 src=10101，且各块屏同高、槽位角 71.2°
+    const L = window.BB_VIDEOS || [];
+    const rec = (i) => (L[i % L.length] ? { n: L[i % L.length].name, k: 0 } : null);
+    const list = L.length ? [rec(0), null, rec(1), null, rec(2)] : [];
+    localStorage.setItem('bb.cinema.screens', JSON.stringify(list));
+    mark(`SAVED n=${list.length} ${L.map((x) => x.name).join(',') || '(片单空)'}`);
   }
   if (demo === 'tap') {
     // 自动化：走到球边 → 左键拾球 → 右键拍球 → 左键蓄力 → 松手出手，断言计分链路
@@ -497,7 +500,7 @@ try {
     setTimeout(() => { mark('final'); console.log('DEMO_TAP', marks.join(' | ')); }, 6000);
   }
   if (demo === 'sit' || demo === 'grid') {
-    // 公共：走到沙发边 + 左键入座（可选再开四宫格），供两种演示复用
+    // 公共：走到沙发边 + 左键入座（可选再开大屏墙），供两种演示复用
     addEventListener('error', (e) => {
       const el = document.getElementById('dbg-out');
       if (el) el.textContent = `ERR ${e.message} @${e.filename?.split('/').pop()}:${e.lineno}`;
@@ -511,12 +514,49 @@ try {
     setTimeout(() => {
       const el = document.getElementById('dbg-out');
       const vs = Array.from(document.querySelectorAll('.btv'));
+      const vs0 = vs[0]?.style;
       el.textContent = `${demo.toUpperCase()} seated=${cinema.seated}`
         + ` bar=${document.getElementById('cinema-bar').classList.contains('hidden') ? 0 : 1}`
         + ` eye=${player.eyeHeight.toFixed(2)} pos=${player.pos.x.toFixed(1)},${player.pos.z.toFixed(1)}`
         + ` big=${document.body.classList.contains('big-screen') ? 1 : 0} n=${vs.length}`
-        + ` src=${vs.map((v) => ((v.currentSrc || v.src) ? 1 : 0)).join('')}`;
+        + ` src=${vs.map((v) => ((v.currentSrc || v.src) ? 1 : 0)).join('')}`
+        + ` ring=${cinema.debugRing().map((r) => `h${r.h}/a${r.arcDeg}${r.src}`).join(',')}`
+        + ` grid=${vs0?.getPropertyValue('--cols') || '-'}x${vs0?.getPropertyValue('--rows') || '-'}`;
     }, 3400);
+  }
+  if (demo === 'import') {
+    // 多选导入：造两个假 File 走同一条 change 通道，断言「屏数 = 片源数」且排布已存档
+    setTimeout(() => {
+      const inp = document.getElementById('cb-file-in');
+      const mk = (n) => new File([new Blob(['x'], { type: 'video/mp4' })], n, { type: 'video/mp4' });
+      Object.defineProperty(inp, 'files', { value: [mk('demo-a.mp4'), mk('demo-b.mp4')] });
+      inp.dispatchEvent(new Event('change'));
+    }, 2600);
+    setTimeout(() => {
+      const saved = JSON.parse(localStorage.getItem('bb.cinema.screens') || '[]');
+      mark(`IMP n=${document.querySelectorAll('.btv').length}`
+        + ` ring=${cinema.debugRing().map((r) => r.src).join('')}`
+        + ` saved=${saved.map((x) => (x ? x.n : '-')).join(',')}`);
+    }, 3400);
+    // 「恢复默认」应退回片单排布（本地导入的两块屏消失）
+    setTimeout(() => { document.getElementById('cb-reset').click(); }, 4200);
+    setTimeout(() => {
+      mark(`RESET n=${document.querySelectorAll('.btv').length}`
+        + ` ring=${cinema.debugRing().map((r) => r.src).join('')}`);
+    }, 4800);
+  }
+  if (demo === 'exit') {
+    // 出口门：把玩家挪到门洞口（θ=0 的 +z 侧）并手动推帧（无头 rAF 被限流，靠自然
+    // 帧序赶不上断言时刻）。进厅转场的 fadeTo 有 fading 互斥，故多推几次直到真的转回去。
+    const step = () => {
+      if (GAME.location !== 'cinema') return;
+      player.pos.set(0, 0, CFG.cinema.ring.r - 0.9);
+      cinema.update(0.016);
+    };
+    setTimeout(() => { step(); mark(`door d=${Math.hypot(player.pos.x, player.pos.z - CFG.cinema.ring.r).toFixed(2)} loc=${GAME.location}`); }, 2400);
+    setTimeout(step, 3000);
+    setTimeout(step, 3600);
+    setTimeout(() => mark(`done loc=${GAME.location} pos=${player.pos.x.toFixed(1)},${player.pos.z.toFixed(1)}`), 4600);
   }
   if (demo === 'pause') {
     // 断言：解锁回调的守卫条件（历史上误用过 window.location，恒 false）。

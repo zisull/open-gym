@@ -96,24 +96,22 @@ export const CFG = {
     shakeAmp: 0.045,
     shakeDur: 0.28,
   },
-  /* ---------- 电影院（球馆 +z 墙红门进入；影厅为独立场景，四面墙皆银幕） ---------- */
+  /* ---------- 电影院（球馆 +z 墙红门进入；影厅为圆筒黑匣子，环墙皆银幕） ---------- */
   cinema: {
     // 球馆侧入口门：玩家走进该圆区域自动传送进影厅
     gymDoor: { x: 6.0, z: 16.35, r: 1.25 },
-    // 影厅外壳尺寸（中心在原点）
-    halfW: 9.0, halfL: 7.0, height: 7.0,
-    // 四面墙银幕：wall = 法线朝向（-z 前 / +z 后 / -x 左 / +x 右），w/h 为最大可用宽/高，
-    // 实际按每个视频自身宽高比在此框内取最大矩形
-    screens: [
-      { id: 'front', wall: '-z', maxW: 16.4, maxH: 6.3, cy: 3.45 },
-      { id: 'back',  wall: '+z', maxW: 12.6, maxH: 6.3, cy: 3.45, cx: -1.4 }, // 让出右侧出口门
-      { id: 'left',  wall: '-x', maxW: 12.6, maxH: 6.3, cy: 3.45 },
-      { id: 'right', wall: '+x', maxW: 12.6, maxH: 6.3, cy: 3.45 },
-    ],
+    // 圆筒影厅。角度约定与 THREE.CylinderGeometry 完全一致：
+    // theta = 0 在 +z 方向，x = R·sin(theta)，z = R·cos(theta)，俯视逆时针递增
+    ring: { r: 10.5, height: 7.0 },
+    // 出口门开在 theta = 0（+z）处；gapDeg 是门洞占的圆心角，银幕只在剩下的弧上排布，
+    // trigR 为"走到门口就自动传送回去"的判定半径
+    door: { gapDeg: 14, trigR: 1.3 },
+    // 弧形银幕：所有屏一律同高。h 取 hMax 与「按最宽的 16:9 排也不重叠」算出的值中较小者，
+    // 所以竖屏片只是弧窄一点、留些空隙，高度永远和横屏齐平；cy 为屏心离地高度
+    screen: { hMax: 5.6, cy: 3.3 },
+    maxScreens: 12, // 环形排布屏数上限（再多每块就太挤了）
     // 中央圆形大沙发：入座后坐在「座垫环」上（距心 sitR），eyeSit 为落座视高
-    sofa: { x: 0, z: 0.4, r: 2.6, sitR: 1.9, eyeSit: 1.28 },
+    sofa: { x: 0, z: 0, r: 2.6, sitR: 1.9, eyeSit: 1.28 },
     walkSpeed: 3.0,
-    // 出口门（影厅 +z 墙）：走进 -> 回球馆
-    exitDoor: { x: 6.5, z: 6.9, r: 1.15 },
   },
 };

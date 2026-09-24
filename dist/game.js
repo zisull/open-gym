@@ -22048,28 +22048,24 @@
           shakeAmp: 0.045,
           shakeDur: 0.28
         },
-        /* ---------- 电影院（球馆 +z 墙红门进入；影厅为独立场景，四面墙皆银幕） ---------- */
+        /* ---------- 电影院（球馆 +z 墙红门进入；影厅为圆筒黑匣子，环墙皆银幕） ---------- */
         cinema: {
           // 球馆侧入口门：玩家走进该圆区域自动传送进影厅
           gymDoor: { x: 6, z: 16.35, r: 1.25 },
-          // 影厅外壳尺寸（中心在原点）
-          halfW: 9,
-          halfL: 7,
-          height: 7,
-          // 四面墙银幕：wall = 法线朝向（-z 前 / +z 后 / -x 左 / +x 右），w/h 为最大可用宽/高，
-          // 实际按每个视频自身宽高比在此框内取最大矩形
-          screens: [
-            { id: "front", wall: "-z", maxW: 16.4, maxH: 6.3, cy: 3.45 },
-            { id: "back", wall: "+z", maxW: 12.6, maxH: 6.3, cy: 3.45, cx: -1.4 },
-            // 让出右侧出口门
-            { id: "left", wall: "-x", maxW: 12.6, maxH: 6.3, cy: 3.45 },
-            { id: "right", wall: "+x", maxW: 12.6, maxH: 6.3, cy: 3.45 }
-          ],
+          // 圆筒影厅。角度约定与 THREE.CylinderGeometry 完全一致：
+          // theta = 0 在 +z 方向，x = R·sin(theta)，z = R·cos(theta)，俯视逆时针递增
+          ring: { r: 10.5, height: 7 },
+          // 出口门开在 theta = 0（+z）处；gapDeg 是门洞占的圆心角，银幕只在剩下的弧上排布，
+          // trigR 为"走到门口就自动传送回去"的判定半径
+          door: { gapDeg: 14, trigR: 1.3 },
+          // 弧形银幕：所有屏一律同高。h 取 hMax 与「按最宽的 16:9 排也不重叠」算出的值中较小者，
+          // 所以竖屏片只是弧窄一点、留些空隙，高度永远和横屏齐平；cy 为屏心离地高度
+          screen: { hMax: 5.6, cy: 3.3 },
+          maxScreens: 12,
+          // 环形排布屏数上限（再多每块就太挤了）
           // 中央圆形大沙发：入座后坐在「座垫环」上（距心 sitR），eyeSit 为落座视高
-          sofa: { x: 0, z: 0.4, r: 2.6, sitR: 1.9, eyeSit: 1.28 },
-          walkSpeed: 3,
-          // 出口门（影厅 +z 墙）：走进 -> 回球馆
-          exitDoor: { x: 6.5, z: 6.9, r: 1.15 }
+          sofa: { x: 0, z: 0, r: 2.6, sitR: 1.9, eyeSit: 1.28 },
+          walkSpeed: 3
         }
       };
     }
@@ -27291,7 +27287,7 @@
           const sides = sphereBox_sides;
           xi.vsub(xj, box_to_sphere);
           sj.getSideNormals(sides, qj);
-          const R = si.radius;
+          const R2 = si.radius;
           let found = false;
           const side_ns = sphereBox_side_ns;
           const side_ns1 = sphereBox_side_ns1;
@@ -27307,7 +27303,7 @@
             const h = ns.length();
             ns.normalize();
             const dot = box_to_sphere.dot(ns);
-            if (dot < h + R && dot > 0) {
+            if (dot < h + R2 && dot > 0) {
               const ns1 = sphereBox_ns1;
               const ns2 = sphereBox_ns2;
               ns1.copy(sides[(idx + 1) % 3]);
@@ -27319,7 +27315,7 @@
               const dot1 = box_to_sphere.dot(ns1);
               const dot2 = box_to_sphere.dot(ns2);
               if (dot1 < h1 && dot1 > -h1 && dot2 < h2 && dot2 > -h2) {
-                const dist2 = Math.abs(dot - h - R);
+                const dist2 = Math.abs(dot - h - R2);
                 if (side_distance === null || dist2 < side_distance) {
                   side_distance = dist2;
                   side_dot1 = dot1;
@@ -27339,7 +27335,7 @@
           if (side_penetrations) {
             found = true;
             const r2 = this.createContactEquation(bi, bj, si, sj, rsi, rsj);
-            side_ns.scale(-R, r2.ri);
+            side_ns.scale(-R2, r2.ri);
             r2.ni.copy(side_ns);
             r2.ni.negate(r2.ni);
             side_ns.scale(side_h, side_ns);
@@ -27377,7 +27373,7 @@
                 }
                 xj.vadd(rj, sphere_to_corner);
                 sphere_to_corner.vsub(xi, sphere_to_corner);
-                if (sphere_to_corner.lengthSquared() < R * R) {
+                if (sphere_to_corner.lengthSquared() < R2 * R2) {
                   if (justTest) {
                     return true;
                   }
@@ -27386,7 +27382,7 @@
                   r2.ri.copy(sphere_to_corner);
                   r2.ri.normalize();
                   r2.ni.copy(r2.ri);
-                  r2.ri.scale(R, r2.ri);
+                  r2.ri.scale(R2, r2.ri);
                   r2.rj.copy(rj);
                   r2.ri.vadd(xi, r2.ri);
                   r2.ri.vsub(bi.position, r2.ri);
@@ -27427,7 +27423,7 @@
                 dist.vsub(xj, dist);
                 const tdist = Math.abs(orthonorm);
                 const ndist = dist.length();
-                if (tdist < sides[l].length() && ndist < R) {
+                if (tdist < sides[l].length() && ndist < R2) {
                   if (justTest) {
                     return true;
                   }
@@ -27441,7 +27437,7 @@
                   res.ri.vadd(xj, res.ri);
                   res.ri.vsub(xi, res.ri);
                   res.ri.normalize();
-                  res.ri.scale(R, res.ri);
+                  res.ri.scale(R2, res.ri);
                   res.ri.vadd(xi, res.ri);
                   res.ri.vsub(bi.position, res.ri);
                   res.rj.vadd(xj, res.rj);
@@ -27505,7 +27501,7 @@
           const normals = sj.faceNormals;
           const faces = sj.faces;
           const verts = sj.vertices;
-          const R = si.radius;
+          const R2 = si.radius;
           let found = false;
           for (let i = 0; i !== verts.length; i++) {
             const v = verts[i];
@@ -27514,7 +27510,7 @@
             xj.vadd(worldCorner, worldCorner);
             const sphere_to_corner = sphereConvex_sphereToCorner;
             worldCorner.vsub(xi, sphere_to_corner);
-            if (sphere_to_corner.lengthSquared() < R * R) {
+            if (sphere_to_corner.lengthSquared() < R2 * R2) {
               if (justTest) {
                 return true;
               }
@@ -27523,7 +27519,7 @@
               r.ri.copy(sphere_to_corner);
               r.ri.normalize();
               r.ni.copy(r.ri);
-              r.ri.scale(R, r.ri);
+              r.ri.scale(R2, r.ri);
               worldCorner.vsub(xj, r.rj);
               r.ri.vadd(xi, r.ri);
               r.ri.vsub(bi.position, r.ri);
@@ -27543,7 +27539,7 @@
             qj.vmult(verts[face[0]], worldPoint);
             worldPoint.vadd(xj, worldPoint);
             const worldSpherePointClosestToPlane = sphereConvex_worldSpherePointClosestToPlane;
-            worldNormal.scale(-R, worldSpherePointClosestToPlane);
+            worldNormal.scale(-R2, worldSpherePointClosestToPlane);
             xi.vadd(worldSpherePointClosestToPlane, worldSpherePointClosestToPlane);
             const penetrationVec = sphereConvex_penetrationVec;
             worldSpherePointClosestToPlane.vsub(worldPoint, penetrationVec);
@@ -27564,12 +27560,12 @@
                 }
                 found = true;
                 const r = this.createContactEquation(bi, bj, si, sj, rsi, rsj);
-                worldNormal.scale(-R, r.ri);
+                worldNormal.scale(-R2, r.ri);
                 worldNormal.negate(r.ni);
                 const penetrationVec2 = v3pool.get();
                 worldNormal.scale(-penetration, penetrationVec2);
                 const penetrationSpherePoint = v3pool.get();
-                worldNormal.scale(-R, penetrationSpherePoint);
+                worldNormal.scale(-R2, penetrationSpherePoint);
                 xi.vsub(xj, r.rj);
                 r.rj.vadd(penetrationSpherePoint, r.rj);
                 r.rj.vadd(penetrationVec2, r.rj);
@@ -27605,7 +27601,7 @@
                   p.vadd(v12, p);
                   const xi_to_p = v3pool.get();
                   p.vsub(xi, xi_to_p);
-                  if (dot > 0 && dot * dot < edge.lengthSquared() && xi_to_p.lengthSquared() < R * R) {
+                  if (dot > 0 && dot * dot < edge.lengthSquared() && xi_to_p.lengthSquared() < R2 * R2) {
                     if (justTest) {
                       return true;
                     }
@@ -27613,7 +27609,7 @@
                     p.vsub(xj, r.rj);
                     p.vsub(xi, r.ni);
                     r.ni.normalize();
-                    r.ni.scale(R, r.ri);
+                    r.ni.scale(R2, r.ri);
                     r.rj.vadd(xj, r.rj);
                     r.rj.vsub(bj.position, r.rj);
                     r.ri.vadd(xi, r.ri);
@@ -29167,31 +29163,31 @@
     const PPM = 80;
     const G = CFG.gym, C = CFG.court;
     const W = Math.round(G.halfW * 2 * PPM);
-    const H = Math.round(G.halfL * 2 * PPM);
+    const H2 = Math.round(G.halfL * 2 * PPM);
     const cv = document.createElement("canvas");
     cv.width = W;
-    cv.height = H;
+    cv.height = H2;
     const ctx = cv.getContext("2d");
     const rnd = mulberry32(20260924);
     const cx = (x) => (x + G.halfW) * PPM;
     const cz = (z) => (z + G.halfL) * PPM;
     const pm = (m) => m * PPM;
-    const bg = ctx.createLinearGradient(0, 0, 0, H);
+    const bg = ctx.createLinearGradient(0, 0, 0, H2);
     bg.addColorStop(0, "#2b3038");
     bg.addColorStop(0.5, "#272b32");
     bg.addColorStop(1, "#22262d");
     ctx.fillStyle = bg;
-    ctx.fillRect(0, 0, W, H);
+    ctx.fillRect(0, 0, W, H2);
     for (let i = 0; i < 9e3; i++) {
       ctx.fillStyle = rnd() > 0.5 ? "rgba(255,255,255,0.014)" : "rgba(0,0,0,0.05)";
-      ctx.fillRect(rnd() * W, rnd() * H, 2, 2);
+      ctx.fillRect(rnd() * W, rnd() * H2, 2, 2);
     }
     ctx.strokeStyle = "rgba(0,0,0,0.16)";
     ctx.lineWidth = 2;
     for (let gx = -G.halfW + 2; gx < G.halfW; gx += 2) {
       ctx.beginPath();
       ctx.moveTo(cx(gx), 0);
-      ctx.lineTo(cx(gx), H);
+      ctx.lineTo(cx(gx), H2);
       ctx.stroke();
     }
     for (let gz = -G.halfL + 2; gz < G.halfL; gz += 2) {
@@ -29250,11 +29246,11 @@
     ctx.lineTo(W / 2, z1);
     ctx.stroke();
     ctx.beginPath();
-    ell(W / 2, H / 2, 1.8, 0, Math.PI * 2);
+    ell(W / 2, H2 / 2, 1.8, 0, Math.PI * 2);
     ctx.stroke();
     ctx.fillStyle = "rgba(245,241,232,0.9)";
     ctx.beginPath();
-    ell(W / 2, H / 2, 0.25, 0, Math.PI * 2);
+    ell(W / 2, H2 / 2, 0.25, 0, Math.PI * 2);
     ctx.fill();
     function paintEnd(sign) {
       ctx.save();
@@ -29349,25 +29345,25 @@
     return tex;
   }
   function makeWallTexture() {
-    const W = 1024, H = 512;
+    const W = 1024, H2 = 512;
     const cv = document.createElement("canvas");
     cv.width = W;
-    cv.height = H;
+    cv.height = H2;
     const ctx = cv.getContext("2d");
     const rnd = mulberry32(5150);
-    const g = ctx.createLinearGradient(0, 0, 0, H);
+    const g = ctx.createLinearGradient(0, 0, 0, H2);
     g.addColorStop(0, "#3b4757");
     g.addColorStop(0.5, "#333e4c");
     g.addColorStop(1, "#2a323e");
     ctx.fillStyle = g;
-    ctx.fillRect(0, 0, W, H);
+    ctx.fillRect(0, 0, W, H2);
     for (let x = 0; x < W; x += 64) {
       ctx.fillStyle = "rgba(255,255,255,0.045)";
-      ctx.fillRect(x + 2, 0, 3, H);
+      ctx.fillRect(x + 2, 0, 3, H2);
       ctx.fillStyle = "rgba(0,0,0,0.28)";
-      ctx.fillRect(x + 60, 0, 4, H);
+      ctx.fillRect(x + 60, 0, 4, H2);
       ctx.fillStyle = `rgba(${rnd() > 0.5 ? 255 : 0},${rnd() > 0.5 ? 255 : 0},${rnd() > 0.5 ? 255 : 0},0.02)`;
-      ctx.fillRect(x, 0, 64, H);
+      ctx.fillRect(x, 0, 64, H2);
     }
     ctx.fillStyle = "rgba(0,0,0,0.35)";
     ctx.fillRect(0, 0, W, 42);
@@ -29377,7 +29373,7 @@
     ctx.fillRect(0, 47, W, 2);
     for (let i = 0; i < 4e3; i++) {
       ctx.fillStyle = `rgba(${rnd() > 0.5 ? 255 : 0},${rnd() > 0.5 ? 255 : 0},${rnd() > 0.5 ? 255 : 0},0.018)`;
-      ctx.fillRect(rnd() * W, rnd() * H, 2, 2);
+      ctx.fillRect(rnd() * W, rnd() * H2, 2, 2);
     }
     const tex = new CanvasTexture(cv);
     tex.colorSpace = SRGBColorSpace;
@@ -29467,7 +29463,7 @@
     ctx.fillText("\u226425MB \u77ED\u7247\u81EA\u52A8\u8FDB\u653E\u6620\u5355\uFF1B\u5927\u6587\u4EF6\u70B9\u201C\u9009\u62E9\u89C6\u9891\u201D", 512, 392);
     ctx.fillStyle = "#39445a";
     ctx.font = `24px 'Microsoft YaHei', system-ui`;
-    ctx.fillText("\u9762\u671D\u4EFB\u610F\u4E00\u9762\u5899\u70B9\u201C\u9009\u62E9\u89C6\u9891\u201D\uFF0C\u53EA\u6362\u90A3\u5757\u5C4F \xB7 \u6392\u5E03\u81EA\u52A8\u8BB0\u4F4F", 512, 448);
+    ctx.fillText("\u201C\u9009\u62E9\u89C6\u9891\u201D\u53EF\u591A\u9009\uFF1A\u4E00\u90E8\u7247\u4E00\u5757\u94F6\u5E55\uFF0C\u73AF\u7ED5\u6392\u5E03\u81EA\u52A8\u8BB0\u4F4F", 512, 448);
     ctx.fillText("MP4 \xB7 WebM \xB7 MOV \xB7 M4V \xB7 Ogg\uFF08\u4EE5\u6D4F\u89C8\u5668\u53EF\u89E3\u7801\u4E3A\u51C6\uFF09", 512, 486);
     const tex = new CanvasTexture(cv);
     tex.colorSpace = SRGBColorSpace;
@@ -29824,98 +29820,113 @@
   });
 
   // src/cinema.js
-  function makeVideoEl(main) {
+  function makeVideoEl() {
     const v = document.createElement("video");
     v.className = "btv";
     v.playsInline = true;
     v.preload = "auto";
     v.loop = true;
-    v.muted = !main;
-    v.dataset.main = main ? "1" : "0";
+    v.muted = true;
     document.body.appendChild(v);
     return v;
   }
   function createCinema({ camera, player, sfx }) {
     const scene = new Scene();
     scene.background = new Color(395019);
-    const shellMat = new MeshStandardMaterial({ color: 1316381, roughness: 0.95, metalness: 0, side: BackSide, envMapIntensity: 0.1 });
-    const hiddenMat = new MeshBasicMaterial({ visible: false });
-    const shell = new Mesh(
-      new BoxGeometry(K.halfW * 2, K.height, K.halfL * 2),
-      [shellMat, shellMat, shellMat, hiddenMat, shellMat, shellMat]
+    const wall = new Mesh(
+      new CylinderGeometry(R, R, H, 96, 1, true, GAP / 2, SPAN),
+      new MeshStandardMaterial({ color: 1316381, roughness: 0.95, metalness: 0, side: BackSide, envMapIntensity: 0.1 })
     );
-    shell.position.y = K.height / 2;
-    scene.add(shell);
+    wall.position.y = H / 2;
+    scene.add(wall);
+    const ceiling = new Mesh(
+      new CircleGeometry(R, 64),
+      new MeshStandardMaterial({ color: 855828, roughness: 1, side: BackSide })
+    );
+    ceiling.rotation.x = Math.PI / 2;
+    ceiling.position.y = H;
+    scene.add(ceiling);
     const carpet = new Mesh(
-      new PlaneGeometry(K.halfW * 2, K.halfL * 2),
+      new CircleGeometry(R, 64),
       new MeshStandardMaterial({ color: 1711140, roughness: 1, metalness: 0, envMapIntensity: 0.05 })
     );
     carpet.rotation.x = -Math.PI / 2;
     carpet.position.y = 0.01;
     scene.add(carpet);
     const placeholderTex = makeScreenPlaceholderTexture();
-    const WALL_ROT = { "-z": 0, "+z": Math.PI, "-x": Math.PI / 2, "+x": -Math.PI / 2 };
-    const WALL_POS = {
-      "-z": [0, 0, -K.halfL + 0.06],
-      "+z": [0, 0, K.halfL - 0.06],
-      "-x": [-K.halfW + 0.06, 0, 0],
-      "+x": [K.halfW - 0.06, 0, 0]
-    };
-    const screens = K.screens.map((sc, i) => {
-      const g = new Group();
-      const [bx, , bz] = WALL_POS[sc.wall];
-      g.position.set(bx + (sc.cx || 0), 0, bz);
-      g.rotation.y = WALL_ROT[sc.wall];
-      const bezel = new Mesh(
-        new PlaneGeometry(1, 1),
-        new MeshStandardMaterial({ color: 263434, roughness: 0.9 })
-      );
-      bezel.position.set(0, sc.cy, -0.03);
-      g.add(bezel);
-      const mat = new MeshBasicMaterial({ map: placeholderTex, color: 12108496 });
-      const plane = new Mesh(new PlaneGeometry(1, 1), mat);
-      plane.position.set(0, sc.cy, 0.03);
-      g.add(plane);
-      scene.add(g);
-      const fitRect = (ar) => {
-        let w = sc.maxW, h = w / ar;
-        if (h > sc.maxH) {
-          h = sc.maxH;
-          w = h * ar;
-        }
-        plane.geometry.dispose();
-        plane.geometry = new PlaneGeometry(w, h);
-        bezel.geometry.dispose();
-        bezel.geometry = new PlaneGeometry(w + 0.8, h + 0.7);
-      };
-      fitRect(16 / 9);
-      const videoEl = makeVideoEl(i === 0);
+    placeholderTex.repeat.x = -1;
+    placeholderTex.offset.x = 1;
+    function patchGeo(radius, h, theta) {
+      const seg = Math.max(8, Math.ceil(theta / 0.045));
+      const g = new CylinderGeometry(radius, radius, h, seg, 1, true, -theta / 2, theta);
+      g.translate(0, K.screen.cy, 0);
+      return g;
+    }
+    const screens = [];
+    let focus = 0;
+    function makeScreen(src, a2, slot, h) {
+      const videoEl = makeVideoEl();
       const tex = new VideoTexture(videoEl);
       tex.colorSpace = SRGBColorSpace;
       tex.minFilter = LinearFilter;
       tex.magFilter = LinearFilter;
-      videoEl.addEventListener("loadedmetadata", () => {
-        fitRect((videoEl.videoWidth || 16) / (videoEl.videoHeight || 9));
-        mat.map = tex;
-        mat.color.setHex(16777215);
-        mat.needsUpdate = true;
+      tex.repeat.x = -1;
+      tex.offset.x = 1;
+      const mat = new MeshBasicMaterial({ map: placeholderTex, color: 12108496, side: BackSide });
+      const mesh = new Mesh(patchGeo(R - 0.1, h, Math.min(h * (16 / 9) / R, slot)), mat);
+      mesh.rotation.y = a2;
+      scene.add(mesh);
+      const s = { src, mesh, mat, tex, videoEl, slot, h };
+      if (src) {
+        videoEl.src = src.url;
+        videoEl.addEventListener("loadedmetadata", () => {
+          const ar = (videoEl.videoWidth || 16) / (videoEl.videoHeight || 9);
+          mesh.geometry.dispose();
+          mesh.geometry = patchGeo(R - 0.1, h, Math.min(h * ar / R, slot));
+          mat.map = tex;
+          mat.color.setHex(16777215);
+          mat.needsUpdate = true;
+        });
+      }
+      return s;
+    }
+    function rebuild() {
+      for (const s of screens) {
+        scene.remove(s.mesh);
+        s.mesh.geometry.dispose();
+        s.mat.dispose();
+        s.tex.dispose();
+        s.videoEl.remove();
+      }
+      screens.length = 0;
+      const n = Math.max(sources.length, 1);
+      const slot = SPAN / n;
+      const h = Math.min(K.screen.hMax, slot * R / (16 / 9));
+      for (let i = 0; i < n; i++) screens.push(makeScreen(sources[i] || null, GAP / 2 + slot * (i + 0.5), slot, h));
+      if (focus >= screens.length) focus = 0;
+      const vv = Number($2("cb-vol").value);
+      screens.forEach((s, i) => {
+        s.videoEl.volume = i === focus ? vv : 0;
       });
-      return { def: sc, group: g, plane, mat, videoEl, tex, fit: fitRect, src: null, srcUrl: "" };
-    });
+      layoutBigGrid(document.body.classList.contains("big-screen"));
+      saveLayout();
+    }
     scene.add(new HemisphereLight(3752271, 657932, 0.55));
-    const proj = new PointLight(10466520, 5, 16, 1.6);
-    proj.position.set(0, K.screens[0].cy + 1.2, -K.halfL + 3.4);
+    const proj = new PointLight(10466520, 5, 22, 1.6);
+    proj.position.set(0, K.screen.cy + 2.2, 0);
     scene.add(proj);
     const sconceMat = new MeshStandardMaterial({ color: 2757640, emissive: 16742959, emissiveIntensity: 1.6 });
-    for (const sx of [-1, 1]) {
-      for (const sz of [-3.5, 1.5]) {
-        const s = new Mesh(new BoxGeometry(0.1, 0.5, 0.24), sconceMat);
-        s.position.set(sx * (K.halfW - 0.08), 3.1, sz);
-        scene.add(s);
-        const p = new PointLight(16746564, 2.2, 8, 1.8);
-        p.position.set(sx * (K.halfW - 0.4), 3.1, sz);
-        scene.add(p);
-      }
+    for (const deg of [62, 118, 242, 298]) {
+      const a2 = deg * DEG;
+      const p = ringAt(a2, R - 0.14);
+      const s = new Mesh(new BoxGeometry(0.1, 0.5, 0.24), sconceMat);
+      s.position.set(p.x, 3.1, p.z);
+      s.rotation.y = a2;
+      scene.add(s);
+      const l = ringAt(a2, R - 0.5);
+      const lp = new PointLight(16746564, 2.2, 9, 1.8);
+      lp.position.set(l.x, 3.1, l.z);
+      scene.add(lp);
     }
     const sofa = new Group();
     sofa.position.set(K.sofa.x, 0, K.sofa.z);
@@ -29946,7 +29957,7 @@
     scene.add(sofa);
     const sofaHit = sofa.children[0];
     const exitGroup = new Group();
-    exitGroup.position.set(K.exitDoor.x, 0, K.halfL - 0.06);
+    exitGroup.position.set(0, 0, R - 0.06);
     exitGroup.rotation.y = Math.PI;
     {
       const frame = new Mesh(
@@ -29973,9 +29984,7 @@
     const exitHit = exitGroup.children[1];
     const LIB = window.BB_VIDEOS || [];
     const STORE_KEY = "bb.cinema.screens";
-    const WALL_CN = { front: "\u524D", back: "\u540E", left: "\u5DE6", right: "\u53F3" };
-    let focus = 0;
-    let pickTarget = -1;
+    let sources = [];
     const $2 = (id) => document.getElementById(id);
     const bar = $2("cinema-bar");
     const status = $2("cb-status");
@@ -29983,56 +29992,37 @@
     function setStatus(t) {
       status.textContent = t;
     }
-    const loadSaved = () => {
-      try {
-        return JSON.parse(localStorage.getItem(STORE_KEY) || "[]");
-      } catch (e) {
-        return [];
-      }
-    };
     function saveLayout() {
       try {
         localStorage.setItem(STORE_KEY, JSON.stringify(
-          screens.map((s) => s.src ? { n: s.src.name, k: s.src.local ? 1 : 0 } : null)
+          sources.map((s) => s ? { n: s.name, k: s.local ? 1 : 0 } : null)
         ));
       } catch (e) {
       }
     }
-    function setSrc(s, src) {
-      s.src = src || null;
-      if (!src) {
-        s.videoEl.removeAttribute("src");
-        s.srcUrl = "";
-        s.fit(16 / 9);
-        s.mat.map = placeholderTex;
-        s.mat.color.setHex(12108496);
-        s.mat.needsUpdate = true;
-        return;
+    const defaultSources = () => LIB.slice(0, K.maxScreens).map((it) => ({ name: it.name, url: it.url }));
+    function loadSources() {
+      let saved = [];
+      try {
+        saved = JSON.parse(localStorage.getItem(STORE_KEY) || "[]");
+      } catch (e) {
+        saved = [];
       }
-      if (s.srcUrl !== src.url) {
-        s.videoEl.src = src.url;
-        s.srcUrl = src.url;
-      }
+      const list = (Array.isArray(saved) ? saved : []).slice(0, K.maxScreens).map((rec) => rec && rec.n ? LIB.find((x) => x.name === rec.n) || null : null);
+      return list.some(Boolean) ? list : defaultSources();
     }
-    function applyLayout(saved) {
-      const byName = new Map(LIB.map((it) => [it.name, it]));
-      const taken = /* @__PURE__ */ new Set();
-      const fixed = screens.map((s, i) => {
-        const it = saved[i] && saved[i].n && byName.get(saved[i].n);
-        if (it) {
-          taken.add(it.name);
-          return it;
-        }
-        return null;
-      });
-      screens.forEach((s, i) => {
-        setSrc(s, fixed[i] || LIB.find((x) => !taken.has(x.name)) || null);
-        if (s.src) taken.add(s.src.name);
-      });
-      saveLayout();
+    function refreshStatus() {
+      const live = sources.filter(Boolean).length;
+      setStatus(live ? `\u25B6 ${live} \u5757\u94F6\u5E55\u540C\u9AD8\u73AF\u7ED5 \xB7 \u70B9\u5C4F\u5207\u58F0\u97F3 \xB7 \u9762\u671D\u4EFB\u610F\u65B9\u5411\u70B9\u300C\u9009\u62E9\u89C6\u9891\u300D\u52A0\u7247` : "\u8FD8\u6CA1\u6709\u7247\u6E90\uFF1A\u628A\u89C6\u9891\u653E\u8FDB video/ \u6216\u70B9\u300C\u9009\u62E9\u89C6\u9891\u300D");
     }
-    applyLayout(loadSaved());
-    setStatus(screens.some((s) => s.src) ? `\u25B6 ${screens.filter((s) => s.src).length} \u9762\u5899\u653E\u6620\u4E2D \xB7 \u9762\u671D\u54EA\u9762\u5899\u70B9\u300C\u9009\u62E9\u89C6\u9891\u300D\u5C31\u6362\u90A3\u5757\u5C4F` : "\u8FD8\u6CA1\u6709\u7247\u6E90\uFF1A\u628A\u89C6\u9891\u653E\u8FDB video/ \u6216\u9762\u671D\u94F6\u5E55\u70B9\u300C\u9009\u62E9\u89C6\u9891\u300D");
+    sources = loadSources();
+    try {
+      const v = localStorage.getItem("bb.cinema.vol");
+      if (v !== null) $2("cb-vol").value = v;
+    } catch (e) {
+    }
+    rebuild();
+    refreshStatus();
     function playAll() {
       screens.forEach((s, i) => {
         if (!s.src) return;
@@ -30040,6 +30030,7 @@
         s.videoEl.play().catch(() => {
         });
       });
+      applyVolume();
       playBtn.textContent = "\u23F8 \u6682\u505C";
     }
     function pauseAll() {
@@ -30048,86 +30039,90 @@
     }
     function tapScreen(i) {
       const s = screens[i];
-      if (!s.src) return;
+      if (!s || !s.src) return;
       focus = i;
       screens.forEach((o, j) => {
         o.videoEl.muted = j !== i;
       });
-      if (s.videoEl.paused) {
-        s.videoEl.play().catch(() => {
-        });
-        setStatus(`\u{1F50A} ${s.src.name}`);
-      } else setStatus(`\u23F8 ${s.src.name}`);
+      setStatus(s.videoEl.paused ? `\u{1F50A} ${s.src.name}` : `\u23F8 ${s.src.name}`);
+      if (s.videoEl.paused) s.videoEl.play().catch(() => {
+      });
       playBtn.textContent = screens.some((o) => o.src && !o.videoEl.paused) ? "\u23F8 \u6682\u505C" : "\u25B6 \u64AD\u653E";
     }
-    const _fwd = new Vector3();
-    const _nrm = new Vector3();
-    const _q = new Quaternion();
-    const _ndc = new Vector2();
-    function facingScreen() {
-      if (!seated && hoverScreen >= 0) return hoverScreen;
-      camera.getWorldDirection(_fwd);
-      let best = 0, bd = -2;
+    function layoutBigGrid(on) {
+      const n = Math.max(screens.length, 1);
+      const cols = Math.ceil(Math.sqrt(n));
+      const rows = Math.ceil(n / cols);
       screens.forEach((s, i) => {
-        s.group.getWorldQuaternion(_q);
-        _nrm.set(0, 0, 1).applyQuaternion(_q);
-        const d = -_nrm.dot(_fwd);
-        if (d > bd) {
-          bd = d;
-          best = i;
+        const st = s.videoEl.style;
+        if (!on) {
+          ["--col", "--row", "--cols", "--rows"].forEach((p) => st.removeProperty(p));
+          return;
         }
+        st.setProperty("--cols", String(cols));
+        st.setProperty("--rows", String(rows));
+        st.setProperty("--col", String(i % cols));
+        st.setProperty("--row", String(Math.floor(i / cols)));
       });
-      return best;
     }
+    const applyVolume = () => {
+      const v = Number($2("cb-vol").value);
+      screens.forEach((s, i) => {
+        s.videoEl.volume = i === focus ? v : 0;
+      });
+    };
     $2("cb-play").addEventListener("click", () => {
-      if (screens.every((s) => !s.src)) {
-        setStatus("\u8FD8\u6CA1\u6709\u7247\u6E90\uFF1A\u628A\u89C6\u9891\u653E\u8FDB video/ \u6216\u70B9\u300C\u9009\u62E9\u89C6\u9891\u300D");
+      if (!sources.some(Boolean)) {
+        refreshStatus();
         return;
       }
       if (screens.some((s) => s.src && !s.videoEl.paused)) pauseAll();
       else playAll();
     });
-    $2("cb-vol").addEventListener("input", (e) => {
-      const v = Number(e.target.value);
-      screens.forEach((s, i) => {
-        s.videoEl.volume = i === focus ? v : 0;
-      });
+    $2("cb-vol").addEventListener("input", () => {
+      applyVolume();
       try {
-        localStorage.setItem("bb.cinema.vol", String(v));
-      } catch (e2) {
+        localStorage.setItem("bb.cinema.vol", $2("cb-vol").value);
+      } catch (e) {
       }
     });
-    try {
-      const v = localStorage.getItem("bb.cinema.vol");
-      if (v !== null) $2("cb-vol").value = v;
-    } catch (e) {
-    }
-    screens[0].videoEl.volume = Number($2("cb-vol").value || 0.9);
     $2("cb-big").addEventListener("click", () => {
-      document.body.classList.toggle("big-screen");
-      $2("cb-big").textContent = document.body.classList.contains("big-screen") ? "\u26F6 \u56DE\u5230\u5F71\u5385\u89C6\u89D2" : "\u26F6 \u653E\u5927\u89C2\u770B";
+      const on = !document.body.classList.contains("big-screen");
+      document.body.classList.toggle("big-screen", on);
+      layoutBigGrid(on);
+      $2("cb-big").textContent = on ? "\u26F6 \u56DE\u5230\u5F71\u5385\u89C6\u89D2" : "\u26F6 \u653E\u5927\u89C2\u770B";
     });
     $2("cb-stand").addEventListener("click", () => stand());
-    $2("cb-file").addEventListener("click", () => {
-      pickTarget = facingScreen();
-      $2("cb-file-in").click();
-    });
-    $2("cb-file-in").addEventListener("change", (e) => {
-      const f = (e.target.files || [])[0];
-      e.target.value = "";
-      if (!f || pickTarget < 0) return;
-      const s = screens[pickTarget];
-      setSrc(s, { name: f.name, url: URL.createObjectURL(f), local: true });
-      focus = pickTarget;
-      saveLayout();
+    $2("cb-reset").addEventListener("click", () => {
+      sources = defaultSources();
+      focus = 0;
+      rebuild();
       playAll();
-      setStatus(`\u{1F3AC} ${WALL_CN[s.def.id]}\u5899\u94F6\u5E55 \u2192 ${f.name}`);
+      refreshStatus();
+    });
+    $2("cb-file").addEventListener("click", () => $2("cb-file-in").click());
+    $2("cb-file-in").addEventListener("change", (e) => {
+      const files = Array.from(e.target.files || []);
+      e.target.value = "";
+      if (!files.length) return;
+      let over = 0;
+      for (const f of files) {
+        const src = { name: f.name, url: URL.createObjectURL(f), local: true };
+        const at = sources.findIndex((s) => s && s.name === f.name);
+        if (at >= 0) sources[at] = src;
+        else if (sources.length < K.maxScreens) sources.push(src);
+        else over++;
+      }
+      rebuild();
+      playAll();
+      setStatus(`\u{1F3AC} \u5DF2\u5BFC\u5165 ${files.length} \u90E8${over ? `\uFF0C\u8D85\u51FA ${K.maxScreens} \u5757\u5C4F\u4E0A\u9650\u5FFD\u7565 ${over} \u90E8` : ""}`);
     });
     let seated = false;
     let hoverSofa = false;
     let hoverExit = false;
     let hoverScreen = -1;
     const raycaster = new Raycaster();
+    const _ndc = new Vector2();
     const hintEl = $2("cinema-hint");
     const GYM_BOUNDS = {
       minX: CFG.gym.playerMinX,
@@ -30136,7 +30131,7 @@
       maxZ: CFG.gym.playerMaxZ
     };
     const GYM_BLOCKERS = [{ x: 0, z: CFG.hoop.boardFaceZ - 0.95, r: 0.9 }];
-    const ROOM_BOUNDS = { minX: -K.halfW + 0.8, maxX: K.halfW - 0.55, minZ: -K.halfL + 1.1, maxZ: K.halfL - 0.75 };
+    const ROOM_BOUNDS = { minX: -(R - 0.7), maxX: R - 0.7, minZ: -(R - 0.7), maxZ: R - 0.7 };
     const SOFA_BLOCKER = [{ x: K.sofa.x, z: K.sofa.z, r: K.sofa.r + 0.1 }];
     function setHint(t) {
       hintEl.innerHTML = t || "";
@@ -30173,6 +30168,7 @@
       bar.classList.add("hidden");
       if (document.body.classList.contains("big-screen")) {
         document.body.classList.remove("big-screen");
+        layoutBigGrid(false);
         $2("cb-big").textContent = "\u26F6 \u653E\u5927\u89C2\u770B";
       }
       canvasLock();
@@ -30188,7 +30184,7 @@
       },
       onExitRequest: null,
       enter() {
-        player.pos.set(K.exitDoor.x, 0, K.halfL - 2.6);
+        player.pos.set(0, 0, R - 2.6);
         player.vel.set(0, 0, 0);
         player.bounds = ROOM_BOUNDS;
         player.blockers = SOFA_BLOCKER;
@@ -30199,7 +30195,11 @@
         player.freeYaw = 0;
         player.freePitch = 0;
         canvasLock();
-        if (screens.every((s) => !s.src)) applyLayout(loadSaved());
+        if (!sources.some(Boolean)) {
+          sources = loadSources();
+          rebuild();
+          refreshStatus();
+        }
         setHint("<b>\u5DE6\u952E</b> \u70B9\u5C4F\u5E55\u5207\u6362\u51FA\u58F0 \xB7 \u7AD9\u4E0A\u6C99\u53D1 <b>\u5DE6\u952E</b> \u5165\u5EA7 \xB7 \u8D70\u5411 <b>\u51FA\u53E3\u95E8</b> \u56DE\u7403\u573A");
       },
       exit() {
@@ -30213,20 +30213,26 @@
       },
       /** 每帧（main 在 playing 且 loc==='cinema' 时调用；player.update 之后） */
       update(dt) {
-        if (!seated) {
-          raycaster.setFromCamera({ x: 0, y: 0 }, camera);
-          const targets = [sofaHit, exitHit, ...screens.map((s) => s.plane)];
-          const hits = raycaster.intersectObjects(targets, false);
-          const hit = hits.find((h) => h.distance < 14) || null;
-          hoverSofa = !!hit && hit.object === sofaHit;
-          hoverExit = !!hit && hit.object === exitHit;
-          hoverScreen = hit ? screens.findIndex((s) => s.plane === hit.object) : -1;
-          const dExit = Math.hypot(player.pos.x - K.exitDoor.x, player.pos.z - K.exitDoor.z);
-          if (dExit < K.exitDoor.r && this.onExitRequest) this.onExitRequest();
-          const dSofa = Math.hypot(player.pos.x - K.sofa.x, player.pos.z - K.sofa.z);
-          const nearSofa = hoverSofa || dSofa < K.sofa.r + 0.6;
-          setHint(nearSofa ? "<b>\u5DE6\u952E</b> \u5728\u6C99\u53D1\u4E0A\u5165\u5EA7\uFF08\u4EFB\u610F\u671D\u5411\uFF09" : hoverExit ? "<b>\u5DE6\u952E</b> \u6216\u8D70\u8FC7\u53BB\uFF1A\u8FD4\u56DE\u7BEE\u7403\u9986" : hoverScreen >= 0 && screens[hoverScreen].src ? "<b>\u5DE6\u952E</b> \u64AD\u653E/\u6682\u505C \xB7 \u5207\u6362\u8BE5\u5C4F\u58F0\u97F3" : "");
+        if (seated) return;
+        const rr = R - 0.75;
+        const d = Math.hypot(player.pos.x - K.sofa.x, player.pos.z - K.sofa.z);
+        if (d > rr) {
+          const k = rr / d;
+          player.pos.x = K.sofa.x + (player.pos.x - K.sofa.x) * k;
+          player.pos.z = K.sofa.z + (player.pos.z - K.sofa.z) * k;
         }
+        raycaster.setFromCamera({ x: 0, y: 0 }, camera);
+        const targets = [sofaHit, exitHit, ...screens.map((s) => s.mesh)];
+        const hits = raycaster.intersectObjects(targets, false);
+        const hit = hits.find((h) => h.distance < 20) || null;
+        hoverSofa = !!hit && hit.object === sofaHit;
+        hoverExit = !!hit && hit.object === exitHit;
+        hoverScreen = hit ? screens.findIndex((s) => s.mesh === hit.object) : -1;
+        const dp = ringAt(0, R);
+        if (Math.hypot(player.pos.x - dp.x, player.pos.z - dp.z) < K.door.trigR && this.onExitRequest) this.onExitRequest();
+        const dSofa = Math.hypot(player.pos.x - K.sofa.x, player.pos.z - K.sofa.z);
+        const nearSofa = hoverSofa || dSofa < K.sofa.r + 0.6;
+        setHint(nearSofa ? "<b>\u5DE6\u952E</b> \u5728\u6C99\u53D1\u4E0A\u5165\u5EA7\uFF08\u4EFB\u610F\u671D\u5411\uFF09" : hoverExit ? "<b>\u5DE6\u952E</b> \u6216\u8D70\u8FC7\u53BB\uFF1A\u8FD4\u56DE\u7BEE\u7403\u9986" : hoverScreen >= 0 && screens[hoverScreen].src ? "<b>\u5DE6\u952E</b> \u64AD\u653E/\u6682\u505C \xB7 \u5207\u6362\u8BE5\u5C4F\u58F0\u97F3" : "");
       },
       onLeftDown() {
         if (seated) return;
@@ -30251,31 +30257,49 @@
         const rect = document.getElementById("gl").getBoundingClientRect();
         _ndc.set(x / rect.width * 2 - 1, -(y / rect.height) * 2 + 1);
         raycaster.setFromCamera(_ndc, camera);
-        const hits = raycaster.intersectObjects(screens.map((s) => s.plane), false);
+        const hits = raycaster.intersectObjects(screens.map((s) => s.mesh), false);
         if (!hits.length) return;
-        const i = screens.findIndex((s) => s.plane === hits[0].object);
+        const i = screens.findIndex((s) => s.mesh === hits[0].object);
         if (i >= 0) tapScreen(i);
       },
       /** WASD 按下时 main 转发：坐着则起身（keydown 手势内可重新锁指针） */
       onMoveKey() {
         if (seated) stand();
       },
-      /** 进入影院瞬间调用：确保每块屏都排好了片源 */
+      /** 进入影院瞬间调用：确保环上排好了片源 */
       ensurePlaylist() {
-        if (screens.every((s) => !s.src)) applyLayout(loadSaved());
+        if (sources.some(Boolean)) return;
+        sources = loadSources();
+        rebuild();
+        refreshStatus();
+      },
+      /** 无头验证用：当前环上每块屏的几何（高度 / 槽位圆心角 / 中心角 / 是否有片源） */
+      debugRing() {
+        return screens.map((s) => ({
+          h: +s.h.toFixed(2),
+          slotDeg: +(s.slot / DEG % 360).toFixed(1),
+          arcDeg: +((s.mesh.geometry.parameters?.thetaLength ?? 0) / DEG).toFixed(1),
+          src: s.src ? 1 : 0
+        }));
       },
       stopVideo() {
         pauseAll();
       }
     };
   }
-  var K;
+  var K, R, H, GAP, SPAN, DEG, ringAt;
   var init_cinema = __esm({
     "src/cinema.js"() {
       init_three_module();
       init_config();
       init_textures();
       K = CFG.cinema;
+      R = K.ring.r;
+      H = K.ring.height;
+      GAP = K.door.gapDeg * Math.PI / 180;
+      SPAN = Math.PI * 2 - GAP;
+      DEG = Math.PI / 180;
+      ringAt = (a2, r = R) => ({ x: Math.sin(a2) * r, z: Math.cos(a2) * r });
     }
   });
 
@@ -30826,10 +30850,10 @@
           if (!spot) return;
           const dx = player.pos.x - spot.x, dz = player.pos.z - spot.z;
           const d = Math.hypot(dx, dz);
-          const R = CFG.shot.spotRadius;
-          if (d > R) {
-            player.pos.x = spot.x + dx / d * R;
-            player.pos.z = spot.z + dz / d * R;
+          const R2 = CFG.shot.spotRadius;
+          if (d > R2) {
+            player.pos.x = spot.x + dx / d * R2;
+            player.pos.z = spot.z + dz / d * R2;
           }
         }
         update(dt) {
@@ -31835,9 +31859,11 @@
           };
         }
         if (demo === "save") {
-          const it = (window.BB_VIDEOS || [])[0];
-          localStorage.setItem("bb.cinema.screens", JSON.stringify([null, null, null, it ? { n: it.name, k: 0 } : null]));
-          mark(`SAVED ${it ? it.name : "(\u7247\u5355\u7A7A)"}`);
+          const L = window.BB_VIDEOS || [];
+          const rec = (i) => L[i % L.length] ? { n: L[i % L.length].name, k: 0 } : null;
+          const list = L.length ? [rec(0), null, rec(1), null, rec(2)] : [];
+          localStorage.setItem("bb.cinema.screens", JSON.stringify(list));
+          mark(`SAVED n=${list.length} ${L.map((x) => x.name).join(",") || "(\u7247\u5355\u7A7A)"}`);
         }
         if (demo === "tap") {
           setTimeout(() => {
@@ -31885,8 +31911,41 @@
           setTimeout(() => {
             const el = document.getElementById("dbg-out");
             const vs = Array.from(document.querySelectorAll(".btv"));
-            el.textContent = `${demo.toUpperCase()} seated=${cinema.seated} bar=${document.getElementById("cinema-bar").classList.contains("hidden") ? 0 : 1} eye=${player.eyeHeight.toFixed(2)} pos=${player.pos.x.toFixed(1)},${player.pos.z.toFixed(1)} big=${document.body.classList.contains("big-screen") ? 1 : 0} n=${vs.length} src=${vs.map((v) => v.currentSrc || v.src ? 1 : 0).join("")}`;
+            const vs0 = vs[0]?.style;
+            el.textContent = `${demo.toUpperCase()} seated=${cinema.seated} bar=${document.getElementById("cinema-bar").classList.contains("hidden") ? 0 : 1} eye=${player.eyeHeight.toFixed(2)} pos=${player.pos.x.toFixed(1)},${player.pos.z.toFixed(1)} big=${document.body.classList.contains("big-screen") ? 1 : 0} n=${vs.length} src=${vs.map((v) => v.currentSrc || v.src ? 1 : 0).join("")} ring=${cinema.debugRing().map((r) => `h${r.h}/a${r.arcDeg}${r.src}`).join(",")} grid=${vs0?.getPropertyValue("--cols") || "-"}x${vs0?.getPropertyValue("--rows") || "-"}`;
           }, 3400);
+        }
+        if (demo === "import") {
+          setTimeout(() => {
+            const inp = document.getElementById("cb-file-in");
+            const mk = (n) => new File([new Blob(["x"], { type: "video/mp4" })], n, { type: "video/mp4" });
+            Object.defineProperty(inp, "files", { value: [mk("demo-a.mp4"), mk("demo-b.mp4")] });
+            inp.dispatchEvent(new Event("change"));
+          }, 2600);
+          setTimeout(() => {
+            const saved = JSON.parse(localStorage.getItem("bb.cinema.screens") || "[]");
+            mark(`IMP n=${document.querySelectorAll(".btv").length} ring=${cinema.debugRing().map((r) => r.src).join("")} saved=${saved.map((x) => x ? x.n : "-").join(",")}`);
+          }, 3400);
+          setTimeout(() => {
+            document.getElementById("cb-reset").click();
+          }, 4200);
+          setTimeout(() => {
+            mark(`RESET n=${document.querySelectorAll(".btv").length} ring=${cinema.debugRing().map((r) => r.src).join("")}`);
+          }, 4800);
+        }
+        if (demo === "exit") {
+          const step = () => {
+            if (GAME.location !== "cinema") return;
+            player.pos.set(0, 0, CFG.cinema.ring.r - 0.9);
+            cinema.update(0.016);
+          };
+          setTimeout(() => {
+            step();
+            mark(`door d=${Math.hypot(player.pos.x, player.pos.z - CFG.cinema.ring.r).toFixed(2)} loc=${GAME.location}`);
+          }, 2400);
+          setTimeout(step, 3e3);
+          setTimeout(step, 3600);
+          setTimeout(() => mark(`done loc=${GAME.location} pos=${player.pos.x.toFixed(1)},${player.pos.z.toFixed(1)}`), 4600);
         }
         if (demo === "pause") {
           setTimeout(() => {
