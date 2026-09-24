@@ -349,7 +349,7 @@ export function makeScreenPlaceholderTexture() {
   ctx.font = `28px 'Microsoft YaHei', system-ui`;
   ctx.fillText('① 把视频文件放进 video/ 文件夹', 512, 280);
   ctx.fillText('② 双击 tools/gen_videos.bat 生成放映清单', 512, 326);
-  ctx.fillText('短片自动进放映单；大文件点“选择视频”', 512, 392);
+  ctx.fillText('≤25MB 短片自动进放映单；大文件点“选择视频”', 512, 392);
   ctx.fillStyle = '#39445a';
   ctx.font = `24px 'Microsoft YaHei', system-ui`;
   ctx.fillText('MP4 · WebM · MOV · M4V · Ogg（以浏览器可解码为准）', 512, 448);

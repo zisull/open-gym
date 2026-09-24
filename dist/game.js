@@ -22069,9 +22069,7 @@
           sofa: { x: 0, z: 0.4, r: 2.6, sitR: 1.9, eyeSit: 1.28 },
           walkSpeed: 3,
           // 出口门（影厅 +z 墙）：走进 -> 回球馆
-          exitDoor: { x: 6.5, z: 6.9, r: 1.15 },
-          // video/ 清单生成器单文件内嵌上限（字节），超过则提示改用"选择视频"
-          maxEmbedMB: 80
+          exitDoor: { x: 6.5, z: 6.9, r: 1.15 }
         }
       };
     }
@@ -29466,7 +29464,7 @@
     ctx.font = `28px 'Microsoft YaHei', system-ui`;
     ctx.fillText("\u2460 \u628A\u89C6\u9891\u6587\u4EF6\u653E\u8FDB video/ \u6587\u4EF6\u5939", 512, 280);
     ctx.fillText("\u2461 \u53CC\u51FB tools/gen_videos.bat \u751F\u6210\u653E\u6620\u6E05\u5355", 512, 326);
-    ctx.fillText("\u77ED\u7247\u81EA\u52A8\u8FDB\u653E\u6620\u5355\uFF1B\u5927\u6587\u4EF6\u70B9\u201C\u9009\u62E9\u89C6\u9891\u201D", 512, 392);
+    ctx.fillText("\u226425MB \u77ED\u7247\u81EA\u52A8\u8FDB\u653E\u6620\u5355\uFF1B\u5927\u6587\u4EF6\u70B9\u201C\u9009\u62E9\u89C6\u9891\u201D", 512, 392);
     ctx.fillStyle = "#39445a";
     ctx.font = `24px 'Microsoft YaHei', system-ui`;
     ctx.fillText("MP4 \xB7 WebM \xB7 MOV \xB7 M4V \xB7 Ogg\uFF08\u4EE5\u6D4F\u89C8\u5668\u53EF\u89E3\u7801\u4E3A\u51C6\uFF09", 512, 448);
@@ -29868,23 +29866,17 @@
       g.position.set(bx + (sc.cx || 0), 0, bz);
       g.rotation.y = WALL_ROT[sc.wall];
       const bezel = new Mesh(
-        new PlaneGeometry(sc.maxW + 0.8, sc.maxH + 0.7),
+        new PlaneGeometry(1, 1),
         new MeshStandardMaterial({ color: 263434, roughness: 0.9 })
       );
       bezel.position.set(0, sc.cy, -0.03);
       g.add(bezel);
       const mat = new MeshBasicMaterial({ map: placeholderTex, color: 12108496 });
-      const plane = new Mesh(new PlaneGeometry(sc.maxW * 0.6, sc.maxW * 0.6 * 9 / 16), mat);
+      const plane = new Mesh(new PlaneGeometry(1, 1), mat);
       plane.position.set(0, sc.cy, 0.03);
       g.add(plane);
       scene.add(g);
-      const videoEl = makeVideoEl(i === 0);
-      const tex = new VideoTexture(videoEl);
-      tex.colorSpace = SRGBColorSpace;
-      tex.minFilter = LinearFilter;
-      tex.magFilter = LinearFilter;
-      videoEl.addEventListener("loadedmetadata", () => {
-        const ar = (videoEl.videoWidth || 16) / (videoEl.videoHeight || 9);
+      const fitRect = (ar) => {
         let w = sc.maxW, h = w / ar;
         if (h > sc.maxH) {
           h = sc.maxH;
@@ -29892,11 +29884,22 @@
         }
         plane.geometry.dispose();
         plane.geometry = new PlaneGeometry(w, h);
+        bezel.geometry.dispose();
+        bezel.geometry = new PlaneGeometry(w + 0.8, h + 0.7);
+      };
+      fitRect(16 / 9);
+      const videoEl = makeVideoEl(i === 0);
+      const tex = new VideoTexture(videoEl);
+      tex.colorSpace = SRGBColorSpace;
+      tex.minFilter = LinearFilter;
+      tex.magFilter = LinearFilter;
+      videoEl.addEventListener("loadedmetadata", () => {
+        fitRect((videoEl.videoWidth || 16) / (videoEl.videoHeight || 9));
         mat.map = tex;
         mat.color.setHex(16777215);
         mat.needsUpdate = true;
       });
-      return { def: sc, group: g, plane, mat, videoEl, tex, idx: -1 };
+      return { def: sc, group: g, plane, mat, videoEl, tex, fit: fitRect, idx: -1 };
     });
     scene.add(new HemisphereLight(3752271, 657932, 0.55));
     const proj = new PointLight(10466520, 5, 16, 1.6);
@@ -29984,6 +29987,7 @@
           if (s.videoEl.src !== it.url) s.videoEl.src = it.url;
         } else {
           s.videoEl.removeAttribute("src");
+          s.fit(16 / 9);
           s.mat.map = placeholderTex;
           s.mat.color.setHex(12108496);
           s.mat.needsUpdate = true;
@@ -31724,7 +31728,7 @@
           }, 2e3);
           setTimeout(() => machine.dispatch("onLeftDown"), 2900);
         }
-        if (demo === "sit" || demo === "grid") {
+        if (demo) {
           const marks2 = [];
           let dbg = document.getElementById("dbg-out");
           if (!dbg) {
@@ -31742,6 +31746,7 @@
         }
         if (demo === "tap") {
           setTimeout(() => {
+            player.pos.set(ball.position.x, 0, ball.position.z + 1.2);
             if (machine.name === "noBall") machine.dispatch("onLeftDown");
             mark("pickup");
           }, 1200);

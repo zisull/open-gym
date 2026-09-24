@@ -60,19 +60,30 @@ export function createCinema({ camera, player, sfx }) {
     const [bx, , bz] = WALL_POS[sc.wall];
     g.position.set(bx + (sc.cx || 0), 0, bz);
     g.rotation.y = WALL_ROT[sc.wall];
-    // 背板（比画面大一圈的黑色边框，遮住墙缝）
+    // 背板（比画面大一圈的黑色边框，遮住墙缝），尺寸始终跟着画面收放
     const bezel = new THREE.Mesh(
-      new THREE.PlaneGeometry(sc.maxW + 0.8, sc.maxH + 0.7),
+      new THREE.PlaneGeometry(1, 1),
       new THREE.MeshStandardMaterial({ color: 0x04050a, roughness: 0.9 })
     );
     bezel.position.set(0, sc.cy, -0.03);
     g.add(bezel);
-    // 画面：初始占位图，尺寸随视频元数据加载后按宽高比重排
+    // 画面：初始为占位图，尺寸随视频元数据加载后按宽高比重排
     const mat = new THREE.MeshBasicMaterial({ map: placeholderTex, color: 0xb8c2d0 });
-    const plane = new THREE.Mesh(new THREE.PlaneGeometry(sc.maxW * 0.6, sc.maxW * 0.6 * 9 / 16), mat);
+    const plane = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), mat);
     plane.position.set(0, sc.cy, 0.03);
     g.add(plane);
     scene.add(g);
+
+    /** 把"画面 + 背板"整体收成某个宽高比在墙框内的最大矩形 */
+    const fitRect = (ar) => {
+      let w = sc.maxW, h = w / ar;
+      if (h > sc.maxH) { h = sc.maxH; w = h * ar; }
+      plane.geometry.dispose();
+      plane.geometry = new THREE.PlaneGeometry(w, h);
+      bezel.geometry.dispose();
+      bezel.geometry = new THREE.PlaneGeometry(w + 0.8, h + 0.7);
+    };
+    fitRect(16 / 9); // 占位图先按 16:9 铺满墙框
 
     const videoEl = makeVideoEl(i === 0);
     const tex = new THREE.VideoTexture(videoEl);
@@ -80,18 +91,15 @@ export function createCinema({ camera, player, sfx }) {
     tex.minFilter = THREE.LinearFilter;
     tex.magFilter = THREE.LinearFilter;
 
-    // 视频元数据到位 -> 在 (maxW, maxH) 框内取该宽高比的最大矩形
+    // 视频元数据到位 -> 画面按自身比例取最大矩形，边框跟着收放，
+    // 免得竖屏片两边挂着一大块空黑框、看着像"屏幕没开满"
     videoEl.addEventListener('loadedmetadata', () => {
-      const ar = (videoEl.videoWidth || 16) / (videoEl.videoHeight || 9);
-      let w = sc.maxW, h = w / ar;
-      if (h > sc.maxH) { h = sc.maxH; w = h * ar; }
-      plane.geometry.dispose();
-      plane.geometry = new THREE.PlaneGeometry(w, h);
+      fitRect((videoEl.videoWidth || 16) / (videoEl.videoHeight || 9));
       mat.map = tex;
       mat.color.setHex(0xffffff);
       mat.needsUpdate = true;
     });
-    return { def: sc, group: g, plane, mat, videoEl, tex, idx: -1 };
+    return { def: sc, group: g, plane, mat, videoEl, tex, fit: fitRect, idx: -1 };
   });
 
   /* ================= 灯光（全部不投影：影院零闪烁） ================= */
@@ -189,6 +197,7 @@ export function createCinema({ camera, player, sfx }) {
         if (s.videoEl.src !== it.url) s.videoEl.src = it.url;
       } else {
         s.videoEl.removeAttribute('src');
+        s.fit(16 / 9); // 空位回到 16:9 满框占位，别留上一个人的比例
         s.mat.map = placeholderTex;
         s.mat.color.setHex(0xb8c2d0);
         s.mat.needsUpdate = true;

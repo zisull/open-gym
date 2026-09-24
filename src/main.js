@@ -447,8 +447,9 @@ try {
     setTimeout(() => { player.pos.set(0.5, 0, -8); }, 2000);  // 传送到投篮区
     setTimeout(() => machine.dispatch('onLeftDown'), 2900);   // 按住蓄力
   }
-  if (demo === 'sit' || demo === 'grid') {
+  if (demo) {
     // 无头断言回读通道：结果写进专用 DOM 节点，再用 --screenshot 读图
+    // （任何 demo 分支都可能调 mark()，所以只要有 demo 就先把通道建好）
     const marks = [];
     let dbg = document.getElementById('dbg-out');
     if (!dbg) {
@@ -465,8 +466,12 @@ try {
     };
   }
   if (demo === 'tap') {
-    // 自动化：左键拾球 → 右键拍球 → 左键蓄力 → 松手出手，断言计分链路
-    setTimeout(() => { if (machine.name === 'noBall') machine.dispatch('onLeftDown'); mark('pickup'); }, 1200);
+    // 自动化：走到球边 → 左键拾球 → 右键拍球 → 左键蓄力 → 松手出手，断言计分链路
+    setTimeout(() => {
+      player.pos.set(ball.position.x, 0, ball.position.z + 1.2); // 球会滚，先贴到球边上
+      if (machine.name === 'noBall') machine.dispatch('onLeftDown');
+      mark('pickup');
+    }, 1200);
     setTimeout(() => { machine.dispatch('onRightDown'); mark('tap1'); }, 1800);
     setTimeout(() => { machine.dispatch('onRightDown'); mark('tap2'); }, 2600);
     setTimeout(() => { machine.dispatch('onLeftDown'); mark('charge'); }, 3400);

@@ -115,7 +115,5 @@ export const CFG = {
     walkSpeed: 3.0,
     // 出口门（影厅 +z 墙）：走进 -> 回球馆
     exitDoor: { x: 6.5, z: 6.9, r: 1.15 },
-    // video/ 清单生成器单文件内嵌上限（字节），超过则提示改用"选择视频"
-    maxEmbedMB: 80,
   },
 };

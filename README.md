@@ -86,7 +86,8 @@ tools/gen_video_manifest.js / gen_videos.bat  视频打包器（双击 或 npm r
 
 1. **打包片源**：把 mp4/m4v/webm/ogg 视频丢进 `video/`，双击
    `tools/gen_videos.bat`（或 `npm run videos`）生成 `video/manifest.js`
-   （base64 内嵌，单个 ≤80MB），刷新后进影院自动排在片单里；
+   （base64 内嵌，单个 ≤25MB、总量 ≤40MB，超了会拖慢开机所以自动跳过），
+   刷新后进影院自动排在片单里；
 2. **临时片源**：放映条上点「选择视频」直接选本地文件（任意大小，走
    `blob:` URL 流式读取，不落盘不打包，关掉页面即消失）。
 

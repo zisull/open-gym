@@ -6,8 +6,9 @@
  * （SecurityError，实测 Edge/Chromium）。唯一可靠的离线方案是把短片以
  * data: URL 内嵌进一个 JS 清单（与 imgs/wall 墙贴画同理）。
  *
- * 大文件（>80MB，如完整电影）不适合内嵌：请直接在影厅里点"选择视频"，
- * 走 blob: URL（同源、不污染、流式读取不占内存）。
+ * 大文件（单片 >25MB 或全部内嵌 >40MB，base64 还会再膨胀 1/3）不适合内嵌：
+ * 清单太大会让 index.html 双击后卡近一分钟。这类片子请直接在影厅点"选择视频"，
+ * 走 blob: URL（同源、不污染、流式读取不占内存、秒开）。
  *
  * 用法：双击 tools/gen_videos.bat，或在项目根目录执行 npm run videos
  */
@@ -17,7 +18,8 @@ const path = require('path');
 const ROOT = path.join(__dirname, '..');
 const VIDEO_DIR = path.join(ROOT, 'video');
 const OUT = path.join(VIDEO_DIR, 'manifest.js');
-const MAX_EMBED = 80 * 1024 * 1024; // 单文件内嵌上限 80MB
+const MAX_EMBED = 25 * 1024 * 1024; // 单文件内嵌上限 25MB（base64 后约 33MB）
+const MAX_TOTAL = 40 * 1024 * 1024; // 清单内嵌总量上限 40MB，保证开机秒进
 const EXT_MIME = {
   '.mp4': 'video/mp4',
   '.m4v': 'video/mp4',
@@ -37,16 +39,22 @@ function main() {
     .filter((f) => !f.startsWith('.'));
 
   const items = [];
+  let total = 0;
   for (const f of files) {
     const fp = path.join(VIDEO_DIR, f);
     const size = fs.statSync(fp).size;
     if (size > MAX_EMBED) {
-      console.log(`跳过（>${MAX_EMBED / 1024 / 1024}MB，进影厅用"选择视频"播放）: ${f}`);
+      console.log(`跳过（单片 >${MAX_EMBED / 1024 / 1024}MB，进影厅用"选择视频"播放）: ${f}`);
+      continue;
+    }
+    if (total + size > MAX_TOTAL) {
+      console.log(`跳过（内嵌总量已达 ${MAX_TOTAL / 1024 / 1024}MB 上限，进影厅用"选择视频"播放）: ${f}`);
       continue;
     }
     const ext = path.extname(f).toLowerCase();
     const b64 = fs.readFileSync(fp).toString('base64');
     items.push({ name: f, url: `data:${EXT_MIME[ext]};base64,${b64}` });
+    total += size;
     console.log(`内嵌: ${f} (${(size / 1024 / 1024).toFixed(1)} MB)`);
   }
 
