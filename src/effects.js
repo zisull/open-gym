@@ -34,6 +34,7 @@ export class Effects {
     this.points.frustumCulled = false;
     scene.add(this.points);
     this.cursor = 0;
+    this._colorsDirty = false; // 颜色只在爆点时变化，避免逐帧上传整个 color buffer
     this.baseCamPos = new THREE.Vector3();
   }
 
@@ -60,6 +61,7 @@ export class Effects {
       this.colors[p] = c[0]; this.colors[p + 1] = c[1]; this.colors[p + 2] = c[2];
       this.lives[idx] = 0.8 + Math.random() * 0.5;
     }
+    this._colorsDirty = true;
   }
 
   /** 完美拍球的小火花 */
@@ -74,6 +76,7 @@ export class Effects {
       this.colors[p] = 1; this.colors[p + 1] = 0.9; this.colors[p + 2] = 0.5;
       this.lives[idx] = 0.3;
     }
+    this._colorsDirty = true;
   }
 
   /** 触发屏幕震动 */
@@ -105,7 +108,10 @@ export class Effects {
       }
     }
     this.points.geometry.attributes.position.needsUpdate = true;
-    this.points.geometry.attributes.color.needsUpdate = true;
+    if (this._colorsDirty) {
+      this.points.geometry.attributes.color.needsUpdate = true;
+      this._colorsDirty = false;
+    }
 
     // Bloom 脉冲指数衰减
     this.bloomPulse *= Math.exp(-3.2 * dt);

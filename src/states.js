@@ -156,7 +156,7 @@ export class ShotState extends State {
     this.resolved = false;
     this.returnTimer = 0;
     this.flightT = 0;
-    this._prevY = 0;
+    this._prevY = undefined; // 飞行阶段首帧采样基线（出手时再置，保证穿越判定完整）
     ui.showPowerBar(true);
     ui.setPrompt('<b>按住左键</b> 蓄力 · <b>松手</b> 投篮 · <b>右键</b> 取消');
   }
@@ -276,6 +276,7 @@ export class ShotState extends State {
     scoring.registerShotAttempt();
     this.flying = true;
     this.flightT = 0;
+    this._prevY = undefined; // 重置穿越判定基线，从飞行首帧开始采样
     this.G.ui.setPrompt('好球轨迹 —— 盯住力度条最佳区！');
   }
   onRightDown() {

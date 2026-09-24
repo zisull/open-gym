@@ -29165,6 +29165,31 @@
       return ((t ^ t >>> 14) >>> 0) / 4294967296;
     };
   }
+  function heightToNormal(heightCanvas, strength = 2) {
+    const W = heightCanvas.width, H2 = heightCanvas.height;
+    const src = heightCanvas.getContext("2d").getImageData(0, 0, W, H2).data;
+    const cv = document.createElement("canvas");
+    cv.width = W;
+    cv.height = H2;
+    const ctx = cv.getContext("2d");
+    const out = ctx.createImageData(W, H2);
+    const h = (x, y) => src[((y + H2) % H2 * W + (x + W) % W) * 4] / 255;
+    for (let y = 0; y < H2; y++) {
+      for (let x = 0; x < W; x++) {
+        const gx = (h(x + 1, y) - h(x - 1, y)) * strength;
+        const gy = (h(x, y + 1) - h(x, y - 1)) * strength;
+        const len = Math.hypot(gx, gy, 1);
+        const i = (y * W + x) * 4;
+        out.data[i] = (-gx / len * 0.5 + 0.5) * 255;
+        out.data[i + 1] = (-gy / len * 0.5 + 0.5) * 255;
+        out.data[i + 2] = (1 / len * 0.5 + 0.5) * 255;
+        out.data[i + 3] = 255;
+      }
+    }
+    ctx.putImageData(out, 0, 0);
+    const tex = new CanvasTexture(cv);
+    return tex;
+  }
   function makeCourtTexture() {
     const PPM = 80;
     const G = CFG.gym, C = CFG.court;
@@ -29309,6 +29334,175 @@
     const tex = new CanvasTexture(cv);
     tex.colorSpace = SRGBColorSpace;
     tex.anisotropy = 16;
+    return tex;
+  }
+  function makeCourtRoughness() {
+    const PPM = 40;
+    const G = CFG.gym, C = CFG.court;
+    const W = Math.round(G.halfW * 2 * PPM);
+    const H2 = Math.round(G.halfL * 2 * PPM);
+    const cv = document.createElement("canvas");
+    cv.width = W;
+    cv.height = H2;
+    const ctx = cv.getContext("2d");
+    const rnd = mulberry32(90210);
+    const x0 = (-C.halfW + G.halfW) * PPM, x1 = (C.halfW + G.halfW) * PPM;
+    const z0 = (-C.halfL + G.halfL) * PPM, z1 = (C.halfL + G.halfL) * PPM;
+    ctx.fillStyle = "rgb(215,215,215)";
+    ctx.fillRect(0, 0, W, H2);
+    for (let i = 0; i < 2600; i++) {
+      const v = 200 + rnd() * 40;
+      ctx.fillStyle = `rgb(${v},${v},${v})`;
+      ctx.fillRect(rnd() * W, rnd() * H2, 2, 2);
+    }
+    for (let y = z0; y < z1; y += 6) {
+      const v = 86 + rnd() * 34;
+      ctx.fillStyle = `rgb(${v},${v},${v})`;
+      ctx.fillRect(x0, y, x1 - x0, 6);
+    }
+    const sheen = ctx.createRadialGradient(W / 2, H2 / 2, 8, W / 2, H2 / 2, PPM * 4);
+    sheen.addColorStop(0, "rgba(60,60,60,0.35)");
+    sheen.addColorStop(1, "rgba(60,60,60,0)");
+    ctx.fillStyle = sheen;
+    ctx.fillRect(x0, z0, x1 - x0, z1 - z0);
+    ctx.strokeStyle = "rgb(66,66,66)";
+    ctx.lineWidth = 2.5;
+    ctx.strokeRect(x0 + 1.5, z0 + 1.5, x1 - x0 - 3, z1 - z0 - 3);
+    ctx.beginPath();
+    ctx.moveTo(W / 2, z0);
+    ctx.lineTo(W / 2, z1);
+    ctx.stroke();
+    const tex = new CanvasTexture(cv);
+    tex.anisotropy = 8;
+    return tex;
+  }
+  function makeCourtNormal() {
+    const PPM = 40;
+    const G = CFG.gym, C = CFG.court;
+    const W = Math.round(G.halfW * 2 * PPM);
+    const H2 = Math.round(G.halfL * 2 * PPM);
+    const cv = document.createElement("canvas");
+    cv.width = W;
+    cv.height = H2;
+    const ctx = cv.getContext("2d");
+    const rnd = mulberry32(31415);
+    ctx.fillStyle = "rgb(128,128,128)";
+    ctx.fillRect(0, 0, W, H2);
+    ctx.strokeStyle = "rgb(96,96,96)";
+    ctx.lineWidth = 1;
+    for (let gx = -G.halfW + 2; gx < G.halfW; gx += 2) {
+      ctx.beginPath();
+      ctx.moveTo((gx + G.halfW) * PPM, 0);
+      ctx.lineTo((gx + G.halfW) * PPM, H2);
+      ctx.stroke();
+    }
+    for (let gz = -G.halfL + 2; gz < G.halfL; gz += 2) {
+      ctx.beginPath();
+      ctx.moveTo(0, (gz + G.halfL) * PPM);
+      ctx.lineTo(W, (gz + G.halfL) * PPM);
+      ctx.stroke();
+    }
+    const x0 = (-C.halfW + G.halfW) * PPM, x1 = (C.halfW + G.halfW) * PPM;
+    const z0 = (-C.halfL + G.halfL) * PPM, z1 = (C.halfL + G.halfL) * PPM;
+    for (let y = z0; y < z1; y += 7) {
+      ctx.fillStyle = "rgb(92,92,92)";
+      ctx.fillRect(x0, y, x1 - x0, 1.2);
+      if (rnd() < 0.4) ctx.fillRect(x0 + rnd() * (x1 - x0), y, 1.6, 7);
+    }
+    for (let i = 0; i < 5200; i++) {
+      const v = 120 + rnd() * 16;
+      ctx.fillStyle = `rgb(${v},${v},${v})`;
+      ctx.fillRect(x0 + rnd() * (x1 - x0), z0 + rnd() * (z1 - z0), 1.4, 1.4);
+    }
+    const tex = heightToNormal(cv, 2.2);
+    tex.anisotropy = 8;
+    return tex;
+  }
+  function makeWallNormal() {
+    const W = 1024, H2 = 512;
+    const cv = document.createElement("canvas");
+    cv.width = W;
+    cv.height = H2;
+    const ctx = cv.getContext("2d");
+    ctx.fillStyle = "rgb(128,128,128)";
+    ctx.fillRect(0, 0, W, H2);
+    for (let x = 0; x < W; x += 64) {
+      ctx.fillStyle = "rgb(150,150,150)";
+      ctx.fillRect(x + 2, 0, 5, H2);
+      ctx.fillStyle = "rgb(96,96,96)";
+      ctx.fillRect(x + 58, 0, 5, H2);
+    }
+    for (let y = 0; y < H2; y += 96) {
+      ctx.fillStyle = "rgb(122,122,122)";
+      ctx.fillRect(0, y, W, 2);
+    }
+    const tex = heightToNormal(cv, 1.6);
+    tex.wrapS = tex.wrapT = RepeatWrapping;
+    return tex;
+  }
+  function makeBallRoughness() {
+    const S = 512;
+    const cv = document.createElement("canvas");
+    cv.width = S;
+    cv.height = S;
+    const ctx = cv.getContext("2d");
+    const rnd = mulberry32(777);
+    ctx.fillStyle = "rgb(140,140,140)";
+    ctx.fillRect(0, 0, S, S);
+    for (let i = 0; i < 4200; i++) {
+      const v = 150 + rnd() * 50;
+      ctx.fillStyle = `rgb(${v},${v},${v})`;
+      ctx.fillRect(rnd() * S, rnd() * S, 1.6, 1.6);
+    }
+    ctx.strokeStyle = "rgb(205,205,205)";
+    ctx.lineWidth = 10;
+    ctx.beginPath();
+    ctx.moveTo(S / 2, 0);
+    ctx.lineTo(S / 2, S);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(0, S / 2);
+    ctx.lineTo(S, S / 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(S * 0.25, S / 2, S * 0.34, -Math.PI / 2, Math.PI / 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(S * 0.75, S / 2, S * 0.34, Math.PI / 2, -Math.PI / 2);
+    ctx.stroke();
+    const tex = new CanvasTexture(cv);
+    return tex;
+  }
+  function makeCarpetTexture() {
+    const S = 512;
+    const cv = document.createElement("canvas");
+    cv.width = S;
+    cv.height = S;
+    const ctx = cv.getContext("2d");
+    const rnd = mulberry32(60411);
+    const g = ctx.createRadialGradient(S / 2, S / 2, 40, S / 2, S / 2, S * 0.72);
+    g.addColorStop(0, "#211d26");
+    g.addColorStop(1, "#16141c");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, S, S);
+    ctx.strokeStyle = "rgba(255,255,255,0.022)";
+    ctx.lineWidth = 1;
+    for (let i = 0; i < S; i += 4) {
+      ctx.beginPath();
+      ctx.moveTo(i, 0);
+      ctx.lineTo(i, S);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(0, i);
+      ctx.lineTo(S, i);
+      ctx.stroke();
+    }
+    for (let i = 0; i < 7e3; i++) {
+      ctx.fillStyle = rnd() > 0.5 ? "rgba(200,190,220,0.028)" : "rgba(0,0,0,0.06)";
+      ctx.fillRect(rnd() * S, rnd() * S, 1.3, 1.3);
+    }
+    const tex = new CanvasTexture(cv);
+    tex.colorSpace = SRGBColorSpace;
     return tex;
   }
   function makeBallTexture() {
@@ -29502,7 +29696,11 @@
     const floorTex = makeCourtTexture();
     const floorMat = new MeshStandardMaterial({
       map: floorTex,
-      roughness: 0.62,
+      roughness: 1,
+      // 实际粗糙度由 roughnessMap 控制（场内 ~0.35 / 场外 ~0.85）
+      roughnessMap: makeCourtRoughness(),
+      normalMap: makeCourtNormal(),
+      normalScale: new Vector2(0.55, 0.55),
       metalness: 0.02,
       envMapIntensity: 0.12
     });
@@ -29516,7 +29714,18 @@
     scene.add(floor);
     const wallTex = makeWallTexture();
     wallTex.repeat.set(4, 1);
-    const wallMat = new MeshStandardMaterial({ map: wallTex, color: 16777215, roughness: 0.92, metalness: 0, envMapIntensity: 0.25, side: BackSide });
+    const wallNor = makeWallNormal();
+    wallNor.repeat.set(4, 1);
+    const wallMat = new MeshStandardMaterial({
+      map: wallTex,
+      normalMap: wallNor,
+      normalScale: new Vector2(0.7, 0.7),
+      color: 16777215,
+      roughness: 0.92,
+      metalness: 0,
+      envMapIntensity: 0.25,
+      side: BackSide
+    });
     const ceilMat = new MeshStandardMaterial({ color: 1711912, roughness: 0.95, metalness: 0, envMapIntensity: 0.15, side: BackSide });
     const hiddenMat = new MeshBasicMaterial({ visible: false });
     const shell = new Mesh(
@@ -29547,8 +29756,24 @@
     }
     const hoopGroup = new Group();
     scene.add(hoopGroup);
-    const steelMat = new MeshStandardMaterial({ color: 12075534, roughness: 0.32, metalness: 0.8, envMapIntensity: 0.9 });
-    const rimMat = new MeshStandardMaterial({ color: 16734751, roughness: 0.22, metalness: 0.85, emissive: 5903360, emissiveIntensity: 0.8, envMapIntensity: 1 });
+    const steelMat = new MeshPhysicalMaterial({
+      color: 12075534,
+      roughness: 0.34,
+      metalness: 0.82,
+      envMapIntensity: 0.9,
+      anisotropy: 0.45,
+      anisotropyRotation: Math.PI / 2
+    });
+    const rimMat = new MeshPhysicalMaterial({
+      color: 16734751,
+      roughness: 0.22,
+      metalness: 0.85,
+      emissive: 5903360,
+      emissiveIntensity: 0.8,
+      envMapIntensity: 1,
+      anisotropy: 0.35,
+      anisotropyRotation: Math.PI / 2
+    });
     const glass = new MeshPhysicalMaterial({
       color: 14674677,
       transparent: true,
@@ -29596,12 +29821,12 @@
     pole.position.set(0, 1.85, CFG.hoop.boardFaceZ - 0.95);
     pole.castShadow = true;
     hoopGroup.add(pole);
-    const pad = new Mesh(new BoxGeometry(0.7, 1.7, 0.35), paintedWood(2381480, 0.82));
+    const pad = new Mesh(new BoxGeometry(0.7, 1.7, 0.35), paintedWood(1915494, 0.9));
     pad.position.set(0, 0.85, CFG.hoop.boardFaceZ - 0.95);
     hoopGroup.add(pad);
     const netGroup = new Group();
     netGroup.position.copy(RIM_POS);
-    const netMat = new MeshStandardMaterial({ color: 16777215, roughness: 0.8, side: DoubleSide, transparent: true, opacity: 0.85 });
+    const netMat = new MeshStandardMaterial({ color: 16250092, roughness: 0.85, side: DoubleSide, transparent: true, opacity: 0.9 });
     const strands = [];
     for (let i = 0; i < 12; i++) {
       const a2 = i / 12 * Math.PI * 2;
@@ -29613,7 +29838,7 @@
         new Vector3(Math.cos(a2) * botR, -CFG.hoop.netDepth, Math.sin(a2) * botR)
       ];
       const curve = new CatmullRomCurve3(pts);
-      strands.push(new Mesh(new TubeGeometry(curve, 6, 4e-3, 4), netMat));
+      strands.push(new Mesh(new TubeGeometry(curve, 6, 52e-4, 4), netMat));
     }
     strands.forEach((s) => netGroup.add(s));
     for (let r = 1; r <= 3; r++) {
@@ -29683,8 +29908,7 @@
     mkRail(20, -CFG.court.halfW - 1.2, 0, Math.PI / 2);
     mkRail(9.5, -2.75, CFG.court.halfL + 1.2, 0);
     mkRail(1.5, 9.75, CFG.court.halfL + 1.2, 0);
-    const adMat = new MeshStandardMaterial({ color: 725536, emissive: 2250239, emissiveIntensity: 0.55, roughness: 0.4 });
-    const ad1 = new Mesh(new BoxGeometry(0.1, 0.8, 19.5), adMat);
+    const ad1 = new Mesh(new BoxGeometry(0.1, 0.8, 19.5), new MeshStandardMaterial({ color: 725536, emissive: 2250239, emissiveIntensity: 0.55, roughness: 0.4 }));
     ad1.position.set(-CFG.court.halfW - 1.7, 0.45, 0);
     scene.add(ad1);
     const adCv = document.createElement("canvas");
@@ -29854,7 +30078,7 @@
     scene.add(ceiling);
     const carpet = new Mesh(
       new CircleGeometry(R, 64),
-      new MeshStandardMaterial({ color: 1711140, roughness: 1, metalness: 0, envMapIntensity: 0.05 })
+      new MeshStandardMaterial({ map: makeCarpetTexture(), roughness: 0.96, metalness: 0, envMapIntensity: 0.05 })
     );
     carpet.rotation.x = -Math.PI / 2;
     carpet.position.y = 0.01;
@@ -29912,6 +30136,12 @@
         if (first >= 0) voices.add(first);
       }
     }
+    const frameMat = new MeshStandardMaterial({ color: 263434, roughness: 0.92, metalness: 0, side: BackSide });
+    function mkFrameGeo(arc) {
+      const g = new CylinderGeometry(R - 0.04, R - 0.04, SH + 0.16, Math.max(16, Math.ceil(arc / 0.05)), 1, true, -arc / 2, arc);
+      g.translate(0, K.screen.cy, 0);
+      return g;
+    }
     function makeScreen(src, a2, slot) {
       const videoEl = makeVideoEl();
       const tex = new VideoTexture(videoEl);
@@ -29923,7 +30153,10 @@
       const mesh = new Mesh(patchGeo(PR, SH, arc), mat);
       mesh.rotation.y = a2;
       scene.add(mesh);
-      const s = { src, mesh, mat, tex, videoEl, slot, arc };
+      const frame = new Mesh(mkFrameGeo(arc), frameMat);
+      frame.rotation.y = a2;
+      scene.add(frame);
+      const s = { src, mesh, mat, tex, videoEl, slot, arc, frame };
       if (src) {
         videoEl.src = src.url;
         videoEl.addEventListener("loadedmetadata", () => {
@@ -29932,6 +30165,8 @@
           s.arc = na;
           mesh.geometry.dispose();
           mesh.geometry = patchGeo(PR, SH, na);
+          frame.geometry.dispose();
+          frame.geometry = mkFrameGeo(na);
           applyCover(tex, na * PR / SH, src.ar);
           mat.map = tex;
           mat.color.setHex(16777215);
@@ -29943,8 +30178,9 @@
     }
     function rebuild() {
       for (const s of screens) {
-        scene.remove(s.mesh);
+        scene.remove(s.mesh, s.frame);
         s.mesh.geometry.dispose();
+        s.frame.geometry.dispose();
         s.mat.dispose();
         s.tex.dispose();
         s.videoEl.remove();
@@ -30072,6 +30308,14 @@
       }
     }
     const defaultSources = () => LIB.slice(0, K.maxScreens).map((it) => ({ name: it.name, url: it.url }));
+    function disposeSource(src) {
+      if (src && src.local) {
+        try {
+          URL.revokeObjectURL(src.url);
+        } catch (e) {
+        }
+      }
+    }
     function loadSources() {
       let saved = [];
       try {
@@ -30171,7 +30415,8 @@
       wall2.classList.remove("hidden");
     }
     function removeSource(i) {
-      sources.splice(i, 1);
+      const [gone] = sources.splice(i, 1);
+      disposeSource(gone);
       rebuild();
       const live = sources.filter(Boolean).length;
       setStatus(live ? `\u{1F5D1} \u5DF2\u79FB\u9664 1 \u90E8\uFF0C\u73AF\u4E0A\u8FD8\u6709 ${live} \u90E8\u5DE8\u5E55` : "\u7247\u5355\u7A7A\u4E86\uFF1A\u63A7\u5236\u53F0\u91CC\u70B9\u300C\uFF0B \u52A0\u5165\u89C6\u9891\u300D\u6216\u300C\u{1F4C2} \u6362\u7247\u5355\u300D");
@@ -30281,7 +30526,9 @@
     });
     $2("cb-stand").addEventListener("click", () => stand());
     $2("cb-reset").addEventListener("click", () => {
+      const old = sources;
       sources = defaultSources();
+      old.forEach(disposeSource);
       voiceNames = null;
       rebuild();
       playAll();
@@ -30292,8 +30539,10 @@
       const files = Array.from(e.target.files || []);
       e.target.value = "";
       if (!files.length) return;
+      const old = sources;
       const over = Math.max(0, files.length - K.maxScreens);
       sources = files.slice(0, K.maxScreens).map((f) => ({ name: f.name, url: URL.createObjectURL(f), local: true }));
+      old.forEach(disposeSource);
       voiceNames = null;
       rebuild();
       playAll();
@@ -30341,7 +30590,10 @@
       camera.fov = fovBase - (fovBase - K.zoom.min) * zoomT;
       camera.updateProjectionMatrix();
     }
+    let _lastHint = null;
     function setHint(t) {
+      if (t === _lastHint) return;
+      _lastHint = t;
       hintEl.innerHTML = t || "";
       hintEl.classList.toggle("hidden", !t);
     }
@@ -30391,7 +30643,12 @@
     }
     function canvasLock() {
       const c2 = document.getElementById("gl");
-      c2.requestPointerLock?.();
+      try {
+        const p = c2.requestPointerLock?.();
+        if (p && p.catch) p.catch(() => {
+        });
+      } catch (e) {
+      }
     }
     return {
       scene,
@@ -30555,7 +30812,9 @@
             bumpMap: makeBallBumpTexture(),
             // 麻点+筋沟微观起伏
             bumpScale: 1.6,
-            roughness: 0.58,
+            roughness: 1,
+            // 实际粗糙度由贴图控制（筋沟/麻点更哑光）
+            roughnessMap: makeBallRoughness(),
             metalness: 0.02,
             envMapIntensity: 0.45
           });
@@ -30563,6 +30822,7 @@
           this.mesh.castShadow = true;
           scene.add(this.mesh);
           this._tmpQ = new Quaternion();
+          this._hand = new Vector3();
           this._heldTimer = 0;
         }
         /** 切为自由物理体，可给初速度 */
@@ -30600,7 +30860,7 @@
         /** 持球姿态：跟随相机右手位置，蓄力时举过头顶前倾；叠加拍球下探动画 */
         updateHeld(dt, camera, charge = 0) {
           this._heldTimer += dt;
-          const hand = new Vector3(0.42, -0.32 + charge * 0.62, -0.72 - charge * 0.18);
+          const hand = this._hand.set(0.42, -0.32 + charge * 0.62, -0.72 - charge * 0.18);
           if (this._tapT === void 0) {
             hand.y += Math.sin(this._heldTimer * 2.4) * 0.012;
             hand.x += Math.sin(this._heldTimer * 1.7) * 8e-3;
@@ -30841,6 +31101,7 @@
           this.points.frustumCulled = false;
           scene.add(this.points);
           this.cursor = 0;
+          this._colorsDirty = false;
           this.baseCamPos = new Vector3();
         }
         /** 进球彩带：从篮圈位置向四周炸开 */
@@ -30871,6 +31132,7 @@
             this.colors[p + 2] = c2[2];
             this.lives[idx] = 0.8 + Math.random() * 0.5;
           }
+          this._colorsDirty = true;
         }
         /** 完美拍球的小火花 */
         burstTap(pos) {
@@ -30890,6 +31152,7 @@
             this.colors[p + 2] = 0.5;
             this.lives[idx] = 0.3;
           }
+          this._colorsDirty = true;
         }
         /** 触发屏幕震动 */
         shake(amp = CFG.fx.shakeAmp, dur = CFG.fx.shakeDur) {
@@ -30918,7 +31181,10 @@
             }
           }
           this.points.geometry.attributes.position.needsUpdate = true;
-          this.points.geometry.attributes.color.needsUpdate = true;
+          if (this._colorsDirty) {
+            this.points.geometry.attributes.color.needsUpdate = true;
+            this._colorsDirty = false;
+          }
           this.bloomPulse *= Math.exp(-3.2 * dt);
           if (this.bloomPulse < 0.01) this.bloomPulse = 0;
           let off = null;
@@ -31063,7 +31329,7 @@
           this.resolved = false;
           this.returnTimer = 0;
           this.flightT = 0;
-          this._prevY = 0;
+          this._prevY = void 0;
           ui.showPowerBar(true);
           ui.setPrompt("<b>\u6309\u4F4F\u5DE6\u952E</b> \u84C4\u529B \xB7 <b>\u677E\u624B</b> \u6295\u7BEE \xB7 <b>\u53F3\u952E</b> \u53D6\u6D88");
         }
@@ -31168,6 +31434,7 @@
           scoring.registerShotAttempt();
           this.flying = true;
           this.flightT = 0;
+          this._prevY = void 0;
           this.G.ui.setPrompt("\u597D\u7403\u8F68\u8FF9 \u2014\u2014 \u76EF\u4F4F\u529B\u5EA6\u6761\u6700\u4F73\u533A\uFF01");
         }
         onRightDown() {
@@ -31502,6 +31769,10 @@
           };
           this._lastComboS = -1;
           this._prompt = "";
+          this._lastScore = -1;
+          this._lastBest = -1;
+          this._lastSub = "";
+          this._lastTimer = -1;
           this._bindButtons();
         }
         /** 回调注入（由 main.js 装配） */
@@ -31548,11 +31819,20 @@
         showPause(show) {
           this.el.pause.classList.toggle("hidden", !show);
         }
-        /* ---------- 数值面板 ---------- */
+        /* ---------- 数值面板（脏检查：避免逐帧写 DOM） ---------- */
         setScore(score, best, subText) {
-          this.el.score.textContent = score;
-          this.el.best.textContent = best;
-          this.el.sub.textContent = subText || "";
+          if (score !== this._lastScore) {
+            this.el.score.textContent = score;
+            this._lastScore = score;
+          }
+          if (best !== this._lastBest) {
+            this.el.best.textContent = best;
+            this._lastBest = best;
+          }
+          if (subText !== this._lastSub) {
+            this.el.sub.textContent = subText || "";
+            this._lastSub = subText;
+          }
         }
         setCombos(cs, mulS) {
           if (cs !== this._lastComboS) {
@@ -31565,9 +31845,13 @@
           }
         }
         setTimer(secondsLeft, frac, urgent) {
-          this.el.timerText.textContent = Math.ceil(secondsLeft);
+          const sec = Math.ceil(secondsLeft);
+          if (sec !== this._lastTimer) {
+            this._lastTimer = sec;
+            this.el.timerText.textContent = sec;
+            this.el.timerText.classList.toggle("urgent", urgent);
+          }
           this.el.timerFill.style.width = `${frac * 100}%`;
-          this.el.timerText.classList.toggle("urgent", urgent);
         }
         setPrompt(html, kind) {
           if (this._prompt === html) return;
@@ -31645,6 +31929,14 @@
       init_audio();
       init_ui();
       var canvas = document.getElementById("gl");
+      function lockPointer() {
+        try {
+          const p = canvas.requestPointerLock?.();
+          if (p && p.catch) p.catch(() => {
+          });
+        } catch (e) {
+        }
+      }
       var renderer = new WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" });
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
       renderer.setSize(innerWidth, innerHeight);
@@ -31753,6 +32045,7 @@
       var currentModeId = "free";
       var menuCamAngle = 0;
       var lastSecond = -1;
+      var bestCache = 0;
       function refreshMenu() {
         forceGym();
         gameState = "menu";
@@ -31767,6 +32060,7 @@
         forceGym();
         currentModeId = id;
         G.modeDef = CFG.MODES[id];
+        bestCache = loadRecord(id);
         scoring.reset(G.modeDef);
         player.vel.set(0, 0, 0);
         player.freeYaw = 0;
@@ -31792,7 +32086,7 @@
         ui.showHud(G.modeDef.name, G.modeDef.timed);
         ui.hideResult();
         ui.showPause(false);
-        canvas.requestPointerLock?.();
+        lockPointer();
         sfx.play("ui");
       }
       function pauseGame() {
@@ -31807,7 +32101,7 @@
         ui.showPause(false);
         player.inputEnabled = true;
         gameState = "playing";
-        canvas.requestPointerLock?.();
+        lockPointer();
       }
       function finishSession() {
         if (gameState === "result") return;
@@ -31817,6 +32111,7 @@
         ball.startHeld();
         machine.set("hold");
         const fin = scoring.finalize();
+        if (fin.isNew) bestCache = fin.best;
         sfx.play("buzzer", { volume: 0.8 });
         const m = scoring.mode;
         const scoreLabel = m.id === "free" ? "\u603B\u5206\uFF08\u62CD\u7403+\u6295\u7BEE\uFF09" : "\u6295\u7BEE\u5F97\u5206";
@@ -31827,7 +32122,7 @@
           stats.push(`\u{1F3AF} \u6295\u7BEE <b>${scoring.shotMade}</b> / <b>${scoring.shotTaken}</b> \u4E2D\uFF08\u547D\u4E2D\u7387 <b>${pct}%</b>\uFF09\xB7 \u6700\u9AD8\u8FDE\u51FB <b>${scoring.shotComboMax}</b>`);
         }
         if (m.id === "shot") stats.push(`\u{1F3B2} \u547D\u4E2D\u6362\u4F4D <b>${scoring.spots}</b> \u6B21`);
-        stats.push(`\u{1F558} ${m.timed ? "\u7528\u65F6 90s \u5012\u8BA1\u65F6\u7ED3\u675F" : "\u81EA\u7531\u7EC3\u4E60"}`);
+        stats.push(`\u{1F558} ${m.timed ? `\u7528\u65F6 ${CFG.challenge.duration}s \u5012\u8BA1\u65F6\u7ED3\u675F` : "\u81EA\u7531\u7EC3\u4E60"}`);
         ui.showResult({
           modeName: m.name,
           scoreLabel,
@@ -31866,7 +32161,8 @@
         renderer.shadowMap.enabled = on;
         lights.dir.castShadow = on;
         scene.traverse((o) => {
-          if (o.material) o.material.needsUpdate = true;
+          const mats = Array.isArray(o.material) ? o.material : o.material ? [o.material] : [];
+          for (const m of mats) m.needsUpdate = true;
         });
         ui.setShadowChecked(on);
       }
@@ -31877,6 +32173,11 @@
       var keys = player.keys;
       addEventListener("keydown", (e) => {
         const k = e.key.toLowerCase();
+        if (k === "escape" && gameState === "playing" && playerLoc === "cinema") {
+          if (cinema.seated) cinema.onRightDown();
+          else pauseGame();
+          return;
+        }
         if (k in keys) {
           keys[k] = true;
           if (playerLoc === "cinema") cinema.onMoveKey();
@@ -31913,7 +32214,7 @@
             if (cinema.seated) {
               if (!e.button) seatAim.set(e.clientX, e.clientY);
             } else if (!e.button) cinema.onLeftDown();
-            else canvas.requestPointerLock?.();
+            else lockPointer();
           }
           return;
         }
@@ -31951,6 +32252,27 @@
       });
       var clock = new Clock();
       var acc = 0;
+      var fpsEMA = 60;
+      var lowFpsT = 0;
+      var qualityStep = 0;
+      function adaptQuality(dt) {
+        if (gameState !== "playing" || dt > 0.2) return;
+        fpsEMA += (1 / Math.max(dt, 1e-4) - fpsEMA) * Math.min(1, dt * 2);
+        if (fpsEMA < 40) {
+          lowFpsT += dt;
+          if (lowFpsT > 3 && qualityStep < 2) {
+            qualityStep++;
+            renderer.setPixelRatio(qualityStep === 1 ? Math.min(devicePixelRatio, 1.25) : 1);
+            renderer.setSize(innerWidth, innerHeight);
+            const pr = renderer.getPixelRatio();
+            composer.setSize(innerWidth * pr, innerHeight * pr);
+            fpsEMA = 55;
+            lowFpsT = 0;
+          }
+        } else {
+          lowFpsT = Math.max(0, lowFpsT - dt);
+        }
+      }
       function tick() {
         requestAnimationFrame(tick);
         const dt = Math.min(clock.getDelta(), 0.05);
@@ -31988,7 +32310,7 @@
             const live = scoring.mode.id === "free" ? `\u62CD\u7403 ${scoring.taps} \u6B21 \xB7 \u6295\u7BEE ${scoring.shotMade}/${scoring.shotTaken} \xB7 \u5F53\u524D\u8DDD\u79BB\xD7${dMul}` : `\u8FDB ${scoring.shotMade} \xB7 \u6362\u4F4D ${scoring.spots} \u6B21 \xB7 \u5F53\u524D\u8DDD\u79BB\xD7${dMul}`;
             ui.setScore(
               scoring.displayScore,
-              Math.max(loadRecord(currentModeId), scoring.displayScore),
+              Math.max(bestCache, scoring.displayScore),
               live
             );
             ui.setCombos(scoring.shotCombo, scoring.shotMultiplier());
@@ -32013,6 +32335,7 @@
           camera.position.y += shakeOff.y;
         }
         bloomPass.strength = CFG.fx.bloomBase + fx.bloomPulse * (CFG.fx.bloomScore - CFG.fx.bloomBase);
+        adaptQuality(dt);
         composer.render();
       }
       addEventListener("resize", () => {

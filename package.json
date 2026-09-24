@@ -8,7 +8,8 @@
     "watch": "esbuild src/main.js --bundle --format=iife --outfile=dist/game.js --target=es2020 --sourcemap --watch",
     "audio": "node tools/gen_audio.js",
     "walls": "node tools/gen_wall_manifest.js",
-    "videos": "node tools/gen_video_manifest.js"
+    "videos": "node tools/gen_video_manifest.js",
+    "shot": "node tools/shot.js"
   },
   "license": "ISC",
   "type": "commonjs",

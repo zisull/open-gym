@@ -23,6 +23,10 @@ export class UI {
     };
     this._lastComboS = -1;
     this._prompt = '';
+    this._lastScore = -1;
+    this._lastBest = -1;
+    this._lastSub = '';
+    this._lastTimer = -1;
     this._bindButtons();
   }
 
@@ -69,11 +73,11 @@ export class UI {
 
   showPause(show) { this.el.pause.classList.toggle('hidden', !show); }
 
-  /* ---------- 数值面板 ---------- */
+  /* ---------- 数值面板（脏检查：避免逐帧写 DOM） ---------- */
   setScore(score, best, subText) {
-    this.el.score.textContent = score;
-    this.el.best.textContent = best;
-    this.el.sub.textContent = subText || '';
+    if (score !== this._lastScore) { this.el.score.textContent = score; this._lastScore = score; }
+    if (best !== this._lastBest) { this.el.best.textContent = best; this._lastBest = best; }
+    if (subText !== this._lastSub) { this.el.sub.textContent = subText || ''; this._lastSub = subText; }
   }
 
   setCombos(cs, mulS) {
@@ -87,9 +91,13 @@ export class UI {
   }
 
   setTimer(secondsLeft, frac, urgent) {
-    this.el.timerText.textContent = Math.ceil(secondsLeft);
+    const sec = Math.ceil(secondsLeft);
+    if (sec !== this._lastTimer) {
+      this._lastTimer = sec;
+      this.el.timerText.textContent = sec;
+      this.el.timerText.classList.toggle('urgent', urgent);
+    }
     this.el.timerFill.style.width = `${frac * 100}%`;
-    this.el.timerText.classList.toggle('urgent', urgent);
   }
 
   setPrompt(html, kind) {

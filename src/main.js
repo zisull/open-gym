@@ -24,6 +24,13 @@ import { UI } from './ui.js';
 
 /* ================= 渲染器 / 场景 / 相机 ================= */
 const canvas = document.getElementById('gl');
+/** 安全请求指针锁：Chrome 在 ESC 解锁后 ~1s 内再锁会抛 SecurityError 拒绝，静默重试由用户点击兜底 */
+function lockPointer() {
+  try {
+    const p = canvas.requestPointerLock?.();
+    if (p && p.catch) p.catch(() => { /* 稍后点击画面再锁 */ });
+  } catch (e) { /* 旧浏览器同步抛错同样忽略 */ }
+}
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
 renderer.setSize(innerWidth, innerHeight);
@@ -139,6 +146,7 @@ let gameState = 'menu';
 let currentModeId = 'free';
 let menuCamAngle = 0;
 let lastSecond = -1;
+let bestCache = 0; // 当前模式纪录缓存：避免逐帧读 localStorage
 
 function refreshMenu() {
   forceGym();
@@ -155,6 +163,7 @@ function startMode(id) {
   forceGym();
   currentModeId = id;
   G.modeDef = CFG.MODES[id];
+  bestCache = loadRecord(id);
   scoring.reset(G.modeDef);
   player.vel.set(0, 0, 0);
   player.freeYaw = 0; player.freePitch = 0;
@@ -178,7 +187,7 @@ function startMode(id) {
   ui.showHud(G.modeDef.name, G.modeDef.timed);
   ui.hideResult();
   ui.showPause(false);
-  canvas.requestPointerLock?.();
+  lockPointer();
   sfx.play('ui');
 }
 
@@ -195,7 +204,7 @@ function resumeGame() {
   ui.showPause(false);
   player.inputEnabled = true;
   gameState = 'playing';
-  canvas.requestPointerLock?.();
+  lockPointer();
 }
 
 /** 结算（倒计时归零 / 自由模式手动结束共用） */
@@ -207,6 +216,7 @@ function finishSession() {
   ball.startHeld(); // 结算时无论球在哪（飞行中）都收回手中，避免悬空或乱滚
   machine.set('hold');
   const fin = scoring.finalize();
+  if (fin.isNew) bestCache = fin.best;
   sfx.play('buzzer', { volume: 0.8 });
   const m = scoring.mode;
   const scoreLabel = m.id === 'free' ? '总分（拍球+投篮）' : '投篮得分';
@@ -217,7 +227,7 @@ function finishSession() {
     stats.push(`🎯 投篮 <b>${scoring.shotMade}</b> / <b>${scoring.shotTaken}</b> 中（命中率 <b>${pct}%</b>）· 最高连击 <b>${scoring.shotComboMax}</b>`);
   }
   if (m.id === 'shot') stats.push(`🎲 命中换位 <b>${scoring.spots}</b> 次`);
-  stats.push(`🕘 ${m.timed ? '用时 90s 倒计时结束' : '自由练习'}`);
+  stats.push(`🕘 ${m.timed ? `用时 ${CFG.challenge.duration}s 倒计时结束` : '自由练习'}`);
   ui.showResult({
     modeName: m.name, scoreLabel, score: fin.score,
     best: fin.best, prevBest: fin.prevBest, isNew: fin.isNew, stats,
@@ -243,7 +253,11 @@ function applyShadow(on) {
   saveSetting(LS_SHADOW, on ? '1' : '0');
   renderer.shadowMap.enabled = on;
   lights.dir.castShadow = on;
-  scene.traverse((o) => { if (o.material) o.material.needsUpdate = true; });
+  // 材质可能是数组（球馆外壳六面各一个材质），必须逐项标脏才会重编译
+  scene.traverse((o) => {
+    const mats = Array.isArray(o.material) ? o.material : (o.material ? [o.material] : []);
+    for (const m of mats) m.needsUpdate = true;
+  });
   ui.setShadowChecked(on);
 }
 applyShadow(shadowOn);
@@ -257,6 +271,11 @@ window.BB_VOLUME = savedVol;
 const keys = player.keys;
 addEventListener('keydown', (e) => {
   const k = e.key.toLowerCase();
+  if (k === 'escape' && gameState === 'playing' && playerLoc === 'cinema') {
+    // 影院补一个 ESC 语义：入座时起身；走动时弹暂停（与球馆一致）
+    if (cinema.seated) cinema.onRightDown(); else pauseGame();
+    return;
+  }
   if (k in keys) {
     keys[k] = true;
     if (playerLoc === 'cinema') cinema.onMoveKey(); // 坐着按移动键 -> 起身
@@ -291,7 +310,7 @@ canvas.addEventListener('mousedown', (e) => {
     if (playerLoc === 'cinema') {
       if (cinema.seated) { if (!e.button) seatAim.set(e.clientX, e.clientY); } // 松手时再判定是点击还是拖拽转向
       else if (!e.button) cinema.onLeftDown();
-      else canvas.requestPointerLock?.();
+      else lockPointer();
     }
     return;
   }
@@ -334,6 +353,27 @@ ballBody.addEventListener('collide', (e) => {
 /* ================= 主循环 ================= */
 const clock = new THREE.Clock();
 let acc = 0;
+
+/* 自适应画质：连续 3 秒低于 40fps 就降一档渲染分辨率（不改任何玩法参数）。
+   档位：min(dpr,1.75) -> min(dpr,1.25) -> 1.0。帧率恢复也不回升，避免来回抖动。 */
+let fpsEMA = 60, lowFpsT = 0, qualityStep = 0;
+function adaptQuality(dt) {
+  if (gameState !== 'playing' || dt > 0.2) return; // 切走/卡顿尖峰不采样
+  fpsEMA += (1 / Math.max(dt, 1e-4) - fpsEMA) * Math.min(1, dt * 2);
+  if (fpsEMA < 40) {
+    lowFpsT += dt;
+    if (lowFpsT > 3 && qualityStep < 2) {
+      qualityStep++;
+      renderer.setPixelRatio(qualityStep === 1 ? Math.min(devicePixelRatio, 1.25) : 1);
+      renderer.setSize(innerWidth, innerHeight);
+      const pr = renderer.getPixelRatio();
+      composer.setSize(innerWidth * pr, innerHeight * pr);
+      fpsEMA = 55; lowFpsT = 0;
+    }
+  } else {
+    lowFpsT = Math.max(0, lowFpsT - dt);
+  }
+}
 
 function tick() {
   requestAnimationFrame(tick);
@@ -385,7 +425,7 @@ function tick() {
       : `进 ${scoring.shotMade} · 换位 ${scoring.spots} 次 · 当前距离×${dMul}`;
     ui.setScore(
       scoring.displayScore,
-      Math.max(loadRecord(currentModeId), scoring.displayScore),
+      Math.max(bestCache, scoring.displayScore),
       live
     );
     ui.setCombos(scoring.shotCombo, scoring.shotMultiplier());
@@ -416,6 +456,7 @@ function tick() {
   }
   bloomPass.strength = CFG.fx.bloomBase + fx.bloomPulse * (CFG.fx.bloomScore - CFG.fx.bloomBase);
 
+  adaptQuality(dt);
   composer.render();
 }
 

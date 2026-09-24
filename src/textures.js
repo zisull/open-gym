@@ -16,6 +16,35 @@ function mulberry32(seed) {
 }
 
 /**
+ * 高度图 -> 切线空间法线图（Sobel）。输入灰度 canvas，输出 THREE.CanvasTexture。
+ * strength 越大凹凸越明显；wrap/repeat 由调用方设置。
+ */
+function heightToNormal(heightCanvas, strength = 2) {
+  const W = heightCanvas.width, H = heightCanvas.height;
+  const src = heightCanvas.getContext('2d').getImageData(0, 0, W, H).data;
+  const cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  const ctx = cv.getContext('2d');
+  const out = ctx.createImageData(W, H);
+  const h = (x, y) => src[(((y + H) % H) * W + ((x + W) % W)) * 4] / 255;
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const gx = (h(x + 1, y) - h(x - 1, y)) * strength;
+      const gy = (h(x, y + 1) - h(x, y - 1)) * strength; // canvas y 向下 = UV v 向下，直接用
+      const len = Math.hypot(gx, gy, 1);
+      const i = (y * W + x) * 4;
+      out.data[i] = ((-gx / len) * 0.5 + 0.5) * 255;
+      out.data[i + 1] = ((-gy / len) * 0.5 + 0.5) * 255;
+      out.data[i + 2] = ((1 / len) * 0.5 + 0.5) * 255;
+      out.data[i + 3] = 255;
+    }
+  }
+  ctx.putImageData(out, 0, 0);
+  const tex = new THREE.CanvasTexture(cv);
+  return tex;
+}
+
+/**
  * 球馆地面一体贴图：橡胶地垫 + 木地板 + 全部标线（中线/中圈/三秒区/罚球圈/三分弧/限制区）。
  * 覆盖整个球馆（含场外缓冲区），地板 Mesh 只用这一张、一个平面——
  * 从此不存在"两个共面 Mesh 来回闪"的 z-fighting。
@@ -193,6 +222,176 @@ export function makeCourtTexture() {
   const tex = new THREE.CanvasTexture(cv);
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.anisotropy = 16; // 斜视角地板抗摩尔纹（three 会自动钳制到驱动上限）
+  return tex;
+}
+
+/**
+ * 地板粗糙度贴图（半分辨率 40px/m）：场内漆木地板低粗糙带木纹变化、
+ * 标线漆面更光；场外橡胶地垫高粗糙。与 color 贴图共用一套 UV。
+ */
+export function makeCourtRoughness() {
+  const PPM = 40;
+  const G = CFG.gym, C = CFG.court;
+  const W = Math.round(G.halfW * 2 * PPM);
+  const H = Math.round(G.halfL * 2 * PPM);
+  const cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  const ctx = cv.getContext('2d');
+  const rnd = mulberry32(90210);
+  const x0 = (-C.halfW + G.halfW) * PPM, x1 = (C.halfW + G.halfW) * PPM;
+  const z0 = (-C.halfL + G.halfL) * PPM, z1 = (C.halfL + G.halfL) * PPM;
+
+  // 场外橡胶：粗糙基底
+  ctx.fillStyle = 'rgb(215,215,215)';
+  ctx.fillRect(0, 0, W, H);
+  for (let i = 0; i < 2600; i++) {
+    const v = 200 + rnd() * 40;
+    ctx.fillStyle = `rgb(${v},${v},${v})`;
+    ctx.fillRect(rnd() * W, rnd() * H, 2, 2);
+  }
+
+  // 场内木地板：低粗糙 + 木纹条带变化
+  for (let y = z0; y < z1; y += 6) { // 6px ≈ 15cm 条带，与木板条纹呼应
+    const v = 86 + rnd() * 34;
+    ctx.fillStyle = `rgb(${v},${v},${v})`;
+    ctx.fillRect(x0, y, x1 - x0, 6);
+  }
+  // 中场圈/禁区微光泽差异（淡淡一块，肉眼是"打蜡不匀"的真实感）
+  const sheen = ctx.createRadialGradient(W / 2, H / 2, 8, W / 2, H / 2, PPM * 4);
+  sheen.addColorStop(0, 'rgba(60,60,60,0.35)');
+  sheen.addColorStop(1, 'rgba(60,60,60,0)');
+  ctx.fillStyle = sheen;
+  ctx.fillRect(x0, z0, x1 - x0, z1 - z0);
+
+  // 标线漆面更光：整条描一遍亮灰（在色图描线之后无法对齐细节，用同参数重画主线）
+  ctx.strokeStyle = 'rgb(66,66,66)';
+  ctx.lineWidth = 2.5;
+  ctx.strokeRect(x0 + 1.5, z0 + 1.5, x1 - x0 - 3, z1 - z0 - 3);
+  ctx.beginPath(); ctx.moveTo(W / 2, z0); ctx.lineTo(W / 2, z1); ctx.stroke();
+
+  const tex = new THREE.CanvasTexture(cv);
+  tex.anisotropy = 8;
+  return tex;
+}
+
+/** 地板法线贴图：木板缝凹槽 + 板面微噪（半分辨率）。 */
+export function makeCourtNormal() {
+  const PPM = 40;
+  const G = CFG.gym, C = CFG.court;
+  const W = Math.round(G.halfW * 2 * PPM);
+  const H = Math.round(G.halfL * 2 * PPM);
+  const cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  const ctx = cv.getContext('2d');
+  const rnd = mulberry32(31415);
+
+  ctx.fillStyle = 'rgb(128,128,128)';
+  ctx.fillRect(0, 0, W, H);
+  // 场外橡胶拼缝（每 2m）+ 颗粒
+  ctx.strokeStyle = 'rgb(96,96,96)';
+  ctx.lineWidth = 1;
+  for (let gx = -G.halfW + 2; gx < G.halfW; gx += 2) {
+    ctx.beginPath(); ctx.moveTo((gx + G.halfW) * PPM, 0); ctx.lineTo((gx + G.halfW) * PPM, H); ctx.stroke();
+  }
+  for (let gz = -G.halfL + 2; gz < G.halfL; gz += 2) {
+    ctx.beginPath(); ctx.moveTo(0, (gz + G.halfL) * PPM); ctx.lineTo(W, (gz + G.halfL) * PPM); ctx.stroke();
+  }
+  const x0 = (-C.halfW + G.halfW) * PPM, x1 = (C.halfW + G.halfW) * PPM;
+  const z0 = (-C.halfL + G.halfL) * PPM, z1 = (C.halfL + G.halfL) * PPM;
+  // 木板缝（凹槽，随断缝错位）
+  for (let y = z0; y < z1; y += 7) {
+    ctx.fillStyle = 'rgb(92,92,92)';
+    ctx.fillRect(x0, y, x1 - x0, 1.2);
+    if (rnd() < 0.4) ctx.fillRect(x0 + rnd() * (x1 - x0), y, 1.6, 7); // 端向断缝
+  }
+  // 板面微噪（很轻，贴近看有肌理）
+  for (let i = 0; i < 5200; i++) {
+    const v = 120 + rnd() * 16;
+    ctx.fillStyle = `rgb(${v},${v},${v})`;
+    ctx.fillRect(x0 + rnd() * (x1 - x0), z0 + rnd() * (z1 - z0), 1.4, 1.4);
+  }
+  const tex = heightToNormal(cv, 2.2);
+  tex.anisotropy = 8;
+  return tex;
+}
+
+/** 墙面吸音板法线贴图：竖向分格凹槽（与色图的 64px 分格对齐）。 */
+export function makeWallNormal() {
+  const W = 1024, H = 512;
+  const cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  const ctx = cv.getContext('2d');
+  ctx.fillStyle = 'rgb(128,128,128)';
+  ctx.fillRect(0, 0, W, H);
+  for (let x = 0; x < W; x += 64) {
+    // 左侧凸棱高光面 + 右侧暗缝（凹）
+    ctx.fillStyle = 'rgb(150,150,150)';
+    ctx.fillRect(x + 2, 0, 5, H);
+    ctx.fillStyle = 'rgb(96,96,96)';
+    ctx.fillRect(x + 58, 0, 5, H);
+  }
+  // 板面横向微凹（吸音棉压痕）
+  for (let y = 0; y < H; y += 96) {
+    ctx.fillStyle = 'rgb(122,122,122)';
+    ctx.fillRect(0, y, W, 2);
+  }
+  const tex = heightToNormal(cv, 1.6);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  return tex;
+}
+
+/** 篮球粗糙度贴图：筋沟与麻点更哑光，皮面打蜡区更亮。 */
+export function makeBallRoughness() {
+  const S = 512;
+  const cv = document.createElement('canvas');
+  cv.width = S; cv.height = S;
+  const ctx = cv.getContext('2d');
+  const rnd = mulberry32(777);
+
+  ctx.fillStyle = 'rgb(140,140,140)'; // 皮面基准（0.55）
+  ctx.fillRect(0, 0, S, S);
+  for (let i = 0; i < 4200; i++) { // 麻点略粗糙
+    const v = 150 + rnd() * 50;
+    ctx.fillStyle = `rgb(${v},${v},${v})`;
+    ctx.fillRect(rnd() * S, rnd() * S, 1.6, 1.6);
+  }
+  ctx.strokeStyle = 'rgb(205,205,205)'; // 筋沟：皮革接缝，最哑光
+  ctx.lineWidth = 10;
+  ctx.beginPath(); ctx.moveTo(S / 2, 0); ctx.lineTo(S / 2, S); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0, S / 2); ctx.lineTo(S, S / 2); ctx.stroke();
+  ctx.beginPath(); ctx.arc(S * 0.25, S / 2, S * 0.34, -Math.PI / 2, Math.PI / 2); ctx.stroke();
+  ctx.beginPath(); ctx.arc(S * 0.75, S / 2, S * 0.34, Math.PI / 2, -Math.PI / 2); ctx.stroke();
+  const tex = new THREE.CanvasTexture(cv);
+  return tex;
+}
+
+/** 影院地毯贴图：深色绒面 + 织物织纹 + 噪点（比纯色更耐看）。 */
+export function makeCarpetTexture() {
+  const S = 512;
+  const cv = document.createElement('canvas');
+  cv.width = S; cv.height = S;
+  const ctx = cv.getContext('2d');
+  const rnd = mulberry32(60411);
+
+  const g = ctx.createRadialGradient(S / 2, S / 2, 40, S / 2, S / 2, S * 0.72);
+  g.addColorStop(0, '#211d26');
+  g.addColorStop(1, '#16141c');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, S, S);
+  // 织物织纹：细十字网
+  ctx.strokeStyle = 'rgba(255,255,255,0.022)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i < S; i += 4) {
+    ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, S); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(S, i); ctx.stroke();
+  }
+  // 绒毛噪点
+  for (let i = 0; i < 7000; i++) {
+    ctx.fillStyle = rnd() > 0.5 ? 'rgba(200,190,220,0.028)' : 'rgba(0,0,0,0.06)';
+    ctx.fillRect(rnd() * S, rnd() * S, 1.3, 1.3);
+  }
+  const tex = new THREE.CanvasTexture(cv);
+  tex.colorSpace = THREE.SRGBColorSpace;
   return tex;
 }
 

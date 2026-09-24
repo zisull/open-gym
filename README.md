@@ -29,6 +29,7 @@ video/                放映片源目录：把视频丢进来即可进电影院�
 tools/gen_audio.js    音效合成生成器（node tools/gen_audio.js 重新生成）
 tools/gen_walls.bat   墙贴画打包器（双击 或 npm run walls）
 tools/gen_video_manifest.js / gen_videos.bat  视频打包器（双击 或 npm run videos）
+tools/shot.js         无头 Edge 验证：截图 + 回读页面状态（node tools/shot.js "<url>" 宽 高 等待ms 输出名）
 ```
 
 ## 玩法
@@ -144,6 +145,12 @@ npm run videos       # 重新打包 video/ 片源
 
 主菜单/暂停面板均有 **软阴影开关**，低配电脑关闭后仅损失阴影，帧率明显提升。
 Bloom 泛光固定开启（强度低），进球瞬间自动增强。
+
+**自适应画质**：游玩中连续 3 秒低于 40fps 会自动降低一档渲染分辨率
+（min(dpr,1.75) → min(dpr,1.25) → 1.0），只降不升，避免来回抖动；不改任何玩法参数。
+
+**HUD/提示全部脏检查**：数值不变不写 DOM；历史最高分缓存在内存，
+不再逐帧读 localStorage；影院换片/删片会释放旧本地片源的 blob URL 防内存泄漏。
 
 地板闪烁已**结构性根治**（此前调偏置无效）：真正原因是球馆壳体盒子的底面
 与地板平面完全共面（都在 y=0），逐像素深度比较来回翻转产生 z-fighting。

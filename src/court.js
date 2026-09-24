@@ -5,7 +5,7 @@
  */
 import * as THREE from 'three';
 import { CFG } from './config.js';
-import { makeCourtTexture, makeSkyTexture, makeWallTexture, makeDoorSignTexture } from './textures.js';
+import { makeCourtTexture, makeCourtRoughness, makeCourtNormal, makeSkyTexture, makeWallTexture, makeWallNormal, makeDoorSignTexture } from './textures.js';
 
 /** 圈心地面投影（投篮距离计算、粒子特效都以此为原点） */
 export const RIM_POS = new THREE.Vector3(0, CFG.hoop.rimHeight, CFG.hoop.boardFaceZ + CFG.hoop.rimOffset);
@@ -14,10 +14,14 @@ export function buildCourt(scene) {
   /* ================= 材质 ================= */
   const floorTex = makeCourtTexture();
   // 上漆木地板改用纯 Standard 材质：去掉 clearcoat 二次高光 + 几乎不吃环境反射，
-  // 相机移动时不再有游移的"假阴影"高光斑（闪烁根源之一）
+  // 相机移动时不再有游移的"假阴影"高光斑（闪烁根源之一）。
+  // 粗糙度/法线交给专用贴图：漆面高光随木纹起伏、板缝有真实凹槽。
   const floorMat = new THREE.MeshStandardMaterial({
     map: floorTex,
-    roughness: 0.62,
+    roughness: 1.0,             // 实际粗糙度由 roughnessMap 控制（场内 ~0.35 / 场外 ~0.85）
+    roughnessMap: makeCourtRoughness(),
+    normalMap: makeCourtNormal(),
+    normalScale: new THREE.Vector2(0.55, 0.55),
     metalness: 0.02,
     envMapIntensity: 0.12,
   });
@@ -35,7 +39,12 @@ export function buildCourt(scene) {
   /* ================= 墙体 / 顶棚 ================= */
   const wallTex = makeWallTexture();
   wallTex.repeat.set(4, 1);
-  const wallMat = new THREE.MeshStandardMaterial({ map: wallTex, color: 0xffffff, roughness: 0.92, metalness: 0, envMapIntensity: 0.25, side: THREE.BackSide });
+  const wallNor = makeWallNormal();
+  wallNor.repeat.set(4, 1);
+  const wallMat = new THREE.MeshStandardMaterial({
+    map: wallTex, normalMap: wallNor, normalScale: new THREE.Vector2(0.7, 0.7),
+    color: 0xffffff, roughness: 0.92, metalness: 0, envMapIntensity: 0.25, side: THREE.BackSide,
+  });
   const ceilMat = new THREE.MeshStandardMaterial({ color: 0x1a1f28, roughness: 0.95, metalness: 0, envMapIntensity: 0.15, side: THREE.BackSide });
   // 关键：盒子的底面与地板共面（y=0），若一起渲染就是"地板与深色面来回闪"的 z-fighting 根源。
   // BoxGeometry 六面分组顺序 +x,-x,+y,-y,+z,-z —— 底面(-y)给一个不渲染的材质直接挖掉。
@@ -73,8 +82,15 @@ export function buildCourt(scene) {
   /* ================= 进攻端篮架（可计分） ================= */
   const hoopGroup = new THREE.Group();
   scene.add(hoopGroup);
-  const steelMat = new THREE.MeshStandardMaterial({ color: 0xb8420e, roughness: 0.32, metalness: 0.8, envMapIntensity: 0.9 });
-  const rimMat = new THREE.MeshStandardMaterial({ color: 0xff5a1f, roughness: 0.22, metalness: 0.85, emissive: 0x5a1400, emissiveIntensity: 0.8, envMapIntensity: 1.0 });
+  // 支架钢件改 Physical + 各向异性拉丝金属：高光沿管壁方向拉开，不再是塑料感的圆点
+  const steelMat = new THREE.MeshPhysicalMaterial({
+    color: 0xb8420e, roughness: 0.34, metalness: 0.82, envMapIntensity: 0.9,
+    anisotropy: 0.45, anisotropyRotation: Math.PI / 2,
+  });
+  const rimMat = new THREE.MeshPhysicalMaterial({
+    color: 0xff5a1f, roughness: 0.22, metalness: 0.85, emissive: 0x5a1400, emissiveIntensity: 0.8,
+    envMapIntensity: 1.0, anisotropy: 0.35, anisotropyRotation: Math.PI / 2,
+  });
 
   // 透明钢化玻璃篮板（低粗糙度 + 清漆层，靠环境贴图出玻璃高光）
   const glass = new THREE.MeshPhysicalMaterial({
@@ -125,14 +141,14 @@ export function buildCourt(scene) {
   pole.position.set(0, 1.85, CFG.hoop.boardFaceZ - 0.95);
   pole.castShadow = true;
   hoopGroup.add(pole);
-  const pad = new THREE.Mesh(new THREE.BoxGeometry(0.7, 1.7, 0.35), paintedWood(0x2456a8, 0.82));
+  const pad = new THREE.Mesh(new THREE.BoxGeometry(0.7, 1.7, 0.35), paintedWood(0x1d3a66, 0.9));
   pad.position.set(0, 0.85, CFG.hoop.boardFaceZ - 0.95);
   hoopGroup.add(pad);
 
   // 篮网：三层递减圆环 + 12 根竖向网丝（简易锥形网格）
   const netGroup = new THREE.Group();
   netGroup.position.copy(RIM_POS);
-  const netMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.8, side: THREE.DoubleSide, transparent: true, opacity: 0.85 });
+  const netMat = new THREE.MeshStandardMaterial({ color: 0xf7f4ec, roughness: 0.85, side: THREE.DoubleSide, transparent: true, opacity: 0.9 });
   const strands = [];
   for (let i = 0; i < 12; i++) {
     const a = (i / 12) * Math.PI * 2;
@@ -144,7 +160,7 @@ export function buildCourt(scene) {
       new THREE.Vector3(Math.cos(a) * botR, -CFG.hoop.netDepth, Math.sin(a) * botR),
     ];
     const curve = new THREE.CatmullRomCurve3(pts);
-    strands.push(new THREE.Mesh(new THREE.TubeGeometry(curve, 6, 0.004, 4), netMat));
+    strands.push(new THREE.Mesh(new THREE.TubeGeometry(curve, 6, 0.0052, 4), netMat));
   }
   strands.forEach((s) => netGroup.add(s));
   for (let r = 1; r <= 3; r++) {
@@ -225,8 +241,7 @@ export function buildCourt(scene) {
   mkRail(9.5, -2.75, CFG.court.halfL + 1.2, 0);
   mkRail(1.5, 9.75, CFG.court.halfL + 1.2, 0);
   // 场边 LED 广告板（暗光发光，Bloom 轻微溢出）
-  const adMat = new THREE.MeshStandardMaterial({ color: 0x0b1220, emissive: 0x2255ff, emissiveIntensity: 0.55, roughness: 0.4 });
-  const ad1 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.8, 19.5), adMat);
+  const ad1 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.8, 19.5), new THREE.MeshStandardMaterial({ color: 0x0b1220, emissive: 0x2255ff, emissiveIntensity: 0.55, roughness: 0.4 }));
   ad1.position.set(-CFG.court.halfW - 1.7, 0.45, 0);
   scene.add(ad1);
   // 电子广告滚动文字贴图

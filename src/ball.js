@@ -6,7 +6,7 @@
  */
 import * as THREE from 'three';
 import { CFG } from './config.js';
-import { makeBallTexture, makeBallBumpTexture } from './textures.js';
+import { makeBallTexture, makeBallBumpTexture, makeBallRoughness } from './textures.js';
 
 export class GameBall {
   /**
@@ -24,7 +24,8 @@ export class GameBall {
       map: makeBallTexture(),
       bumpMap: makeBallBumpTexture(),   // 麻点+筋沟微观起伏
       bumpScale: 1.6,
-      roughness: 0.58,
+      roughness: 1.0,                   // 实际粗糙度由贴图控制（筋沟/麻点更哑光）
+      roughnessMap: makeBallRoughness(),
       metalness: 0.02,
       envMapIntensity: 0.45,
     });
@@ -33,6 +34,7 @@ export class GameBall {
     scene.add(this.mesh);
 
     this._tmpQ = new THREE.Quaternion();
+    this._hand = new THREE.Vector3(); // 复用的手部偏移向量（每帧调用，避免分配）
     this._heldTimer = 0;
   }
 
@@ -74,8 +76,8 @@ export class GameBall {
   /** 持球姿态：跟随相机右手位置，蓄力时举过头顶前倾；叠加拍球下探动画 */
   updateHeld(dt, camera, charge = 0) {
     this._heldTimer += dt;
-    // 基准手部偏移（相机局部系）：右下前方
-    const hand = new THREE.Vector3(0.42, -0.32 + charge * 0.62, -0.72 - charge * 0.18);
+    // 基准手部偏移（相机局部系）：右下前方（复用向量，避免每帧分配）
+    const hand = this._hand.set(0.42, -0.32 + charge * 0.62, -0.72 - charge * 0.18);
     // 轻微呼吸浮动（拍球时冻结，避免抢戏）
     if (this._tapT === undefined) {
       hand.y += Math.sin(this._heldTimer * 2.4) * 0.012;

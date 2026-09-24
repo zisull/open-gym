@@ -11,7 +11,7 @@
  */
 import * as THREE from 'three';
 import { CFG } from './config.js';
-import { makeDoorSignTexture, makeScreenPlaceholderTexture } from './textures.js';
+import { makeDoorSignTexture, makeScreenPlaceholderTexture, makeCarpetTexture } from './textures.js';
 
 const K = CFG.cinema;
 const R = K.ring.r;
@@ -54,7 +54,7 @@ export function createCinema({ camera, player, sfx }) {
   scene.add(ceiling);
   const carpet = new THREE.Mesh(
     new THREE.CircleGeometry(R, 64),
-    new THREE.MeshStandardMaterial({ color: 0x1a1c24, roughness: 1, metalness: 0, envMapIntensity: 0.05 })
+    new THREE.MeshStandardMaterial({ map: makeCarpetTexture(), roughness: 0.96, metalness: 0, envMapIntensity: 0.05 })
   );
   carpet.rotation.x = -Math.PI / 2;
   carpet.position.y = 0.01;
@@ -124,6 +124,13 @@ export function createCinema({ camera, player, sfx }) {
   }
 
   /** 建一块屏：src 为 null 时是永久占位空洞（比如上次用本地文件放的，重开复原不了） */
+  const frameMat = new THREE.MeshStandardMaterial({ color: 0x04050a, roughness: 0.92, metalness: 0, side: THREE.BackSide });
+  function mkFrameGeo(arc) {
+    // 黑色背衬：比银幕高 16cm、靠墙 6cm，从上下缘包住画面 —— "挂了幕布"而不是"墙面发光"
+    const g = new THREE.CylinderGeometry(R - 0.04, R - 0.04, SH + 0.16, Math.max(16, Math.ceil(arc / 0.05)), 1, true, -arc / 2, arc);
+    g.translate(0, K.screen.cy, 0);
+    return g;
+  }
   function makeScreen(src, a, slot) {
     const videoEl = makeVideoEl();
     const tex = new THREE.VideoTexture(videoEl);
@@ -135,7 +142,10 @@ export function createCinema({ camera, player, sfx }) {
     const mesh = new THREE.Mesh(patchGeo(PR, SH, arc), mat);
     mesh.rotation.y = a;
     scene.add(mesh);
-    const s = { src, mesh, mat, tex, videoEl, slot, arc };
+    const frame = new THREE.Mesh(mkFrameGeo(arc), frameMat); // 共享材质，rebuild 只 dispose 几何
+    frame.rotation.y = a;
+    scene.add(frame);
+    const s = { src, mesh, mat, tex, videoEl, slot, arc, frame };
     if (src) {
       videoEl.src = src.url;
       // 元数据到位 -> 记下真实宽高比，把弧吃满槽位（上限 maxWide 倍）并按 cover 裁剪画面
@@ -145,6 +155,8 @@ export function createCinema({ camera, player, sfx }) {
         s.arc = na;
         mesh.geometry.dispose();
         mesh.geometry = patchGeo(PR, SH, na);
+        frame.geometry.dispose();
+        frame.geometry = mkFrameGeo(na);
         applyCover(tex, (na * PR) / SH, src.ar);
         mat.map = tex;
         mat.color.setHex(0xffffff);
@@ -158,8 +170,9 @@ export function createCinema({ camera, player, sfx }) {
   /** 按当前片源列表重排圆环：屏数=源数，高度恒定，等分槽位吃到满 */
   function rebuild() {
     for (const s of screens) {
-      scene.remove(s.mesh);
+      scene.remove(s.mesh, s.frame);
       s.mesh.geometry.dispose();
+      s.frame.geometry.dispose(); // frameMat 为共享材质，只释放几何
       s.mat.dispose();
       s.tex.dispose();
       s.videoEl.remove();
@@ -297,6 +310,11 @@ export function createCinema({ camera, player, sfx }) {
 
   const defaultSources = () => LIB.slice(0, K.maxScreens).map((it) => ({ name: it.name, url: it.url }));
 
+  /** 释放本地临时片源的 blob URL（换片单/删片时调用，防内存泄漏） */
+  function disposeSource(src) {
+    if (src && src.local) { try { URL.revokeObjectURL(src.url); } catch (e) { /* noop */ } }
+  }
+
   function loadSources() {
     let saved = [];
     try { saved = JSON.parse(localStorage.getItem(STORE_KEY) || '[]'); } catch (e) { saved = []; }
@@ -405,7 +423,8 @@ export function createCinema({ camera, player, sfx }) {
 
   /** 移除环上第 i 部片源：银幕、格子、控制台一起重排，并写回存档（空洞占位格同样可删） */
   function removeSource(i) {
-    sources.splice(i, 1);
+    const [gone] = sources.splice(i, 1);
+    disposeSource(gone);
     rebuild();
     const live = sources.filter(Boolean).length;
     setStatus(live ? `🗑 已移除 1 部，环上还有 ${live} 部巨幕` : '片单空了：控制台里点「＋ 加入视频」或「📂 换片单」');
@@ -509,7 +528,9 @@ export function createCinema({ camera, player, sfx }) {
   });
   $('cb-stand').addEventListener('click', () => stand());
   $('cb-reset').addEventListener('click', () => {
+    const old = sources;
     sources = defaultSources();
+    old.forEach(disposeSource);
     voiceNames = null; // 换片单就把出声选择清回默认（第一部响）
     rebuild();
     playAll();
@@ -521,8 +542,10 @@ export function createCinema({ camera, player, sfx }) {
     e.target.value = '';
     if (!files.length) return;
     // 多选即全量替换：这一次选了几部，环上就放这几部，旧片单不再保留
+    const old = sources;
     const over = Math.max(0, files.length - K.maxScreens);
     sources = files.slice(0, K.maxScreens).map((f) => ({ name: f.name, url: URL.createObjectURL(f), local: true }));
+    old.forEach(disposeSource); // 旧本地片源的 blob URL 释放，防内存泄漏
     voiceNames = null;
     rebuild();
     playAll();
@@ -583,7 +606,10 @@ export function createCinema({ camera, player, sfx }) {
     camera.updateProjectionMatrix();
   }
 
+  let _lastHint = null;
   function setHint(t) {
+    if (t === _lastHint) return; // 每帧射线都会调，脏检查避免逐帧写 DOM
+    _lastHint = t;
     hintEl.innerHTML = t || '';
     hintEl.classList.toggle('hidden', !t);
   }
@@ -634,7 +660,10 @@ export function createCinema({ camera, player, sfx }) {
   }
   function canvasLock() {
     const c = document.getElementById('gl');
-    c.requestPointerLock?.();
+    try {
+      const p = c.requestPointerLock?.();
+      if (p && p.catch) p.catch(() => { /* 无手势/限流时忽略，点击画面可再锁 */ });
+    } catch (e) { /* 旧浏览器同步抛错同样忽略 */ }
   }
 
   /* ================= 对外接口 ================= */
