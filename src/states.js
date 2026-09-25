@@ -103,9 +103,10 @@ export class NoBallState extends State {
     const near = ball.mode === 'physics' &&
       Math.hypot(player.pos.x - ball.position.x, player.pos.z - ball.position.z) < CFG.player.pickupRange &&
       ball.position.y < 1.35;
-    ui.setPrompt(near
+    // 走到侧门附近时由门接管提示：一帧只有一个提示写入者，省掉一次无谓的 innerHTML 重排
+    ui.setPrompt(this.G.doorHint() || (near
       ? '<b>E</b> 拾球'
-      : 'WASD 移动 · <b>空格</b> 跳跃 · 走近篮球后按 E 拾取');
+      : 'WASD 移动 · <b>空格</b> 跳跃 · 走近篮球后按 E 拾取'));
     this._near = near;
   }
   onGrab() {
@@ -130,8 +131,9 @@ export class HoldState extends State {
   update(dt) {
     const { player, ball, camera, scoring, machine } = this.G;
     ball.updateHeld(dt, camera);
-    this.autoDribble(dt);
+    // 结算已定：拍球声/+2 飘字都不许再冒出来（球仍随手持，只是不再打地）
     if (scoring.ended) return;
+    this.autoDribble(dt);
     // 持球移动进入投篮触发区 -> 自动切入投篮瞄准（仅计分投篮的模式）
     if (this.G.modeDef.shotScore && player.inShotZone() && player.mode !== 'shot') {
       machine.set('shot');
@@ -152,7 +154,7 @@ export class HoldState extends State {
     if (!ball.tap()) return;
     sfx.play('tap', { rate: 1.85 + Math.random() * 0.12, volume: 0.85 });
     const { points } = scoring.addTap();
-    if (points > 0) ui.showScorePopup(points, null, 0);
+    if (points > 0) ui.showScorePopup(points, null);
     fx.burstTap(ball.position);
   }
   onLeftDown() {
@@ -273,7 +275,7 @@ export class ShotState extends State {
       scoring.currentSpot = spot;
       scoring.spots++;
       this.G.sfx.play('combo', { volume: 0.55 });
-      ui.showScorePopup(0, '🎲 命中！传送至新投篮点', 0);
+      ui.showScorePopup(0, '🎲 命中！传送至新投篮点');
       this.G.machine.set('shot'); // 重进投篮状态：在新点位重新架起瞄准
       return;
     }
@@ -333,7 +335,7 @@ export class ShotState extends State {
     fx.flash();
     this.G.netSway();
     const label = `${is3 ? '三分' : '两分'}命中 · 距离×${distMul.toFixed(1)}`;
-    ui.showScorePopup(points, label, scoring.shotCombo);
+    ui.showScorePopup(points, label);
   }
 
   /** 球落地后结算（进或不进都走到这里） */
@@ -343,7 +345,7 @@ export class ShotState extends State {
       sfx.play('bounce', { volume: 0.9 });
       const comboReset = scoring.addShotMiss();
       if (this.G.modeDef.shotScore) {
-        ui.showScorePopup(0, comboReset ? '三不沾! 连击清零' : '没进… 调整力度再来', 0);
+        ui.showScorePopup(0, comboReset ? '三不沾! 连击清零' : '没进… 调整力度再来');
       }
     } else {
       sfx.play('bounce', { volume: 0.5 });

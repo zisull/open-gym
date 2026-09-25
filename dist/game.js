@@ -22246,7 +22246,8 @@
         /* ---------- 电影院（球馆 +z 墙红门进入；影厅为圆筒黑匣子，环墙皆银幕） ---------- */
         cinema: {
           // 球馆侧入口门：玩家走进该圆区域自动传送进影厅
-          gymDoor: { x: 6, z: 16.35, r: 1.25 },
+          gymDoor: { x: 6, z: 16.35, r: 1.25, hint: 3.6 },
+          // r=走进即传送，hint=还差几步就开始提示
           // 影厅。角度约定与 THREE.CylinderGeometry 完全一致：
           // theta = 0 在 +z 方向，x = R·sin(theta)，z = R·cos(theta)，俯视逆时针递增
           // 厅里**没有出口门**（墙是一整圈闭合的黑匣子），回球场走放映条按钮
@@ -22271,7 +22272,7 @@
         },
         /* ---------- 台球室（球馆 +Z 端墙左侧的绿门进入；独立场景 + 台面 2D 物理） ---------- */
         pool: {
-          gymDoor: { x: -6, z: 16.35, r: 1.25 },
+          gymDoor: { x: -6, z: 16.35, r: 1.25, hint: 3.6 },
           // 球馆侧入口（与电影院红门左右对称）
           room: { halfW: 4.9, halfL: 6.4, height: 3.1 },
           // 台面：库内沿半长/半宽按标准 9 尺台比例（2.54 x 1.27）；h 为呢绒上表面离地高度
@@ -29387,7 +29388,7 @@
         matRim
       );
     }
-    return { world, ballBody, matFloor, matBall, matRim, matBoard, rimZ, rimY };
+    return { world, ballBody, matRim, matBoard };
   }
   var init_physics = __esm({
     "src/physics.js"() {
@@ -30501,7 +30502,7 @@
           this.el.setShadow.addEventListener("change", () => this.cb.onShadow?.(this.el.setShadow.checked));
           this.el.pauseShadow.addEventListener("change", () => this.cb.onShadow?.(this.el.pauseShadow.checked));
           this.el.setVolume.addEventListener("input", () => this.cb.onVolume?.(Number(this.el.setVolume.value)));
-          const help = $("help"), helpBtn = $("btn-help");
+          const help = this.el.help, helpBtn = this.el.helpBtn;
           const setHelp = (open) => {
             help.classList.toggle("hidden", !open);
             helpBtn.textContent = open ? "\u{1F4D6} \u6536\u8D77\u8BF4\u660E" : "\u{1F4D6} \u600E\u4E48\u73A9";
@@ -30572,7 +30573,11 @@
             this.el.timerText.textContent = sec;
             this.el.timerText.classList.toggle("urgent", urgent);
           }
-          this.el.timerFill.style.width = `${frac * 100}%`;
+          const pct = Math.round(frac * 200) / 2;
+          if (pct !== this._lastTimerPct) {
+            this._lastTimerPct = pct;
+            this.el.timerFill.style.width = `${pct}%`;
+          }
         }
         setPrompt(html, kind) {
           if (this._prompt === html) return;
@@ -30581,7 +30586,7 @@
           this.el.prompt.classList.toggle("pump", kind === "pump");
         }
         /* ---------- 中央飘字 ---------- */
-        showScorePopup(points, label, combo) {
+        showScorePopup(points, label) {
           const el = this.el.popup;
           el.innerHTML = (points > 0 ? `+${points}` : "") + (label ? `<small>${label}</small>` : "");
           el.classList.toggle("bad", points === 0 && !!label);
@@ -30594,16 +30599,23 @@
           this.el.pbar.classList.toggle("hidden", !show);
         }
         updatePowerBar(charge, sweetP) {
-          this.el.pFill.style.height = `${charge * 100}%`;
-          this.el.pbar.classList.toggle("maxed", charge >= 0.999);
-          if (sweetP == null) {
-            this.el.pSweet.style.display = "none";
-          } else {
-            const half = CFG.shot.sweetHalf;
-            this.el.pSweet.style.display = "";
-            this.el.pSweet.style.bottom = `${Math.max(0, sweetP - half) * 100}%`;
-            this.el.pSweet.style.height = `${Math.min(100, half * 2 * 100)}%`;
+          const pct = Math.round(charge * 100);
+          if (pct !== this._lastCharge) {
+            this._lastCharge = pct;
+            this.el.pFill.style.height = `${pct}%`;
+            this.el.pbar.classList.toggle("maxed", pct >= 100);
           }
+          const sp = sweetP == null ? -1 : Math.round(sweetP * 100);
+          if (sp === this._lastSweet) return;
+          this._lastSweet = sp;
+          if (sp < 0) {
+            this.el.pSweet.style.display = "none";
+            return;
+          }
+          const half = CFG.shot.sweetHalf;
+          this.el.pSweet.style.display = "";
+          this.el.pSweet.style.bottom = `${Math.max(0, sweetP - half) * 100}%`;
+          this.el.pSweet.style.height = `${Math.min(100, half * 2 * 100)}%`;
         }
         /* ---------- 结算弹窗 ---------- */
         showResult({ modeName, scoreLabel, score, best, prevBest, isNew, stats }) {
@@ -30861,7 +30873,11 @@
       edges = shape === "poly" ? Math.max(3, n) : 0;
       applyShell();
       const slot = Math.PI * 2 / (edges || n);
-      for (let i = 0; i < n; i++) screens.push(makeScreen(sources[i] || null, slot * (i + 0.5), slot));
+      for (let i = 0; i < n; i++) {
+        const sc = makeScreen(sources[i] || null, slot * (i + 0.5), slot);
+        sc.mesh.userData.screen = i;
+        screens.push(sc);
+      }
       pickables = [bedHit, ...screens.map((x) => x.mesh)];
       syncVoices();
       applyAudio();
@@ -31569,7 +31585,7 @@
         const hits = raycaster.intersectObjects(pickables, false);
         const hit = hits.length && hits[0].distance < 24 ? hits[0] : null;
         hoverBed = !!hit && hit.object === bedHit;
-        hoverScreen = hit ? screens.findIndex((s) => s.mesh === hit.object) : -1;
+        hoverScreen = hit ? hit.object.userData.screen ?? -1 : -1;
         const dBed = Math.hypot(px2, pz2);
         const nearBed = hoverBed || dBed < K.bed.r + 0.6;
         setHint(nearBed ? "<b>\u5DE6\u952E</b> \u5728\u5706\u5E8A\u4E0A\u5165\u5EA7\uFF08\u4EFB\u610F\u671D\u5411\uFF09" : hoverScreen >= 0 && screens[hoverScreen].src ? "<b>\u5DE6\u952E</b> \u64AD\u653E/\u6682\u505C \xB7 \u5207\u6362\u8BE5\u5C4F\u58F0\u97F3" : "");
@@ -31707,6 +31723,10 @@
     } catch {
       return dft;
     }
+  }
+  function loadNumberSetting(key, dft) {
+    const v = Number(loadSetting(key, ""));
+    return Number.isFinite(v) ? v : dft;
   }
   function saveSetting(key, v) {
     try {
@@ -31984,8 +32004,8 @@
     }
     const ballGeo = new SphereGeometry(R2, 24, 16);
     const balls = [];
-    function mkBall(num2) {
-      const tex = makePoolBallTexture(num2, num2 <= 8 ? HUE[num2] : HUE[num2 - 8], num2 >= 9);
+    function mkBall(num) {
+      const tex = makePoolBallTexture(num, num <= 8 ? HUE[num] : HUE[num - 8], num >= 9);
       const mesh = new Mesh(ballGeo, new MeshStandardMaterial({
         map: tex,
         roughness: 0.1,
@@ -31994,7 +32014,7 @@
       }));
       mesh.position.set(0, YC, 0);
       scene.add(mesh);
-      const b2 = { num: num2, mesh, x: 0, z: 0, vx: 0, vz: 0, potted: false, sink: 0, sy: 0, sw: 0, hit: false };
+      const b2 = { num, mesh, x: 0, z: 0, vx: 0, vz: 0, potted: false, sink: 0, sy: 0, sw: 0, hit: false };
       balls.push(b2);
       return b2;
     }
@@ -32110,14 +32130,10 @@
     let aimT = 0;
     let needRack = false;
     let strokes = 0, pottedNum = 0, score = 0, fouls = 0;
-    const num = (k, dft) => {
-      const v = Number(loadSetting(k, ""));
-      return Number.isFinite(v) ? v : dft;
-    };
-    let best = Math.max(0, num("bb.pool.best", 0));
+    let best = Math.max(0, loadNumberSetting("bb.pool.best", 0));
     let duel = (() => {
-      const v = Math.trunc(Number(loadSetting("bb.pool.duel", "0")));
-      return Number.isInteger(v) && v > 0 && v <= K2.duel.levels.length ? v : 0;
+      const v = Math.trunc(loadNumberSetting("bb.pool.duel", 0));
+      return v > 0 && v <= K2.duel.levels.length ? v : 0;
     })();
     let phase = "idle";
     let turn = 0;
@@ -33049,13 +33065,13 @@
         drawGuide();
         return { n: gMain.count(), len: +gMain.length().toFixed(2), obj: +gObj.length().toFixed(2), cush: +gCush.length().toFixed(2) };
       },
-      debugBall(num2) {
-        const b2 = balls.find((x) => x.num === num2);
+      debugBall(num) {
+        const b2 = balls.find((x) => x.num === num);
         return b2 ? { x: +b2.x.toFixed(4), z: +b2.z.toFixed(4), vx: +b2.vx.toFixed(3), vz: +b2.vz.toFixed(3), potted: b2.potted } : null;
       },
       /** 测试用：把某号球挪到指定位置（摆一颗孤球，才能干净地验「预测==实际」） */
-      debugPlace(num2, x, z) {
-        const b2 = balls.find((y) => y.num === num2);
+      debugPlace(num, x, z) {
+        const b2 = balls.find((y) => y.num === num);
         if (!b2 || b2.potted) return false;
         b2.x = x;
         b2.z = z;
@@ -33075,8 +33091,8 @@
         return true;
       },
       /** 把导向线正对某号球：测试用来验证"预测==实际" */
-      debugAimAt(num2) {
-        const b2 = balls.find((x) => x.num === num2);
+      debugAimAt(num) {
+        const b2 = balls.find((x) => x.num === num);
         if (!b2) return false;
         aimA = Math.atan2(b2.z - cue.z, b2.x - cue.x);
         dir.set(Math.cos(aimA), Math.sin(aimA));
@@ -33266,12 +33282,13 @@
   });
 
   // src/player.js
-  var Player;
+  var PITCH_LIMIT, Player;
   var init_player = __esm({
     "src/player.js"() {
       init_three_module();
       init_config();
       init_court();
+      PITCH_LIMIT = 1.45;
       Player = class {
         /**
          * @param {THREE.PerspectiveCamera} camera 主相机
@@ -33315,7 +33332,7 @@
           const sens = CFG.player.sens;
           this.freeYaw -= dx * sens;
           this.freePitch -= dy * sens;
-          this.freePitch = MathUtils.clamp(this.freePitch, -1.45, 1.45);
+          this.freePitch = MathUtils.clamp(this.freePitch, -PITCH_LIMIT, PITCH_LIMIT);
           if (this.mode === "shot") {
             this.shotOffsetYaw = MathUtils.clamp(this.shotOffsetYaw - dx * sens, -0.22, 0.22);
             this.shotOffsetPitch = MathUtils.clamp(this.shotOffsetPitch - dy * sens * 0.8, -0.25, 0.25);
@@ -33335,7 +33352,6 @@
         enterShotAim() {
           this.mode = "shot";
           const aim = this.rimAim();
-          this.aimAnchor = aim;
           this.aimBaseYaw = this.wrapDelta(aim.yaw - this.freeYaw);
           this.aimBasePitch = aim.pitch;
           this.shotAnchorYaw = this.freeYaw;
@@ -33345,7 +33361,7 @@
         exitShotAim() {
           if (this.mode !== "shot") return;
           this.freeYaw = this.yaw;
-          this.freePitch = MathUtils.clamp(this.pitch, -1.45, 1.45);
+          this.freePitch = MathUtils.clamp(this.pitch, -PITCH_LIMIT, PITCH_LIMIT);
           this.mode = "free";
         }
         /** 面向篮筐所需的 yaw/pitch（从当前位置看向圈心） */
@@ -33354,7 +33370,7 @@
           const dz = RIM_POS.z - this.pos.z;
           const dist = Math.hypot(dx, dz);
           let yaw = Math.atan2(-dx, -dz);
-          const dy = RIM_POS.y - CFG.player.eye;
+          const dy = RIM_POS.y - this.eyeHeight;
           const pitch = Math.atan2(dy, dist);
           return { yaw, pitch };
         }
@@ -33435,7 +33451,7 @@
             desPitch = MathUtils.lerp(this.freePitch, targetAimPitch, this.blend);
           }
           this.targetYaw = desYaw;
-          this.targetPitch = MathUtils.clamp(desPitch, -1.45, 1.45);
+          this.targetPitch = MathUtils.clamp(desPitch, -PITCH_LIMIT, PITCH_LIMIT);
           const damp2 = 1 - Math.exp(-P.lookDamping * dt);
           this.yaw += this.wrapDelta(this.targetYaw - this.yaw) * damp2;
           this.pitch += (this.targetPitch - this.pitch) * damp2;
@@ -33490,6 +33506,7 @@
           scene.add(this.points);
           this.cursor = 0;
           this._colorsDirty = false;
+          this._nAlive = 0;
           this.baseCamPos = new Vector3();
         }
         /** 进球彩带：从篮圈位置向四周炸开 */
@@ -33556,22 +33573,27 @@
          * 震动以偏移量形式返回，由 main 叠加到相机上（不污染玩家逻辑位置）。
          */
         update(dt) {
-          for (let i = 0; i < MAX_PARTICLES; i++) {
-            if (this.lives[i] <= 0) continue;
-            this.lives[i] -= dt;
-            const p = i * 3;
-            this.vels[p + 1] -= 6.5 * dt;
-            this.positions[p] += this.vels[p] * dt;
-            this.positions[p + 1] += this.vels[p + 1] * dt;
-            this.positions[p + 2] += this.vels[p + 2] * dt;
-            if (this.lives[i] <= 0) {
-              this.positions[p + 1] = -100;
+          if (this._nAlive > 0 || this._colorsDirty) {
+            let n = 0;
+            for (let i = 0; i < MAX_PARTICLES; i++) {
+              if (this.lives[i] <= 0) continue;
+              n++;
+              this.lives[i] -= dt;
+              const p = i * 3;
+              this.vels[p + 1] -= 6.5 * dt;
+              this.positions[p] += this.vels[p] * dt;
+              this.positions[p + 1] += this.vels[p + 1] * dt;
+              this.positions[p + 2] += this.vels[p + 2] * dt;
+              if (this.lives[i] <= 0) {
+                this.positions[p + 1] = -100;
+              }
             }
-          }
-          this.points.geometry.attributes.position.needsUpdate = true;
-          if (this._colorsDirty) {
-            this.points.geometry.attributes.color.needsUpdate = true;
-            this._colorsDirty = false;
+            this._nAlive = n;
+            this.points.geometry.attributes.position.needsUpdate = true;
+            if (this._colorsDirty) {
+              this.points.geometry.attributes.color.needsUpdate = true;
+              this._colorsDirty = false;
+            }
           }
           this.bloomPulse *= Math.exp(-3.2 * dt);
           if (this.bloomPulse < 0.01) this.bloomPulse = 0;
@@ -33674,7 +33696,7 @@
           const { player, ball, ui } = this.G;
           ball.syncFromPhysics();
           const near = ball.mode === "physics" && Math.hypot(player.pos.x - ball.position.x, player.pos.z - ball.position.z) < CFG.player.pickupRange && ball.position.y < 1.35;
-          ui.setPrompt(near ? "<b>E</b> \u62FE\u7403" : "WASD \u79FB\u52A8 \xB7 <b>\u7A7A\u683C</b> \u8DF3\u8DC3 \xB7 \u8D70\u8FD1\u7BEE\u7403\u540E\u6309 E \u62FE\u53D6");
+          ui.setPrompt(this.G.doorHint() || (near ? "<b>E</b> \u62FE\u7403" : "WASD \u79FB\u52A8 \xB7 <b>\u7A7A\u683C</b> \u8DF3\u8DC3 \xB7 \u8D70\u8FD1\u7BEE\u7403\u540E\u6309 E \u62FE\u53D6"));
           this._near = near;
         }
         onGrab() {
@@ -33695,8 +33717,8 @@
         update(dt) {
           const { player, ball, camera, scoring, machine } = this.G;
           ball.updateHeld(dt, camera);
-          this.autoDribble(dt);
           if (scoring.ended) return;
+          this.autoDribble(dt);
           if (this.G.modeDef.shotScore && player.inShotZone() && player.mode !== "shot") {
             machine.set("shot");
           }
@@ -33716,7 +33738,7 @@
           if (!ball.tap()) return;
           sfx.play("tap", { rate: 1.85 + Math.random() * 0.12, volume: 0.85 });
           const { points } = scoring.addTap();
-          if (points > 0) ui.showScorePopup(points, null, 0);
+          if (points > 0) ui.showScorePopup(points, null);
           fx.burstTap(ball.position);
         }
         onLeftDown() {
@@ -33819,7 +33841,7 @@
             scoring.currentSpot = spot;
             scoring.spots++;
             this.G.sfx.play("combo", { volume: 0.55 });
-            ui.showScorePopup(0, "\u{1F3B2} \u547D\u4E2D\uFF01\u4F20\u9001\u81F3\u65B0\u6295\u7BEE\u70B9", 0);
+            ui.showScorePopup(0, "\u{1F3B2} \u547D\u4E2D\uFF01\u4F20\u9001\u81F3\u65B0\u6295\u7BEE\u70B9");
             this.G.machine.set("shot");
             return;
           }
@@ -33875,7 +33897,7 @@
           fx.flash();
           this.G.netSway();
           const label = `${is3 ? "\u4E09\u5206" : "\u4E24\u5206"}\u547D\u4E2D \xB7 \u8DDD\u79BB\xD7${distMul.toFixed(1)}`;
-          ui.showScorePopup(points, label, scoring.shotCombo);
+          ui.showScorePopup(points, label);
         }
         /** 球落地后结算（进或不进都走到这里） */
         onResolve() {
@@ -33884,7 +33906,7 @@
             sfx.play("bounce", { volume: 0.9 });
             const comboReset = scoring.addShotMiss();
             if (this.G.modeDef.shotScore) {
-              ui.showScorePopup(0, comboReset ? "\u4E09\u4E0D\u6CBE! \u8FDE\u51FB\u6E05\u96F6" : "\u6CA1\u8FDB\u2026 \u8C03\u6574\u529B\u5EA6\u518D\u6765", 0);
+              ui.showScorePopup(0, comboReset ? "\u4E09\u4E0D\u6CBE! \u8FDE\u51FB\u6E05\u96F6" : "\u6CA1\u8FDB\u2026 \u8C03\u6574\u529B\u5EA6\u518D\u6765");
             }
           } else {
             sfx.play("bounce", { volume: 0.5 });
@@ -34078,82 +34100,107 @@
       player.onLand = () => sfx.play("bounce", { volume: 0.3, rate: 0.72 });
       var cinema = createCinema({ camera, player, sfx });
       cinema.scene.environment = scene.environment;
+      var pool = createPool({ camera, player, sfx });
+      pool.scene.environment = scene.environment;
       var playerLoc = "gym";
       var fading = false;
       var fadeEl = document.getElementById("fade");
       var hudEl = document.getElementById("hud");
+      var FADE_BLACK = 420;
+      var FADE_TAIL = 120;
+      var fadeTimerA = 0;
+      var fadeTimerB = 0;
       function fadeTo(swap) {
         if (fading) return;
         fading = true;
         fadeEl.classList.add("on");
-        setTimeout(() => {
+        fadeTimerA = setTimeout(() => {
+          fadeTimerA = 0;
           swap();
-          setTimeout(() => {
+          fadeTimerB = setTimeout(() => {
+            fadeTimerB = 0;
             fadeEl.classList.remove("on");
             fading = false;
-          }, 120);
-        }, 420);
+          }, FADE_TAIL);
+        }, FADE_BLACK);
       }
-      function enterCinema() {
+      function cancelFade() {
+        clearTimeout(fadeTimerA);
+        clearTimeout(fadeTimerB);
+        fadeTimerA = fadeTimerB = 0;
+      }
+      var DOOR_C = CFG.cinema.gymDoor;
+      var DOOR_P = CFG.pool.gymDoor;
+      var DOOR_C_R2 = DOOR_C.r * DOOR_C.r;
+      var DOOR_C_HINT2 = DOOR_C.hint * DOOR_C.hint;
+      var DOOR_P_R2 = DOOR_P.r * DOOR_P.r;
+      var DOOR_P_HINT2 = DOOR_P.hint * DOOR_P.hint;
+      var DOOR_SPAWN = 2.4;
+      var HINT_CINEMA = "\u{1F3AC} <b>\u8D70\u8FDB\u7EA2\u95E8</b> \u53BB\u7535\u5F71\u9662\u770B\u573A\u7535\u5F71";
+      var HINT_POOL = "\u{1F3B1} <b>\u8D70\u8FDB\u7EFF\u95E8</b> \u53BB\u53F0\u7403\u5BA4\u5F00\u4E00\u6746";
+      function doorHint() {
+        const cdx = player.pos.x - DOOR_C.x, cdz = player.pos.z - DOOR_C.z;
+        const pdx = player.pos.x - DOOR_P.x, pdz = player.pos.z - DOOR_P.z;
+        if (cdx * cdx + cdz * cdz < DOOR_C_HINT2) return HINT_CINEMA;
+        if (pdx * pdx + pdz * pdz < DOOR_P_HINT2) return HINT_POOL;
+        return "";
+      }
+      var ROOMS = {
+        cinema: {
+          door: DOOR_C,
+          api: cinema,
+          enter: () => {
+            cinema.enter();
+            cinema.ensurePlaylist();
+          },
+          leave: () => cinema.exit()
+        },
+        pool: {
+          door: DOOR_P,
+          api: pool,
+          // 台球室不用准星（导向线就是瞄准器），离场再还回来
+          enter: () => {
+            ui.el.cross.classList.add("hidden");
+            pool.enter();
+          },
+          leave: () => {
+            setPoolHud(false);
+            pool.exit();
+            ui.el.cross.classList.remove("hidden");
+          }
+        }
+      };
+      function enterRoom(id) {
+        const R4 = ROOMS[id];
         fadeTo(() => {
-          playerLoc = "cinema";
-          renderPass.scene = cinema.scene;
+          playerLoc = id;
+          renderPass.scene = R4.api.scene;
           hudEl.classList.add("hidden");
-          cinema.enter();
-          cinema.ensurePlaylist();
+          R4.enter();
           sfx.play("ui");
         });
       }
-      function exitCinemaToGym() {
+      function exitRoomToGym(id) {
+        const R4 = ROOMS[id];
         fadeTo(() => {
-          cinema.exit();
+          R4.leave();
           playerLoc = "gym";
           renderPass.scene = scene;
-          const D = CFG.cinema.gymDoor;
-          player.pos.set(D.x, 0, D.z - 2.4);
+          const D = R4.door;
+          player.pos.set(D.x, 0, D.z - DOOR_SPAWN);
           player.vel.set(0, 0, 0);
           player.freeYaw = Math.atan2(D.x, player.pos.z);
           player.freePitch = 0;
           ui.showHud(G.modeDef.name, G.modeDef.timed);
         });
       }
-      cinema.onExitRequest = exitCinemaToGym;
-      var pool = createPool({ camera, player, sfx });
-      pool.scene.environment = scene.environment;
-      function enterPool() {
-        fadeTo(() => {
-          playerLoc = "pool";
-          renderPass.scene = pool.scene;
-          hudEl.classList.add("hidden");
-          ui.el.cross.classList.add("hidden");
-          pool.enter();
-          sfx.play("ui");
-        });
-      }
-      function exitPoolToGym() {
-        fadeTo(() => {
-          setPoolHud(false);
-          pool.exit();
-          playerLoc = "gym";
-          renderPass.scene = scene;
-          const D = CFG.pool.gymDoor;
-          player.pos.set(D.x, 0, D.z - 2.4);
-          player.vel.set(0, 0, 0);
-          player.freeYaw = Math.atan2(D.x, player.pos.z);
-          player.freePitch = 0;
-          ui.el.cross.classList.remove("hidden");
-          ui.showHud(G.modeDef.name, G.modeDef.timed);
-        });
-      }
-      pool.onExitRequest = exitPoolToGym;
+      cinema.onExitRequest = () => exitRoomToGym("cinema");
+      pool.onExitRequest = () => exitRoomToGym("pool");
       function forceGym() {
-        if (playerLoc === "cinema") cinema.exit();
-        else if (playerLoc === "pool") {
-          playerLoc = "gym";
-          setPoolHud(false);
-          pool.exit();
-        } else return;
+        cancelFade();
+        const id = playerLoc;
         playerLoc = "gym";
+        if (id !== "gym") ROOMS[id].leave();
         renderPass.scene = scene;
         fadeEl.classList.remove("on");
         fading = false;
@@ -34167,6 +34214,7 @@
         sfx,
         fx,
         ui,
+        doorHint,
         modeDef: CFG.MODES.free,
         netSway: () => {
           netSway.t = 1;
@@ -34182,6 +34230,7 @@
       var menuCamAngle = 0;
       var lastSecond = -1;
       var bestCache = 0;
+      var hudRef = { free: null, mul10: -1, n1: -1, made: -1, taken: -1, live: "" };
       function refreshMenu() {
         forceGym();
         gameState = "menu";
@@ -34308,9 +34357,8 @@
         ui.setShadowChecked(on);
       }
       applyShadow(shadowOn);
-      var rawVol = Number(loadSetting(LS_VOLUME, 0.8));
-      var savedVol = MathUtils.clamp(Number.isFinite(rawVol) ? rawVol : 0.8, 0, 1);
-      document.getElementById("set-volume").value = savedVol;
+      var savedVol = MathUtils.clamp(loadNumberSetting(LS_VOLUME, 0.8), 0, 1);
+      ui.el.setVolume.value = savedVol;
       window.BB_VOLUME = savedVol;
       var keys = player.keys;
       var poolHud = false;
@@ -34502,13 +34550,14 @@
             machine.update(dt);
             player.update(dt);
             if (gameState === "playing") {
-              const D = CFG.cinema.gymDoor, P = CFG.pool.gymDoor;
-              const dDoor = Math.hypot(player.pos.x - D.x, player.pos.z - D.z);
-              const dPool = Math.hypot(player.pos.x - P.x, player.pos.z - P.z);
-              if (dDoor < D.r) enterCinema();
-              else if (dPool < P.r) enterPool();
-              else if (dDoor < 3.6) ui.setPrompt("\u{1F3AC} <b>\u8D70\u8FDB\u7EA2\u95E8</b> \u53BB\u7535\u5F71\u9662\u770B\u573A\u7535\u5F71");
-              else if (dPool < 3.6) ui.setPrompt("\u{1F3B1} <b>\u8D70\u8FDB\u7EFF\u95E8</b> \u53BB\u53F0\u7403\u5BA4\u5F00\u4E00\u6746");
+              const cdx = player.pos.x - DOOR_C.x, cdz = player.pos.z - DOOR_C.z;
+              const pdx = player.pos.x - DOOR_P.x, pdz = player.pos.z - DOOR_P.z;
+              if (cdx * cdx + cdz * cdz < DOOR_C_R2) enterRoom("cinema");
+              else if (pdx * pdx + pdz * pdz < DOOR_P_R2) enterRoom("pool");
+              else {
+                const hint = doorHint();
+                if (hint) ui.setPrompt(hint);
+              }
             }
             if (scoring.mode.timed && !scoring.ended) {
               const justEnd = scoring.tickTimer(dt);
@@ -34521,12 +34570,22 @@
               ui.setTimer(scoring.timeLeft, scoring.timeLeft / CFG.challenge.duration, scoring.timeLeft <= 10);
             }
             const curDist = Math.hypot(player.pos.x - RIM_POS.x, player.pos.z - RIM_POS.z);
-            const dMul = ScoreManager.distanceMultiplier(curDist).toFixed(1);
-            const live = scoring.mode.id === "free" ? `\u62CD\u7403 ${scoring.taps} \u6B21 \xB7 \u6295\u7BEE ${scoring.shotMade}/${scoring.shotTaken} \xB7 \u5F53\u524D\u8DDD\u79BB\xD7${dMul}` : `\u8FDB ${scoring.shotMade} \xB7 \u6362\u4F4D ${scoring.spots} \u6B21 \xB7 \u5F53\u524D\u8DDD\u79BB\xD7${dMul}`;
+            const mul10 = Math.round(ScoreManager.distanceMultiplier(curDist) * 10);
+            const free = scoring.mode.id === "free";
+            const n1 = free ? scoring.taps : scoring.spots;
+            if (free !== hudRef.free || mul10 !== hudRef.mul10 || n1 !== hudRef.n1 || scoring.shotMade !== hudRef.made || scoring.shotTaken !== hudRef.taken) {
+              hudRef.free = free;
+              hudRef.mul10 = mul10;
+              hudRef.n1 = n1;
+              hudRef.made = scoring.shotMade;
+              hudRef.taken = scoring.shotTaken;
+              const dMul = (mul10 / 10).toFixed(1);
+              hudRef.live = free ? `\u62CD\u7403 ${scoring.taps} \u6B21 \xB7 \u6295\u7BEE ${scoring.shotMade}/${scoring.shotTaken} \xB7 \u5F53\u524D\u8DDD\u79BB\xD7${dMul}` : `\u8FDB ${scoring.shotMade} \xB7 \u6362\u4F4D ${scoring.spots} \u6B21 \xB7 \u5F53\u524D\u8DDD\u79BB\xD7${dMul}`;
+            }
             ui.setScore(
               scoring.displayScore,
               Math.max(bestCache, scoring.displayScore),
-              live
+              hudRef.live
             );
             ui.setCombos(scoring.shotCombo, scoring.shotMultiplier());
           }
@@ -34574,11 +34633,9 @@
           player,
           ball,
           fx,
-          enterCinema,
-          exitCinemaToGym,
+          enterRoom,
+          exitRoomToGym,
           cinema,
-          enterPool,
-          exitPoolToGym,
           pool,
           get state() {
             return gameState;
@@ -34594,8 +34651,8 @@
         const m = params.get("mode");
         const demo = params.get("demo");
         if (m && CFG.MODES[m]) setTimeout(() => startMode(m), 400);
-        if (params.get("loc") === "cinema") setTimeout(() => enterCinema(), 1100);
-        if (params.get("loc") === "pool") setTimeout(() => enterPool(), 1100);
+        if (params.get("loc") === "cinema") setTimeout(() => enterRoom("cinema"), 1100);
+        if (params.get("loc") === "pool") setTimeout(() => enterRoom("pool"), 1100);
         if (params.get("help")) setTimeout(() => document.getElementById("btn-help").click(), 300);
         const tp = params.get("tp");
         if (tp) setTimeout(() => {
@@ -34649,6 +34706,12 @@
             close.click();
             mark(`CLOSE ${s()}`);
           }, 1e3);
+        }
+        if (demo === "fade") {
+          const hudOn = () => document.getElementById("hud").classList.contains("hidden") ? 0 : 1;
+          setTimeout(() => enterRoom("pool"), 1e3);
+          setTimeout(() => startMode("free"), 1250);
+          setTimeout(() => mark(`FADE end loc=${GAME.location} hud=${hudOn()} poolMode=${pool.debugPool().mode}`), 2600);
         }
         if (demo === "save") {
           setTimeout(() => {
@@ -35327,7 +35390,7 @@
             finishSession();
           }, 1200);
           setTimeout(() => {
-            mark(`RES \u9762\u677F=${document.getElementById("result").classList.contains("hidden") ? 0 : 1} state=${GAME.state}`);
+            mark(`RES \u9762\u677F=${document.getElementById("result").classList.contains("hidden") ? 0 : 1} state=${GAME.state} taps=${scoring.taps}`);
             dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
           }, 1800);
           setTimeout(() => mark(`RES Enter\u540E \u9762\u677F=${document.getElementById("result").classList.contains("hidden") ? 0 : 1} state=${GAME.state}`), 2600);

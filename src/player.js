@@ -8,6 +8,8 @@ import * as THREE from 'three';
 import { CFG } from './config.js';
 import { RIM_POS } from './court.js';
 
+const PITCH_LIMIT = 1.45;   // 俯仰限制 ≈ ±83°：留一点余量，避免正好仰到头顶
+
 export class Player {
   /**
    * @param {THREE.PerspectiveCamera} camera 主相机
@@ -62,8 +64,8 @@ export class Player {
     const sens = CFG.player.sens;
     this.freeYaw -= dx * sens;
     this.freePitch -= dy * sens;
-    // 俯仰限制在 ±85°
-    this.freePitch = THREE.MathUtils.clamp(this.freePitch, -1.45, 1.45);
+    // 俯仰限制在 ±83°
+    this.freePitch = THREE.MathUtils.clamp(this.freePitch, -PITCH_LIMIT, PITCH_LIMIT);
     if (this.mode === 'shot') {
       // 投篮模式：鼠标只能微调相对篮筐锚点的偏移
       this.shotOffsetYaw = THREE.MathUtils.clamp(this.shotOffsetYaw - dx * sens, -0.22, 0.22);
@@ -86,7 +88,6 @@ export class Player {
   enterShotAim() {
     this.mode = 'shot';
     const aim = this.rimAim();
-    this.aimAnchor = aim; // 记录初始锚点
     this.aimBaseYaw = this.wrapDelta(aim.yaw - this.freeYaw);
     this.aimBasePitch = aim.pitch;
     this.shotAnchorYaw = this.freeYaw;
@@ -98,7 +99,7 @@ export class Player {
     if (this.mode !== 'shot') return;
     // 以当前实际视角作为新的自由视角，避免退出瞬间跳变
     this.freeYaw = this.yaw;
-    this.freePitch = THREE.MathUtils.clamp(this.pitch, -1.45, 1.45);
+    this.freePitch = THREE.MathUtils.clamp(this.pitch, -PITCH_LIMIT, PITCH_LIMIT);
     this.mode = 'free';
   }
 
@@ -109,7 +110,7 @@ export class Player {
     const dist = Math.hypot(dx, dz);
     // three.js 约定：yaw=0 面向 -z
     let yaw = Math.atan2(-dx, -dz);
-    const dy = RIM_POS.y - CFG.player.eye;
+    const dy = RIM_POS.y - this.eyeHeight;  // 用当前视高，而不是配置默认值
     const pitch = Math.atan2(dy, dist);
     return { yaw, pitch };
   }
@@ -202,7 +203,7 @@ export class Player {
       desPitch = THREE.MathUtils.lerp(this.freePitch, targetAimPitch, this.blend);
     }
     this.targetYaw = desYaw;
-    this.targetPitch = THREE.MathUtils.clamp(desPitch, -1.45, 1.45);
+    this.targetPitch = THREE.MathUtils.clamp(desPitch, -PITCH_LIMIT, PITCH_LIMIT);
 
     /* ---- 4. 视角阻尼（指数平滑，消除鼠标抖动） ---- */
     const damp = 1 - Math.exp(-P.lookDamping * dt);

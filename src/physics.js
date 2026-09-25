@@ -113,5 +113,5 @@ export function createPhysics() {
       farFaceZ - CFG.hoop.rimOffset + Math.sin(a) * CFG.hoop.rimRadius, matRim);
   }
 
-  return { world, ballBody, matFloor, matBall, matRim, matBoard, rimZ, rimY };
+  return { world, ballBody, matRim, matBoard };
 }

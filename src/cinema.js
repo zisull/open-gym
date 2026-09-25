@@ -299,7 +299,11 @@ export function createCinema({ camera, player, sfx }) {
     edges = shape === 'poly' ? Math.max(3, n) : 0; // 1~2 部片时多边形退化成三角形（其余边是空墙）
     applyShell();
     const slot = (Math.PI * 2) / (edges || n);
-    for (let i = 0; i < n; i++) screens.push(makeScreen(sources[i] || null, slot * (i + 0.5), slot));
+    for (let i = 0; i < n; i++) {
+      const sc = makeScreen(sources[i] || null, slot * (i + 0.5), slot);
+      sc.mesh.userData.screen = i; // 命中物自带屏号：省掉每帧一次数组查找
+      screens.push(sc);
+    }
     pickables = [bedHit, ...screens.map((x) => x.mesh)];   // 点击目标表跟着屏走（每帧射线用它，不再每帧拼数组）
     syncVoices();
     applyAudio(); // 新建的 <video> 一律 muted，必须在这里按出声集合重新放行
@@ -993,7 +997,7 @@ export function createCinema({ camera, player, sfx }) {
       const hits = raycaster.intersectObjects(pickables, false);
       const hit = (hits.length && hits[0].distance < 24) ? hits[0] : null;   // 结果已按距离排序
       hoverBed = !!hit && hit.object === bedHit;
-      hoverScreen = hit ? screens.findIndex((s) => s.mesh === hit.object) : -1;
+      hoverScreen = hit ? (hit.object.userData.screen ?? -1) : -1;
       const dBed = Math.hypot(px, pz);
       const nearBed = hoverBed || dBed < K.bed.r + 0.6;
       setHint(nearBed ? '<b>左键</b> 在圆床上入座（任意朝向）'

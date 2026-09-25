@@ -12,7 +12,7 @@
 import * as THREE from 'three';
 import { CFG } from './config.js';
 import { makeCarpetTexture, makeFeltTexture, makePoolBallTexture } from './textures.js';
-import { loadSetting, saveSetting } from './scoring.js';
+import { loadSetting, saveSetting, loadNumberSetting } from './scoring.js';
 import { lockPointer } from './ui.js';
 
 const K = CFG.pool;
@@ -351,15 +351,14 @@ export function createPool({ camera, player, sfx }) {
   let aimT = 0;             // 第一人称 <-> 出杆视角 的插值权重
   let needRack = false;
   let strokes = 0, pottedNum = 0, score = 0, fouls = 0;
-  const num = (k, dft) => { const v = Number(loadSetting(k, '')); return Number.isFinite(v) ? v : dft; };
-  let best = Math.max(0, num('bb.pool.best', 0));
+  let best = Math.max(0, loadNumberSetting('bb.pool.best', 0));
 
   /* ---- 8 球规则机：开球 → 台面开放（未定组）→ 定组 → 清完本组打黑八 ---- */
   let duel = (() => {
     // 存档可能被写坏（老版本键、无痕模式塞进奇怪字符）：非法值一律退回 0=自由练台，
     // 否则 K.duel.levels[NaN-1] 会在取不到 name 时抛错，整间球室直接起不来。
-    const v = Math.trunc(Number(loadSetting('bb.pool.duel', '0')));
-    return Number.isInteger(v) && v > 0 && v <= K.duel.levels.length ? v : 0;
+    const v = Math.trunc(loadNumberSetting('bb.pool.duel', 0));
+    return v > 0 && v <= K.duel.levels.length ? v : 0;
   })();   // 0=自由练台，1~3=对战难度
   let phase = 'idle';       // idle 未开赛 | break 待开球 | open 未定组 | play 已定组 | over 分出胜负
   let turn = 0;             // 0=你 1=电脑

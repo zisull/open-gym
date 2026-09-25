@@ -393,6 +393,9 @@ npm run videos       # 重新打包 video/ 片源
 > （加 `&hold=low` 定帧在拍球最低点供截图）。
 > 主页：`?help=1` 把折叠的「📖 怎么玩」浮层展开来截图，`?demo=help` 断言展开→点 ✕ 收起两步
 > 都真的改到了 DOM（`OPEN hid=0 txt=📖 收起说明 | CLOSE hid=1 txt=📖 怎么玩`）。
+> `?demo=fade` 断言「黑幕没落地就开新局」：进台球室的 420ms 过场中途 `startMode`，
+> 期望 `FADE end loc=gym hud=1`（去掉 `forceGym` 里的 `cancelFade()` 立刻变成 `loc=pool hud=0`）。
+> `?demo=result` 顺带断言结算面板弹出后 `taps=0` 不再增长（拍球声/+2 不许盖在结算上）。
 
 ## 性能选项
 
@@ -404,11 +407,27 @@ Bloom 泛光固定开启（强度低），进球瞬间自动增强。
 
 **HUD/提示全部脏检查**：数值不变不写 DOM；历史最高分缓存在内存，
 不再逐帧读 localStorage；影院换片/删片会释放旧本地片源的 blob URL 防内存泄漏。
+逐帧热路径额外约定（球馆主循环每帧零分配才算合格）：
+- 副标题文案带复用槽 `hudRef`，只有拍球数/命中率/距离倍率真的变了才重新拼字符串；
+- 侧门触发与提示全部用**平方距离**比较（`DOOR_*_R2/DOOR_*_HINT2`），一帧一个开方都不开；
+- 计时条宽度按 0.5%、力度条按 1% 取整后写，`setTimer`/`updatePowerBar` 不再每帧碰 style；
+- 粒子池空了整段跳过模拟与 `position.needsUpdate`（此前每帧固定上传 720 个顶点）；
+- 门口提示只有一个出处（`doorHint()`），状态机与主循环不会再同帧各写一次 innerHTML。
+
+**房间切换表驱动**：`ROOMS = { cinema, pool }` 各写 `door/enter/leave`，
+进出由 `enterRoom(id)` / `exitRoomToGym(id)` 统一走黑幕过场。
+以前四段复制粘贴，漏掉一处 `leave()` 就是"回主菜单还挂着台球入库条"那类 bug；
+新增房间只往表里加一项。`forceGym()` 会 `cancelFade()`：
+进房间的 420ms 黑幕里 `playerLoc` 还没改，所以取消过场必须无条件做（`?demo=fade` 守着）。
 
 **DOM 命名空间**：篮球的节点一律 `power-*`（`power-bar/power-fill/power-sweet`），
 台球自己的节点一律 `pool-*`（`pool-bar/pool-fill/pool-book/…`），影院是 `cb-*`/`cc-*`。
 以前两处都叫 `pb-fill`，`#id` 规则互相覆盖，导致篮球蓄力条"看着消失"、
 台球力度条同时也不动——同名 id 是这类幽灵 bug 的温床，新增 UI 请带场景前缀。
+
+**数值存档只过一个口子**：`loadNumberSetting(key, dft)`（`scoring.js`）把 localStorage 里的坏值
+（老键名、无痕模式塞进来的怪字符）一律退回默认。NaN 进音量会让全部音效失声，
+进 `bb.pool.duel` 会让整间球室起不来——以前 main 与 pool 各写一份解析，现在共用同一个。
 
 地板闪烁已**结构性根治**（此前调偏置无效）：真正原因是球馆壳体盒子的底面
 与地板平面完全共面（都在 y=0），逐像素深度比较来回翻转产生 z-fighting。

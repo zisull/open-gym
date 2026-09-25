@@ -18,6 +18,11 @@ export function saveRecord(modeId, score) {
 export function loadSetting(key, dft) {
   try { const v = localStorage.getItem(key); return v === null ? dft : v; } catch { return dft; }
 }
+/** 数值型设置：存档写坏（老键名、无痕模式塞进怪字符）就退回默认值 —— NaN 会一路毒死音效和 UI */
+export function loadNumberSetting(key, dft) {
+  const v = Number(loadSetting(key, ''));
+  return Number.isFinite(v) ? v : dft;
+}
 export function saveSetting(key, v) {
   try { localStorage.setItem(key, String(v)); } catch { /* noop */ }
 }

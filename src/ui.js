@@ -61,7 +61,7 @@ export class UI {
     this.el.setShadow.addEventListener('change', () => this.cb.onShadow?.(this.el.setShadow.checked));
     this.el.pauseShadow.addEventListener('change', () => this.cb.onShadow?.(this.el.pauseShadow.checked));
     this.el.setVolume.addEventListener('input', () => this.cb.onVolume?.(Number(this.el.setVolume.value)));
-    const help = $('help'), helpBtn = $('btn-help');
+    const help = this.el.help, helpBtn = this.el.helpBtn;   // 用 el 表里的那份，别二次查询
     const setHelp = (open) => {
       help.classList.toggle('hidden', !open);
       helpBtn.textContent = open ? '📖 收起说明' : '📖 怎么玩';
@@ -123,7 +123,12 @@ export class UI {
       this.el.timerText.textContent = sec;
       this.el.timerText.classList.toggle('urgent', urgent);
     }
-    this.el.timerFill.style.width = `${frac * 100}%`;
+    // 进度条按 0.5% 取整再写：90 秒里每帧改 width 只会让布局白重排，肉眼却看不出来
+    const pct = Math.round(frac * 200) / 2;
+    if (pct !== this._lastTimerPct) {
+      this._lastTimerPct = pct;
+      this.el.timerFill.style.width = `${pct}%`;
+    }
   }
 
   setPrompt(html, kind) {
@@ -134,7 +139,7 @@ export class UI {
   }
 
   /* ---------- 中央飘字 ---------- */
-  showScorePopup(points, label, combo) {
+  showScorePopup(points, label) {
     const el = this.el.popup;
     el.innerHTML = (points > 0 ? `+${points}` : '') + (label ? `<small>${label}</small>` : '');
     el.classList.toggle('bad', points === 0 && !!label);
@@ -144,16 +149,21 @@ export class UI {
   /* ---------- 投篮力度条 ---------- */
   showPowerBar(show) { this.el.pbar.classList.toggle('hidden', !show); }
   updatePowerBar(charge, sweetP) {
-    this.el.pFill.style.height = `${charge * 100}%`;
-    this.el.pbar.classList.toggle('maxed', charge >= 0.999);
-    if (sweetP == null) {
-      this.el.pSweet.style.display = 'none';
-    } else {
-      const half = CFG.shot.sweetHalf;
-      this.el.pSweet.style.display = '';
-      this.el.pSweet.style.bottom = `${Math.max(0, sweetP - half) * 100}%`;
-      this.el.pSweet.style.height = `${Math.min(100, half * 2 * 100)}%`;
+    // 力度条每帧都调，但 1% 以下的差别没人看得见：按整数百分比脏检查
+    const pct = Math.round(charge * 100);
+    if (pct !== this._lastCharge) {
+      this._lastCharge = pct;
+      this.el.pFill.style.height = `${pct}%`;
+      this.el.pbar.classList.toggle('maxed', pct >= 100);
     }
+    const sp = sweetP == null ? -1 : Math.round(sweetP * 100);
+    if (sp === this._lastSweet) return;
+    this._lastSweet = sp;
+    if (sp < 0) { this.el.pSweet.style.display = 'none'; return; }
+    const half = CFG.shot.sweetHalf;
+    this.el.pSweet.style.display = '';
+    this.el.pSweet.style.bottom = `${Math.max(0, sweetP - half) * 100}%`;
+    this.el.pSweet.style.height = `${Math.min(100, half * 2 * 100)}%`;
   }
 
   /* ---------- 结算弹窗 ---------- */

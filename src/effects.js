@@ -35,6 +35,7 @@ export class Effects {
     scene.add(this.points);
     this.cursor = 0;
     this._colorsDirty = false; // 颜色只在爆点时变化，避免逐帧上传整个 color buffer
+    this._nAlive = 0;          // 存活粒子数：归零后整段粒子模拟与上传一起跳过
     this.baseCamPos = new THREE.Vector3();
   }
 
@@ -93,24 +94,29 @@ export class Effects {
    * 震动以偏移量形式返回，由 main 叠加到相机上（不污染玩家逻辑位置）。
    */
   update(dt) {
-    // 粒子
-    for (let i = 0; i < MAX_PARTICLES; i++) {
-      if (this.lives[i] <= 0) continue;
-      this.lives[i] -= dt;
-      const p = i * 3;
-      this.vels[p + 1] -= 6.5 * dt;
-      this.positions[p] += this.vels[p] * dt;
-      this.positions[p + 1] += this.vels[p + 1] * dt;
-      this.positions[p + 2] += this.vels[p + 2] * dt;
-      if (this.lives[i] <= 0) {
-        // 藏到远处
-        this.positions[p + 1] = -100;
+    /* 粒子：没有活着的就整段跳过 —— 空池时逐帧上传 720 个顶点对画面毫无贡献 */
+    if (this._nAlive > 0 || this._colorsDirty) {
+      let n = 0;
+      for (let i = 0; i < MAX_PARTICLES; i++) {
+        if (this.lives[i] <= 0) continue;
+        n++;
+        this.lives[i] -= dt;
+        const p = i * 3;
+        this.vels[p + 1] -= 6.5 * dt;
+        this.positions[p] += this.vels[p] * dt;
+        this.positions[p + 1] += this.vels[p + 1] * dt;
+        this.positions[p + 2] += this.vels[p + 2] * dt;
+        if (this.lives[i] <= 0) {
+          // 藏到远处
+          this.positions[p + 1] = -100;
+        }
       }
-    }
-    this.points.geometry.attributes.position.needsUpdate = true;
-    if (this._colorsDirty) {
-      this.points.geometry.attributes.color.needsUpdate = true;
-      this._colorsDirty = false;
+      this._nAlive = n;
+      this.points.geometry.attributes.position.needsUpdate = true;
+      if (this._colorsDirty) {
+        this.points.geometry.attributes.color.needsUpdate = true;
+        this._colorsDirty = false;
+      }
     }
 
     // Bloom 脉冲指数衰减

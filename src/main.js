@@ -19,7 +19,7 @@ import { GameBall } from './ball.js';
 import { Player } from './player.js';
 import { Effects } from './effects.js';
 import { StateMachine, NoBallState, HoldState, ShotState, randomShotSpot } from './states.js';
-import { ScoreManager, loadRecord, loadSetting, saveSetting, LS_SHADOW, LS_VOLUME } from './scoring.js';
+import { ScoreManager, loadRecord, loadSetting, saveSetting, loadNumberSetting, LS_SHADOW, LS_VOLUME } from './scoring.js';
 import { Sfx } from './audio.js';
 import { UI, lockPointer } from './ui.js';
 
@@ -72,87 +72,102 @@ const sfx = new Sfx();
 const ui = new UI();
 player.onLand = () => sfx.play('bounce', { volume: 0.3, rate: 0.72 });
 
-/* ================= 电影院（独立场景 + 过场切换） ================= */
+/* ================= 电影院 / 台球室（各自独立场景 + 过场切换） ================= */
 const cinema = createCinema({ camera, player, sfx });
 cinema.scene.environment = scene.environment;   // 复用 PMREM 环境贴图
-let playerLoc = 'gym';                            // gym | cinema
+const pool = createPool({ camera, player, sfx });
+pool.scene.environment = scene.environment;
+let playerLoc = 'gym';                            // gym | cinema | pool
 let fading = false;
 const fadeEl = document.getElementById('fade');
 const hudEl = document.getElementById('hud');
+
+const FADE_BLACK = 420;   // 黑幕压住换场景的脏帧
+const FADE_TAIL = 120;
+let fadeTimerA = 0, fadeTimerB = 0;
 
 function fadeTo(swap) {
   if (fading) return;
   fading = true;
   fadeEl.classList.add('on');
-  setTimeout(() => {
+  fadeTimerA = setTimeout(() => {
+    fadeTimerA = 0;
     swap();
-    setTimeout(() => { fadeEl.classList.remove('on'); fading = false; }, 120);
-  }, 420);
+    fadeTimerB = setTimeout(() => { fadeTimerB = 0; fadeEl.classList.remove('on'); fading = false; }, FADE_TAIL);
+  }, FADE_BLACK);
 }
-function enterCinema() {
+/** 掐掉还没落地的换场景：黑幕中途回主菜单，若不取消，420ms 后人会凭空被塞进房间 */
+function cancelFade() {
+  clearTimeout(fadeTimerA); clearTimeout(fadeTimerB);
+  fadeTimerA = fadeTimerB = 0;
+}
+
+/* ---- 房间表：进出的公共动作（换渲染场景、藏球馆 HUD）写一份，差异只落在表里 ----
+   曾经四段复制粘贴，其中一段漏了收入库条 —— 多房间就靠这张表对齐。 */
+const DOOR_C = CFG.cinema.gymDoor;
+const DOOR_P = CFG.pool.gymDoor;
+// 门触发/提示的阈值一次算成平方值：球馆主循环里不再出现开方
+const DOOR_C_R2 = DOOR_C.r * DOOR_C.r, DOOR_C_HINT2 = DOOR_C.hint * DOOR_C.hint;
+const DOOR_P_R2 = DOOR_P.r * DOOR_P.r, DOOR_P_HINT2 = DOOR_P.hint * DOOR_P.hint;
+const DOOR_SPAWN = 2.4;   // 离开门回球馆时落在门后这么远，免得又被门立即吸回去
+const HINT_CINEMA = '🎬 <b>走进红门</b> 去电影院看场电影';
+const HINT_POOL = '🎱 <b>走进绿门</b> 去台球室开一杆';
+/** 门边提示：走到门附近就顶替常规操作提示。状态机与主循环共用这一个出处，才不会同帧两次改写 HUD */
+function doorHint() {
+  const cdx = player.pos.x - DOOR_C.x, cdz = player.pos.z - DOOR_C.z;
+  const pdx = player.pos.x - DOOR_P.x, pdz = player.pos.z - DOOR_P.z;
+  if (cdx * cdx + cdz * cdz < DOOR_C_HINT2) return HINT_CINEMA;
+  if (pdx * pdx + pdz * pdz < DOOR_P_HINT2) return HINT_POOL;
+  return '';
+}
+const ROOMS = {
+  cinema: {
+    door: DOOR_C,
+    api: cinema,
+    enter: () => { cinema.enter(); cinema.ensurePlaylist(); },
+    leave: () => cinema.exit(),
+  },
+  pool: {
+    door: DOOR_P,
+    api: pool,
+    // 台球室不用准星（导向线就是瞄准器），离场再还回来
+    enter: () => { ui.el.cross.classList.add('hidden'); pool.enter(); },
+    leave: () => { setPoolHud(false); pool.exit(); ui.el.cross.classList.remove('hidden'); },
+  },
+};
+function enterRoom(id) {
+  const R = ROOMS[id];
   fadeTo(() => {
-    playerLoc = 'cinema';
-    renderPass.scene = cinema.scene;
+    playerLoc = id;
+    renderPass.scene = R.api.scene;
     hudEl.classList.add('hidden');
-    cinema.enter();
-    cinema.ensurePlaylist();
+    R.enter();
     sfx.play('ui');
   });
 }
-function exitCinemaToGym() {
+function exitRoomToGym(id) {
+  const R = ROOMS[id];
   fadeTo(() => {
-    cinema.exit();
+    R.leave();
     playerLoc = 'gym';
     renderPass.scene = scene;
-    const D = CFG.cinema.gymDoor;
-    player.pos.set(D.x, 0, D.z - 2.4);
+    const D = R.door;
+    player.pos.set(D.x, 0, D.z - DOOR_SPAWN);
     player.vel.set(0, 0, 0);
     player.freeYaw = Math.atan2(D.x, player.pos.z); // 面向场地中心（yaw=atan2(-dx,-dz) 化简）
     player.freePitch = 0;
     ui.showHud(G.modeDef.name, G.modeDef.timed);
   });
 }
-cinema.onExitRequest = exitCinemaToGym;
-
-/* ================= 台球室（同样独立场景，球馆左侧绿门进入） ================= */
-const pool = createPool({ camera, player, sfx });
-pool.scene.environment = scene.environment;
-function enterPool() {
-  fadeTo(() => {
-    playerLoc = 'pool';
-    renderPass.scene = pool.scene;
-    hudEl.classList.add('hidden');
-    ui.el.cross.classList.add('hidden');     // 台球室里不用准星（导向线就是瞄准器）
-    pool.enter();
-    sfx.play('ui');
-  });
-}
-function exitPoolToGym() {
-  fadeTo(() => {
-    setPoolHud(false);
-    pool.exit();
-    playerLoc = 'gym';
-    renderPass.scene = scene;
-    const D = CFG.pool.gymDoor;
-    player.pos.set(D.x, 0, D.z - 2.4);
-    player.vel.set(0, 0, 0);
-    player.freeYaw = Math.atan2(D.x, player.pos.z); // 面向场地中心（与影院出口同一套算法）
-    player.freePitch = 0;
-    ui.el.cross.classList.remove('hidden');
-    ui.showHud(G.modeDef.name, G.modeDef.timed);
-  });
-}
-pool.onExitRequest = exitPoolToGym;
+cinema.onExitRequest = () => exitRoomToGym('cinema');
+pool.onExitRequest = () => exitRoomToGym('pool');
 /** 任何"回球馆玩法"的入口前调用：硬切回球馆场景 */
 function forceGym() {
-  if (playerLoc === 'cinema') cinema.exit();
-  else if (playerLoc === 'pool') {
-    playerLoc = 'gym';   // 先改地点：否则 setPoolHud(false) 里"回瞄准就重锁指针"会在离场时误触发
-    setPoolHud(false);
-    pool.exit();
-  }
-  else return;
-  playerLoc = 'gym';
+  // 先进球馆的过场里 playerLoc 还没改（换场景写在黑幕里），所以取消过场必须无条件做
+  cancelFade();
+  const id = playerLoc;
+  playerLoc = 'gym';   // 先改地点：否则 setPoolHud(false) 里"回瞄准就重锁指针"会在离场时误触发
+  if (id !== 'gym') ROOMS[id].leave();
   renderPass.scene = scene;
   fadeEl.classList.remove('on');
   fading = false;
@@ -161,7 +176,7 @@ function forceGym() {
 /* ================= 状态机装配 ================= */
 const netSway = { t: 0 };
 const G = {
-  camera, player, ball, scoring, sfx, fx, ui,
+  camera, player, ball, scoring, sfx, fx, ui, doorHint,
   modeDef: CFG.MODES.free,
   netSway: () => { netSway.t = 1; },
 };
@@ -177,6 +192,8 @@ let currentModeId = 'free';
 let menuCamAngle = 0;
 let lastSecond = -1;
 let bestCache = 0; // 当前模式纪录缓存：避免逐帧读 localStorage
+// 副标题文案的复用槽：只有里面的数字变了才重新拼字符串（见 tick 的 HUD 段）
+const hudRef = { free: null, mul10: -1, n1: -1, made: -1, taken: -1, live: '' };
 
 function refreshMenu() {
   forceGym();
@@ -296,9 +313,8 @@ function applyShadow(on) {
 applyShadow(shadowOn);
 
 // 音量记忆：存档写坏时退回默认（NaN 会污染 GainNode，让所有音效失声）
-const rawVol = Number(loadSetting(LS_VOLUME, 0.8));
-const savedVol = THREE.MathUtils.clamp(Number.isFinite(rawVol) ? rawVol : 0.8, 0, 1);
-document.getElementById('set-volume').value = savedVol;
+const savedVol = THREE.MathUtils.clamp(loadNumberSetting(LS_VOLUME, 0.8), 0, 1);
+ui.el.setVolume.value = savedVol;
 window.BB_VOLUME = savedVol;
 
 /* ================= 输入 ================= */
@@ -501,15 +517,13 @@ function tick() {
     machine.update(dt);
     player.update(dt);
 
-    /* ---- 两扇侧门入口触发 + 提示 ---- */
+    /* ---- 两扇侧门：踩进半径就传送，靠近就接管提示（全程平方距离，见门常量处的注释） ---- */
     if (gameState === 'playing') {
-      const D = CFG.cinema.gymDoor, P = CFG.pool.gymDoor;
-      const dDoor = Math.hypot(player.pos.x - D.x, player.pos.z - D.z);
-      const dPool = Math.hypot(player.pos.x - P.x, player.pos.z - P.z);
-      if (dDoor < D.r) enterCinema();
-      else if (dPool < P.r) enterPool();
-      else if (dDoor < 3.6) ui.setPrompt('🎬 <b>走进红门</b> 去电影院看场电影');
-      else if (dPool < 3.6) ui.setPrompt('🎱 <b>走进绿门</b> 去台球室开一杆');
+      const cdx = player.pos.x - DOOR_C.x, cdz = player.pos.z - DOOR_C.z;
+      const pdx = player.pos.x - DOOR_P.x, pdz = player.pos.z - DOOR_P.z;
+      if (cdx * cdx + cdz * cdz < DOOR_C_R2) enterRoom('cinema');
+      else if (pdx * pdx + pdz * pdz < DOOR_P_R2) enterRoom('pool');
+      else { const hint = doorHint(); if (hint) ui.setPrompt(hint); }
     }
 
     /* ---- 挑战倒计时 ---- */
@@ -524,16 +538,24 @@ function tick() {
       ui.setTimer(scoring.timeLeft, scoring.timeLeft / CFG.challenge.duration, scoring.timeLeft <= 10);
     }
 
-    /* ---- HUD ---- */
+    /* ---- HUD：数字真变了才重建文案（逐帧拼字符串 + toFixed 是白付的分配） ---- */
     const curDist = Math.hypot(player.pos.x - RIM_POS.x, player.pos.z - RIM_POS.z);
-    const dMul = ScoreManager.distanceMultiplier(curDist).toFixed(1);
-    const live = scoring.mode.id === 'free'
-      ? `拍球 ${scoring.taps} 次 · 投篮 ${scoring.shotMade}/${scoring.shotTaken} · 当前距离×${dMul}`
-      : `进 ${scoring.shotMade} · 换位 ${scoring.spots} 次 · 当前距离×${dMul}`;
+    const mul10 = Math.round(ScoreManager.distanceMultiplier(curDist) * 10);
+    const free = scoring.mode.id === 'free';
+    const n1 = free ? scoring.taps : scoring.spots;
+    if (free !== hudRef.free || mul10 !== hudRef.mul10 ||
+      n1 !== hudRef.n1 || scoring.shotMade !== hudRef.made || scoring.shotTaken !== hudRef.taken) {
+      hudRef.free = free; hudRef.mul10 = mul10; hudRef.n1 = n1;
+      hudRef.made = scoring.shotMade; hudRef.taken = scoring.shotTaken;
+      const dMul = (mul10 / 10).toFixed(1);
+      hudRef.live = free
+        ? `拍球 ${scoring.taps} 次 · 投篮 ${scoring.shotMade}/${scoring.shotTaken} · 当前距离×${dMul}`
+        : `进 ${scoring.shotMade} · 换位 ${scoring.spots} 次 · 当前距离×${dMul}`;
+    }
     ui.setScore(
       scoring.displayScore,
       Math.max(bestCache, scoring.displayScore),
-      live
+      hudRef.live
     );
     ui.setCombos(scoring.shotCombo, scoring.shotMultiplier());
     }
@@ -588,8 +610,7 @@ try {
   const params = new URLSearchParams(location.search);
   window.GAME = {
     startMode, finishSession, machine, scoring, ui, player, ball, fx,
-    enterCinema, exitCinemaToGym, cinema,
-    enterPool, exitPoolToGym, pool,
+    enterRoom, exitRoomToGym, cinema, pool,
     get state() { return gameState; },
     get location() { return playerLoc; },
     teleport: (x, z) => { player.pos.set(x, 0, z); },
@@ -598,8 +619,8 @@ try {
   const m = params.get('mode');
   const demo = params.get('demo'); // shot|result：自动演示（截图验证用）
   if (m && CFG.MODES[m]) setTimeout(() => startMode(m), 400);
-  if (params.get('loc') === 'cinema') setTimeout(() => enterCinema(), 1100);
-  if (params.get('loc') === 'pool') setTimeout(() => enterPool(), 1100);
+  if (params.get('loc') === 'cinema') setTimeout(() => enterRoom('cinema'), 1100);
+  if (params.get('loc') === 'pool') setTimeout(() => enterRoom('pool'), 1100);
   if (params.get('help')) setTimeout(() => document.getElementById('btn-help').click(), 300);   // ?help=1：把折叠的玩法说明展开来截图
   const tp = params.get('tp'); // tp=x,z,yaw[,pitch]：调试传送
   if (tp) setTimeout(() => {
@@ -642,6 +663,14 @@ try {
     const s = () => `hid=${h.classList.contains('hidden') ? 1 : 0} txt=${btn.textContent}`;
     setTimeout(() => { btn.click(); mark(`OPEN ${s()}`); }, 600);
     setTimeout(() => { close.click(); mark(`CLOSE ${s()}`); }, 1000);
+  }
+  if (demo === 'fade') {
+    // 过场中途硬切：黑幕里 pending 的换场景必须掐掉。
+    // 进房间时 playerLoc 还是 gym（换场景写在黑幕里），所以「无条件取消」这一点由这条断言守住。
+    const hudOn = () => (document.getElementById('hud').classList.contains('hidden') ? 0 : 1);
+    setTimeout(() => enterRoom('pool'), 1000);
+    setTimeout(() => startMode('free'), 1250);   // 420ms 黑幕还没落地就开新局
+    setTimeout(() => mark(`FADE end loc=${GAME.location} hud=${hudOn()} poolMode=${pool.debugPool().mode}`), 2600);
   }
   if (demo === 'save') {
     // 两段式持久化断言：写死「环上 5 部片（第 1/3/5 有片、第 2/4 是空洞）」，
@@ -1308,8 +1337,9 @@ try {
       finishSession();
     }, 1200);
     // Enter = 再来一局（结算面板上不用去找鼠标）
+    // 结算后持球状态还在跑：taps 必须钉在 0（否则拍球声和 +2 飘字会盖在结算面板上）
     setTimeout(() => {
-      mark(`RES 面板=${document.getElementById('result').classList.contains('hidden') ? 0 : 1} state=${GAME.state}`);
+      mark(`RES 面板=${document.getElementById('result').classList.contains('hidden') ? 0 : 1} state=${GAME.state} taps=${scoring.taps}`);
       dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
     }, 1800);
     setTimeout(() => mark(`RES Enter后 面板=${document.getElementById('result').classList.contains('hidden') ? 0 : 1} state=${GAME.state}`), 2600);
