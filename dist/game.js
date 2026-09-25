@@ -30458,6 +30458,8 @@
             menu: $("menu"),
             pause: $("pause"),
             result: $("result"),
+            help: $("help"),
+            helpBtn: $("btn-help"),
             badgeNew: $("badge-new"),
             resTitle: $("res-title"),
             resScore: $("res-score"),
@@ -30498,6 +30500,20 @@
           this.el.setShadow.addEventListener("change", () => this.cb.onShadow?.(this.el.setShadow.checked));
           this.el.pauseShadow.addEventListener("change", () => this.cb.onShadow?.(this.el.pauseShadow.checked));
           this.el.setVolume.addEventListener("input", () => this.cb.onVolume?.(Number(this.el.setVolume.value)));
+          const help = $("help"), helpBtn = $("btn-help");
+          const setHelp = (open) => {
+            help.classList.toggle("hidden", !open);
+            helpBtn.textContent = open ? "\u{1F4D6} \u6536\u8D77\u8BF4\u660E" : "\u{1F4D6} \u600E\u4E48\u73A9";
+          };
+          this._setHelp = setHelp;
+          helpBtn.addEventListener("click", () => {
+            helpBtn.blur();
+            setHelp(help.classList.contains("hidden"));
+          });
+          $("help-close").addEventListener("click", () => {
+            helpBtn.blur();
+            setHelp(false);
+          });
         }
         /* ---------- 主菜单 ---------- */
         showMenu(records) {
@@ -30508,6 +30524,7 @@
           this.el.pause.classList.add("hidden");
           this.el.recFree.textContent = records.free;
           this.el.recShot.textContent = records.shot;
+          this._setHelp(false);
         }
         hideMenu() {
           this.el.menu.classList.add("hidden");
@@ -34568,6 +34585,7 @@
         if (m && CFG.MODES[m]) setTimeout(() => startMode(m), 400);
         if (params.get("loc") === "cinema") setTimeout(() => enterCinema(), 1100);
         if (params.get("loc") === "pool") setTimeout(() => enterPool(), 1100);
+        if (params.get("help")) setTimeout(() => document.getElementById("btn-help").click(), 300);
         const tp = params.get("tp");
         if (tp) setTimeout(() => {
           const [x, z, y, p] = tp.split(",").map(Number);
@@ -34606,6 +34624,20 @@
             dbg.textContent = marks.join(" | ");
           };
           addEventListener("error", (e) => mark(`ERR ${e.message} @${e.filename?.split("/").pop()}:${e.lineno}`));
+        }
+        if (demo === "help") {
+          const btn = document.getElementById("btn-help");
+          const close = document.getElementById("help-close");
+          const h = document.getElementById("help");
+          const s = () => `hid=${h.classList.contains("hidden") ? 1 : 0} txt=${btn.textContent}`;
+          setTimeout(() => {
+            btn.click();
+            mark(`OPEN ${s()}`);
+          }, 600);
+          setTimeout(() => {
+            close.click();
+            mark(`CLOSE ${s()}`);
+          }, 1e3);
         }
         if (demo === "save") {
           setTimeout(() => {

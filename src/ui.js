@@ -27,6 +27,7 @@ export class UI {
       prompt: $('hud-prompt'), popup: $('score-popup'),
       pbar: $('power-bar'), pFill: $('power-fill'), pSweet: $('power-sweet'),
       menu: $('menu'), pause: $('pause'), result: $('result'),
+      help: $('help'), helpBtn: $('btn-help'),
       badgeNew: $('badge-new'), resTitle: $('res-title'), resScore: $('res-score'),
       resScoreLabel: $('res-score-label'), resLines: $('res-lines'), resShare: $('res-share'),
       recFree: $('rec-free'), recShot: $('rec-shot'),
@@ -60,6 +61,18 @@ export class UI {
     this.el.setShadow.addEventListener('change', () => this.cb.onShadow?.(this.el.setShadow.checked));
     this.el.pauseShadow.addEventListener('change', () => this.cb.onShadow?.(this.el.pauseShadow.checked));
     this.el.setVolume.addEventListener('input', () => this.cb.onVolume?.(Number(this.el.setVolume.value)));
+    const help = $('help'), helpBtn = $('btn-help');
+    const setHelp = (open) => {
+      help.classList.toggle('hidden', !open);
+      helpBtn.textContent = open ? '📖 收起说明' : '📖 怎么玩';
+    };
+    this._setHelp = setHelp;
+    // 两颗按钮都是"收起"，浮层右上角的 ✕ 是让手已经在鼠标上的人少挪一段
+    helpBtn.addEventListener('click', () => {
+      helpBtn.blur();   // 否则回车/空格会又触发这颗刚点过的按钮
+      setHelp(help.classList.contains('hidden'));
+    });
+    $('help-close').addEventListener('click', () => { helpBtn.blur(); setHelp(false); });
   }
 
   /* ---------- 主菜单 ---------- */
@@ -71,6 +84,8 @@ export class UI {
     this.el.pause.classList.add('hidden');
     this.el.recFree.textContent = records.free;
     this.el.recShot.textContent = records.shot;
+    // 回主菜单一律收起说明：主页永远保持"两卡片 + 一条键位"的极简样子
+    this._setHelp(false);
   }
   hideMenu() { this.el.menu.classList.add('hidden'); }
 

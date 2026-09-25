@@ -596,6 +596,7 @@ try {
   if (m && CFG.MODES[m]) setTimeout(() => startMode(m), 400);
   if (params.get('loc') === 'cinema') setTimeout(() => enterCinema(), 1100);
   if (params.get('loc') === 'pool') setTimeout(() => enterPool(), 1100);
+  if (params.get('help')) setTimeout(() => document.getElementById('btn-help').click(), 300);   // ?help=1：把折叠的玩法说明展开来截图
   const tp = params.get('tp'); // tp=x,z,yaw[,pitch]：调试传送
   if (tp) setTimeout(() => {
     const [x, z, y, p] = tp.split(',').map(Number);
@@ -628,6 +629,15 @@ try {
     };
     // 任何 demo 分支跑飞了都要能在截图里看见，而不是留下一张莫名其妙的黑图
     addEventListener('error', (e) => mark(`ERR ${e.message} @${e.filename?.split('/').pop()}:${e.lineno}`));
+  }
+  if (demo === 'help') {
+    // 主页折叠说明：点「📖 怎么玩」展开 → 点浮层 ✕ 收起，断言读真实 DOM 的 hidden 与按钮文字
+    const btn = document.getElementById('btn-help');
+    const close = document.getElementById('help-close');
+    const h = document.getElementById('help');
+    const s = () => `hid=${h.classList.contains('hidden') ? 1 : 0} txt=${btn.textContent}`;
+    setTimeout(() => { btn.click(); mark(`OPEN ${s()}`); }, 600);
+    setTimeout(() => { close.click(); mark(`CLOSE ${s()}`); }, 1000);
   }
   if (demo === 'save') {
     // 两段式持久化断言：写死「环上 5 部片（第 1/3/5 有片、第 2/4 是空洞）」，
