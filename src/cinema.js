@@ -4,8 +4,11 @@
  * 贴天花板）**，屏数 = 片源数（3 个就 3 块、5 个就 5 块），每块吃满自己的等分槽位弧（比自身
  * 宽高比略宽时按 cover 等比裁剪，不拉伸变形），所以片源一多就自动铺满一整圈。中央圆形小床
  * （无围栏，视线通透），任意角度入座、按住拖拽环视、滚轮变焦，控制条可一键收起。
- * 「放大观看」的大屏墙同时是片源管理器：每格右上角 ✕ 删片、末格 ＋ 加片（追加）。
- * 出口门走回球场。
+ * 片源管理统一在放映控制台（抽屉）：一行一部管出声/播停/删片，底部换片单、加入、恢复默认；
+ * 「放大观看」宫格只做切出声。
+ * 「隐藏出口」后门洞从厅壳里缺掉的那一角被补成完整 360°，屏位随之吃满整圈，退出改点放映条
+ * 的「🚪 退出影院」（此时红门不再参与射线检测，不会挡住身后的床与银幕）。
+ * 「开始播放」会把当次片单名字存成历史快照（bb.cinema.playlists），控制台底部一键换回。
  * file:// 下本地相对路径视频会污染 WebGL 贴图，因此片源只允许
  * data:（video/manifest.js 内嵌短片）或 blob:（"选择视频"文件）两种同源形式。
  */
@@ -16,11 +19,19 @@ import { makeDoorSignTexture, makeScreenPlaceholderTexture, makeCarpetTexture } 
 const K = CFG.cinema;
 const R = K.ring.r;
 const H = K.ring.height;
-const GAP = (K.door.gapDeg * Math.PI) / 180; // 门洞占的圆心角
-const SPAN = Math.PI * 2 - GAP;              // 可用于排银幕的圆心角
+const GAP = (K.door.gapDeg * Math.PI) / 180; // 出口门开着时占掉的圆心角（隐藏出口后为整圈 360°）
 const DEG = Math.PI / 180;
+const DOOR_KEY = 'bb.cinema.door';
+/** 上次的「隐藏出口」选择：黑匣子模式下环墙一整圈都能挂幕 */
+function loadDoorOn() {
+  try { return localStorage.getItem(DOOR_KEY) !== '0'; } catch (e) { return true; }
+}
 /** 环上某角度处的位置（约定同 CylinderGeometry：theta=0 在 +z，x=R·sin, z=R·cos） */
 const ringAt = (a, r = R) => ({ x: Math.sin(a) * r, z: Math.cos(a) * r });
+/** 厅壳壁面：门洞开着就缺那一角，隐藏出口后是完整一圈 */
+function shellGeo(span) {
+  return new THREE.CylinderGeometry(R, R, H, 96, 1, true, (Math.PI * 2 - span) / 2, span);
+}
 
 /** 创建离屏 <video>：必须保持渲染（opacity .01 而非 display:none）才会持续解码出帧 */
 function makeVideoEl() {
@@ -38,9 +49,12 @@ export function createCinema({ camera, player, sfx }) {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x06070b);
 
+  let doorOn = loadDoorOn(); // 「隐藏出口」开关（存档记忆）
+  const spanOf = () => Math.PI * 2 - (doorOn ? GAP : 0);
+
   /* ================= 圆筒黑匣子（壁/顶/地三者不共面，从结构上杜绝闪烁） ========= */
   const wall = new THREE.Mesh(
-    new THREE.CylinderGeometry(R, R, H, 96, 1, true, GAP / 2, SPAN),
+    shellGeo(spanOf()),
     new THREE.MeshStandardMaterial({ color: 0x14161d, roughness: 0.95, metalness: 0, side: THREE.BackSide, envMapIntensity: 0.1 })
   );
   wall.position.y = H / 2;
@@ -179,8 +193,9 @@ export function createCinema({ camera, player, sfx }) {
     }
     screens.length = 0;
     const n = Math.max(sources.length, 1);
-    const slot = SPAN / n;
-    for (let i = 0; i < n; i++) screens.push(makeScreen(sources[i] || null, GAP / 2 + slot * (i + 0.5), slot));
+    const gap = doorOn ? GAP : 0;
+    const slot = (Math.PI * 2 - gap) / n;
+    for (let i = 0; i < n; i++) screens.push(makeScreen(sources[i] || null, gap / 2 + slot * (i + 0.5), slot));
     syncVoices();
     applyAudio(); // 新建的 <video> 一律 muted，必须在这里按出声集合重新放行
     layoutBigGrid(document.body.classList.contains('big-screen'));
@@ -284,6 +299,32 @@ export function createCinema({ camera, player, sfx }) {
   }
   scene.add(exitGroup);
   const exitHit = exitGroup.children[1]; // 门板本体作为点击目标
+  exitGroup.visible = doorOn;
+
+  /**
+   * 隐藏/显示出口门。隐藏后：门洞补成整圈墙（黑匣子不漏光），银幕从「缺 14° 的一圈」
+   * 变成「完整 360° 一圈」，观看沉浸感更好；此时退出厅只能走放映条上的「⏏ 退出放映厅」。
+   */
+  function setDoor(on) {
+    doorOn = !!on;
+    try { localStorage.setItem(DOOR_KEY, doorOn ? '1' : '0'); } catch (e) { /* 存不了不影响放映 */ }
+    wall.geometry.dispose();
+    wall.geometry = shellGeo(spanOf());
+    exitGroup.visible = doorOn;
+    rebuild(); // 可用弧变了，屏位要重排
+    renderDoorBtn();
+    setStatus(doorOn
+      ? '🚪 出口门已恢复：走到门口或点放映条都能回球场'
+      : '🚪 出口已隐藏：整圈墙都是银幕，回球场点放映条「⏏ 退出放映厅」');
+    sfx.play('ui', { volume: 0.4 });
+  }
+  function renderDoorBtn() {
+    const b = $('cb-door');
+    if (!b) return;
+    b.textContent = doorOn ? '🚪 隐藏出口' : '🚪 恢复出口';
+    b.classList.toggle('on', !doorOn);
+    b.title = doorOn ? '收起门洞：整圈墙都能挂幕，退出改走放映条按钮' : '把出口门亮回来：走到门口自动回球场';
+  }
 
   /* ================= 片源列表与持久化 =================
      一条规则：环上有几块屏 = 列表里有几部片。「选择视频」支持多选，**这次选的就是全部
@@ -333,6 +374,77 @@ export function createCinema({ camera, player, sfx }) {
       : '还没有片源：把视频放进 video/，或在控制台里「📂 换片单」');
   }
 
+  /* ================= 播放过的片单（快照历史）=================
+     「开始播放」那一刻就记一份当次片源清单（含空洞位置，所以环上排布也一并复原），
+     下次在控制台点一下就能整条换回任何一次。只有 video/ 常驻片能直接接回来；当时临时
+     选的本地大文件重开拿不到句柄，恢复后那个位置是占位空洞，chip 上写明「几部需重选」。 */
+  const HIST_KEY = 'bb.cinema.playlists';
+  function loadPlaylists() {
+    try {
+      const a = JSON.parse(localStorage.getItem(HIST_KEY) || '[]');
+      return Array.isArray(a) ? a.filter((p) => p && Array.isArray(p.list)) : [];
+    } catch (e) { return []; }
+  }
+  const fmtTime = (t) => {
+    const d = new Date(t), p = (x) => String(x).padStart(2, '0');
+    return `${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+  };
+  let playlists = loadPlaylists();
+  function savePlaylists() {
+    try { localStorage.setItem(HIST_KEY, JSON.stringify(playlists)); } catch (e) { /* 存不了不影响放映 */ }
+  }
+  const curVoices = () => screens.filter((s, i) => voices.has(i) && s.src).map((s) => s.src.name);
+  /** 记一份当前清单：命中已有条目就把它提到最前（换回旧片单不该在历史里留副本），否则新增 */
+  function snapshot() {
+    const list = sources.map((s) => (s ? s.name : null));
+    if (!list.some(Boolean)) return;
+    const key = list.join('|');
+    const at = playlists.findIndex((p) => p.list.join('|') === key);
+    if (at >= 0) {
+      const [p] = playlists.splice(at, 1);
+      p.voices = curVoices();
+      playlists.unshift(p);
+    } else {
+      playlists.unshift({ t: Date.now(), list, voices: curVoices() });
+      playlists = playlists.slice(0, 6);
+    }
+    savePlaylists();
+    renderPlaylists();
+  }
+  function restorePlaylist(p) {
+    const old = sources;
+    sources = p.list.slice(0, K.maxScreens).map((n) => {
+      const it = n ? LIB.find((x) => x.name === n) : null;
+      return it ? { name: it.name, url: it.url } : null;
+    });
+    old.forEach(disposeSource);
+    voiceNames = (Array.isArray(p.voices) ? p.voices : []).slice(); // 连当时的多路出声一起换回
+    rebuild();
+    playAll();
+    const holes = sources.filter((s) => !s).length;
+    setStatus(`⏳ 已换回 ${fmtTime(p.t)} 那份片单：${sources.length} 块屏`
+      + (holes ? `，其中 ${holes} 块当时是本地文件，需重新选一次文件` : ''));
+  }
+  function renderPlaylists() {
+    const box = $('cc-hist');
+    if (!box) return;
+    box.textContent = '';
+    // 只有一份时它就是正在放的这份，没有可恢复的历史，整行不占地方
+    box.classList.toggle('hidden', playlists.length < 2);
+    const lbl = document.createElement('span');
+    lbl.className = 'lbl';
+    lbl.textContent = '⏳ 播放过：';
+    box.appendChild(lbl);
+    playlists.forEach((p, k) => {
+      const b = document.createElement('button');
+      b.className = 'btn cc-chip' + (k === 0 ? ' on' : '');
+      b.textContent = `${k === 0 ? '● ' : ''}${fmtTime(p.t)} · ${p.list.filter(Boolean).length}部`;
+      b.title = `${p.list.filter(Boolean).join('、') || '（空）'}${k === 0 ? '（正在放这份）' : ' —— 点击整条换回'}`;
+      b.addEventListener('click', () => restorePlaylist(p));
+      box.appendChild(b);
+    });
+  }
+
   sources = loadSources();
   try {
     const v = localStorage.getItem('bb.cinema.vol');
@@ -340,6 +452,7 @@ export function createCinema({ camera, player, sfx }) {
   } catch (e) { /* 无痕模式读不到就用默认值 */ }
   rebuild();
   refreshStatus();
+  renderDoorBtn(); // 「隐藏出口」的按钮态要和存档一致
 
   function syncPlayBtn() {
     playBtn.textContent = screens.some((o) => o.src && !o.videoEl.paused) ? '⏸ 暂停' : '▶ 播放';
@@ -351,6 +464,7 @@ export function createCinema({ camera, player, sfx }) {
     });
     applyAudio();
     playBtn.textContent = '⏸ 暂停';
+    snapshot(); // 「开始播放」这一刻记一份当次片源清单，供下次一键换回
   }
   function pauseAll() {
     screens.forEach((s) => s.videoEl.pause());
@@ -527,6 +641,8 @@ export function createCinema({ camera, player, sfx }) {
     $('cb-big').textContent = on ? '⛶ 回到影厅视角' : '⛶ 放大观看';
   });
   $('cb-stand').addEventListener('click', () => stand());
+  $('cb-exit').addEventListener('click', () => { if (api.onExitRequest) api.onExitRequest(); });
+  $('cb-door').addEventListener('click', () => setDoor(!doorOn));
   $('cb-reset').addEventListener('click', () => {
     const old = sources;
     sources = defaultSources();
@@ -666,11 +782,12 @@ export function createCinema({ camera, player, sfx }) {
     } catch (e) { /* 旧浏览器同步抛错同样忽略 */ }
   }
 
-  /* ================= 对外接口 ================= */
+  /* ================= 对外接口（api 命名：按钮回调里也要能拿到 onExitRequest） ================= */
 
-  return {
+  const api = {
     scene,
     get seated() { return seated; },
+    get doorVisible() { return doorOn; },
     onExitRequest: null,
 
     enter() {
@@ -688,7 +805,8 @@ export function createCinema({ camera, player, sfx }) {
       applyZoom();
       canvasLock();                 // 走动状态锁指针（与球馆一致）
       if (!sources.some(Boolean)) { sources = loadSources(); rebuild(); refreshStatus(); }
-      setHint('<b>左键</b> 点屏幕切换出声 · 靠近圆床 <b>左键</b> 入座 · 走向 <b>出口门</b> 回球场');
+      setHint('<b>左键</b> 点屏幕切换出声 · 靠近圆床 <b>左键</b> 入座 · '
+        + (doorOn ? '走向 <b>出口门</b> 回球场' : '出口已隐藏，点放映条 <b>⏏ 退出放映厅</b> 回球场'));
     },
     exit() {
       stand();
@@ -712,16 +830,16 @@ export function createCinema({ camera, player, sfx }) {
         player.pos.x = K.bed.x + (player.pos.x - K.bed.x) * k;
         player.pos.z = K.bed.z + (player.pos.z - K.bed.z) * k;
       }
-      // 准星射线：圆床 / 出口门 / 环上所有银幕
+      // 准星射线：圆床 / 出口门（隐藏出口时不参与，免得挡住身后的幕）/ 环上所有银幕
       raycaster.setFromCamera({ x: 0, y: 0 }, camera);
-      const targets = [bedHit, exitHit, ...screens.map((s) => s.mesh)];
+      const targets = [bedHit, ...(doorOn ? [exitHit] : []), ...screens.map((s) => s.mesh)];
       const hits = raycaster.intersectObjects(targets, false);
       const hit = hits.find((h) => h.distance < 20) || null;
       hoverBed = !!hit && hit.object === bedHit;
-      hoverExit = !!hit && hit.object === exitHit;
+      hoverExit = doorOn && !!hit && hit.object === exitHit;
       hoverScreen = hit ? screens.findIndex((s) => s.mesh === hit.object) : -1;
       const dp = ringAt(0, R);
-      if (Math.hypot(player.pos.x - dp.x, player.pos.z - dp.z) < K.door.trigR && this.onExitRequest) this.onExitRequest();
+      if (doorOn && Math.hypot(player.pos.x - dp.x, player.pos.z - dp.z) < K.door.trigR && api.onExitRequest) api.onExitRequest();
       const dBed = Math.hypot(player.pos.x - K.bed.x, player.pos.z - K.bed.z);
       const nearBed = hoverBed || dBed < K.bed.r + 0.6;
       setHint(nearBed ? '<b>左键</b> 在圆床上入座（任意朝向）'
@@ -737,7 +855,7 @@ export function createCinema({ camera, player, sfx }) {
       const onBed = ray.intersectsSphere(sph) ||
         Math.hypot(player.pos.x - K.bed.x, player.pos.z - K.bed.z) < K.bed.r + 0.6;
       if (onBed) { sit(); return; }
-      if (hoverExit) { if (this.onExitRequest) this.onExitRequest(); return; }
+      if (hoverExit) { if (api.onExitRequest) api.onExitRequest(); return; }
       if (hoverScreen >= 0) tapScreen(hoverScreen);
     },
     onRightDown() {
@@ -784,5 +902,15 @@ export function createCinema({ camera, player, sfx }) {
       }));
     },
     stopVideo() { pauseAll(); },
+    /** 无头验证用：已记录的片源清单快照（每部若干部 / 空洞数 / 出声路数） */
+    debugLists() {
+      return playlists.map((p) => ({
+        n: p.list.filter(Boolean).length,
+        holes: p.list.filter((x) => !x).length,
+        v: (p.voices || []).length,
+        names: p.list.map((x) => x || '-').join('>'),
+      }));
+    },
   };
+  return api;
 }

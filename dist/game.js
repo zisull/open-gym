@@ -30050,6 +30050,16 @@
   });
 
   // src/cinema.js
+  function loadDoorOn() {
+    try {
+      return localStorage.getItem(DOOR_KEY) !== "0";
+    } catch (e) {
+      return true;
+    }
+  }
+  function shellGeo(span) {
+    return new CylinderGeometry(R, R, H, 96, 1, true, (Math.PI * 2 - span) / 2, span);
+  }
   function makeVideoEl() {
     const v = document.createElement("video");
     v.className = "btv";
@@ -30063,8 +30073,10 @@
   function createCinema({ camera, player, sfx }) {
     const scene = new Scene();
     scene.background = new Color(395019);
+    let doorOn = loadDoorOn();
+    const spanOf = () => Math.PI * 2 - (doorOn ? GAP : 0);
     const wall = new Mesh(
-      new CylinderGeometry(R, R, H, 96, 1, true, GAP / 2, SPAN),
+      shellGeo(spanOf()),
       new MeshStandardMaterial({ color: 1316381, roughness: 0.95, metalness: 0, side: BackSide, envMapIntensity: 0.1 })
     );
     wall.position.y = H / 2;
@@ -30187,8 +30199,9 @@
       }
       screens.length = 0;
       const n = Math.max(sources.length, 1);
-      const slot = SPAN / n;
-      for (let i = 0; i < n; i++) screens.push(makeScreen(sources[i] || null, GAP / 2 + slot * (i + 0.5), slot));
+      const gap = doorOn ? GAP : 0;
+      const slot = (Math.PI * 2 - gap) / n;
+      for (let i = 0; i < n; i++) screens.push(makeScreen(sources[i] || null, gap / 2 + slot * (i + 0.5), slot));
       syncVoices();
       applyAudio();
       layoutBigGrid(document.body.classList.contains("big-screen"));
@@ -30289,6 +30302,28 @@
     }
     scene.add(exitGroup);
     const exitHit = exitGroup.children[1];
+    exitGroup.visible = doorOn;
+    function setDoor(on) {
+      doorOn = !!on;
+      try {
+        localStorage.setItem(DOOR_KEY, doorOn ? "1" : "0");
+      } catch (e) {
+      }
+      wall.geometry.dispose();
+      wall.geometry = shellGeo(spanOf());
+      exitGroup.visible = doorOn;
+      rebuild();
+      renderDoorBtn();
+      setStatus(doorOn ? "\u{1F6AA} \u51FA\u53E3\u95E8\u5DF2\u6062\u590D\uFF1A\u8D70\u5230\u95E8\u53E3\u6216\u70B9\u653E\u6620\u6761\u90FD\u80FD\u56DE\u7403\u573A" : "\u{1F6AA} \u51FA\u53E3\u5DF2\u9690\u85CF\uFF1A\u6574\u5708\u5899\u90FD\u662F\u94F6\u5E55\uFF0C\u56DE\u7403\u573A\u70B9\u653E\u6620\u6761\u300C\u23CF \u9000\u51FA\u653E\u6620\u5385\u300D");
+      sfx.play("ui", { volume: 0.4 });
+    }
+    function renderDoorBtn() {
+      const b2 = $2("cb-door");
+      if (!b2) return;
+      b2.textContent = doorOn ? "\u{1F6AA} \u9690\u85CF\u51FA\u53E3" : "\u{1F6AA} \u6062\u590D\u51FA\u53E3";
+      b2.classList.toggle("on", !doorOn);
+      b2.title = doorOn ? "\u6536\u8D77\u95E8\u6D1E\uFF1A\u6574\u5708\u5899\u90FD\u80FD\u6302\u5E55\uFF0C\u9000\u51FA\u6539\u8D70\u653E\u6620\u6761\u6309\u94AE" : "\u628A\u51FA\u53E3\u95E8\u4EAE\u56DE\u6765\uFF1A\u8D70\u5230\u95E8\u53E3\u81EA\u52A8\u56DE\u7403\u573A";
+    }
     const LIB = window.BB_VIDEOS || [];
     const STORE_KEY = "bb.cinema.screens";
     let sources = [];
@@ -30334,6 +30369,74 @@
       const v = voices.size;
       setStatus(live ? `\u25B6 ${live} \u5757 ${SH}m \u9AD8\u5DE8\u5E55\u73AF\u7ED5 \xB7 \u{1F50A} ${v} \u8DEF\u51FA\u58F0 \xB7 \u{1F39B} \u63A7\u5236\u53F0\u7BA1\u7247\u5355 \xB7 \u6EDA\u8F6E\u62C9\u8FD1\u62C9\u8FDC` : "\u8FD8\u6CA1\u6709\u7247\u6E90\uFF1A\u628A\u89C6\u9891\u653E\u8FDB video/\uFF0C\u6216\u5728\u63A7\u5236\u53F0\u91CC\u300C\u{1F4C2} \u6362\u7247\u5355\u300D");
     }
+    const HIST_KEY = "bb.cinema.playlists";
+    function loadPlaylists() {
+      try {
+        const a2 = JSON.parse(localStorage.getItem(HIST_KEY) || "[]");
+        return Array.isArray(a2) ? a2.filter((p) => p && Array.isArray(p.list)) : [];
+      } catch (e) {
+        return [];
+      }
+    }
+    const fmtTime = (t) => {
+      const d = new Date(t), p = (x) => String(x).padStart(2, "0");
+      return `${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+    };
+    let playlists = loadPlaylists();
+    function savePlaylists() {
+      try {
+        localStorage.setItem(HIST_KEY, JSON.stringify(playlists));
+      } catch (e) {
+      }
+    }
+    const curVoices = () => screens.filter((s, i) => voices.has(i) && s.src).map((s) => s.src.name);
+    function snapshot() {
+      const list = sources.map((s) => s ? s.name : null);
+      if (!list.some(Boolean)) return;
+      const key = list.join("|");
+      const at = playlists.findIndex((p) => p.list.join("|") === key);
+      if (at >= 0) {
+        const [p] = playlists.splice(at, 1);
+        p.voices = curVoices();
+        playlists.unshift(p);
+      } else {
+        playlists.unshift({ t: Date.now(), list, voices: curVoices() });
+        playlists = playlists.slice(0, 6);
+      }
+      savePlaylists();
+      renderPlaylists();
+    }
+    function restorePlaylist(p) {
+      const old = sources;
+      sources = p.list.slice(0, K.maxScreens).map((n) => {
+        const it = n ? LIB.find((x) => x.name === n) : null;
+        return it ? { name: it.name, url: it.url } : null;
+      });
+      old.forEach(disposeSource);
+      voiceNames = (Array.isArray(p.voices) ? p.voices : []).slice();
+      rebuild();
+      playAll();
+      const holes = sources.filter((s) => !s).length;
+      setStatus(`\u23F3 \u5DF2\u6362\u56DE ${fmtTime(p.t)} \u90A3\u4EFD\u7247\u5355\uFF1A${sources.length} \u5757\u5C4F` + (holes ? `\uFF0C\u5176\u4E2D ${holes} \u5757\u5F53\u65F6\u662F\u672C\u5730\u6587\u4EF6\uFF0C\u9700\u91CD\u65B0\u9009\u4E00\u6B21\u6587\u4EF6` : ""));
+    }
+    function renderPlaylists() {
+      const box = $2("cc-hist");
+      if (!box) return;
+      box.textContent = "";
+      box.classList.toggle("hidden", playlists.length < 2);
+      const lbl = document.createElement("span");
+      lbl.className = "lbl";
+      lbl.textContent = "\u23F3 \u64AD\u653E\u8FC7\uFF1A";
+      box.appendChild(lbl);
+      playlists.forEach((p, k) => {
+        const b2 = document.createElement("button");
+        b2.className = "btn cc-chip" + (k === 0 ? " on" : "");
+        b2.textContent = `${k === 0 ? "\u25CF " : ""}${fmtTime(p.t)} \xB7 ${p.list.filter(Boolean).length}\u90E8`;
+        b2.title = `${p.list.filter(Boolean).join("\u3001") || "\uFF08\u7A7A\uFF09"}${k === 0 ? "\uFF08\u6B63\u5728\u653E\u8FD9\u4EFD\uFF09" : " \u2014\u2014 \u70B9\u51FB\u6574\u6761\u6362\u56DE"}`;
+        b2.addEventListener("click", () => restorePlaylist(p));
+        box.appendChild(b2);
+      });
+    }
     sources = loadSources();
     try {
       const v = localStorage.getItem("bb.cinema.vol");
@@ -30342,6 +30445,7 @@
     }
     rebuild();
     refreshStatus();
+    renderDoorBtn();
     function syncPlayBtn() {
       playBtn.textContent = screens.some((o) => o.src && !o.videoEl.paused) ? "\u23F8 \u6682\u505C" : "\u25B6 \u64AD\u653E";
     }
@@ -30353,6 +30457,7 @@
       });
       applyAudio();
       playBtn.textContent = "\u23F8 \u6682\u505C";
+      snapshot();
     }
     function pauseAll() {
       screens.forEach((s) => s.videoEl.pause());
@@ -30525,6 +30630,10 @@
       $2("cb-big").textContent = on ? "\u26F6 \u56DE\u5230\u5F71\u5385\u89C6\u89D2" : "\u26F6 \u653E\u5927\u89C2\u770B";
     });
     $2("cb-stand").addEventListener("click", () => stand());
+    $2("cb-exit").addEventListener("click", () => {
+      if (api.onExitRequest) api.onExitRequest();
+    });
+    $2("cb-door").addEventListener("click", () => setDoor(!doorOn));
     $2("cb-reset").addEventListener("click", () => {
       const old = sources;
       sources = defaultSources();
@@ -30650,10 +30759,13 @@
       } catch (e) {
       }
     }
-    return {
+    const api = {
       scene,
       get seated() {
         return seated;
+      },
+      get doorVisible() {
+        return doorOn;
       },
       onExitRequest: null,
       enter() {
@@ -30675,7 +30787,7 @@
           rebuild();
           refreshStatus();
         }
-        setHint("<b>\u5DE6\u952E</b> \u70B9\u5C4F\u5E55\u5207\u6362\u51FA\u58F0 \xB7 \u9760\u8FD1\u5706\u5E8A <b>\u5DE6\u952E</b> \u5165\u5EA7 \xB7 \u8D70\u5411 <b>\u51FA\u53E3\u95E8</b> \u56DE\u7403\u573A");
+        setHint("<b>\u5DE6\u952E</b> \u70B9\u5C4F\u5E55\u5207\u6362\u51FA\u58F0 \xB7 \u9760\u8FD1\u5706\u5E8A <b>\u5DE6\u952E</b> \u5165\u5EA7 \xB7 " + (doorOn ? "\u8D70\u5411 <b>\u51FA\u53E3\u95E8</b> \u56DE\u7403\u573A" : "\u51FA\u53E3\u5DF2\u9690\u85CF\uFF0C\u70B9\u653E\u6620\u6761 <b>\u23CF \u9000\u51FA\u653E\u6620\u5385</b> \u56DE\u7403\u573A"));
       },
       exit() {
         stand();
@@ -30698,14 +30810,14 @@
           player.pos.z = K.bed.z + (player.pos.z - K.bed.z) * k;
         }
         raycaster.setFromCamera({ x: 0, y: 0 }, camera);
-        const targets = [bedHit, exitHit, ...screens.map((s) => s.mesh)];
+        const targets = [bedHit, ...doorOn ? [exitHit] : [], ...screens.map((s) => s.mesh)];
         const hits = raycaster.intersectObjects(targets, false);
         const hit = hits.find((h) => h.distance < 20) || null;
         hoverBed = !!hit && hit.object === bedHit;
-        hoverExit = !!hit && hit.object === exitHit;
+        hoverExit = doorOn && !!hit && hit.object === exitHit;
         hoverScreen = hit ? screens.findIndex((s) => s.mesh === hit.object) : -1;
         const dp = ringAt(0, R);
-        if (Math.hypot(player.pos.x - dp.x, player.pos.z - dp.z) < K.door.trigR && this.onExitRequest) this.onExitRequest();
+        if (doorOn && Math.hypot(player.pos.x - dp.x, player.pos.z - dp.z) < K.door.trigR && api.onExitRequest) api.onExitRequest();
         const dBed = Math.hypot(player.pos.x - K.bed.x, player.pos.z - K.bed.z);
         const nearBed = hoverBed || dBed < K.bed.r + 0.6;
         setHint(nearBed ? "<b>\u5DE6\u952E</b> \u5728\u5706\u5E8A\u4E0A\u5165\u5EA7\uFF08\u4EFB\u610F\u671D\u5411\uFF09" : hoverExit ? "<b>\u5DE6\u952E</b> \u6216\u8D70\u8FC7\u53BB\uFF1A\u8FD4\u56DE\u7BEE\u7403\u9986" : hoverScreen >= 0 && screens[hoverScreen].src ? "<b>\u5DE6\u952E</b> \u64AD\u653E/\u6682\u505C \xB7 \u5207\u6362\u8BE5\u5C4F\u58F0\u97F3" : "");
@@ -30720,7 +30832,7 @@
           return;
         }
         if (hoverExit) {
-          if (this.onExitRequest) this.onExitRequest();
+          if (api.onExitRequest) api.onExitRequest();
           return;
         }
         if (hoverScreen >= 0) tapScreen(hoverScreen);
@@ -30770,10 +30882,20 @@
       },
       stopVideo() {
         pauseAll();
+      },
+      /** 无头验证用：已记录的片源清单快照（每部若干部 / 空洞数 / 出声路数） */
+      debugLists() {
+        return playlists.map((p) => ({
+          n: p.list.filter(Boolean).length,
+          holes: p.list.filter((x) => !x).length,
+          v: (p.voices || []).length,
+          names: p.list.map((x) => x || "-").join(">")
+        }));
       }
     };
+    return api;
   }
-  var K, R, H, GAP, SPAN, DEG, ringAt;
+  var K, R, H, GAP, DEG, DOOR_KEY, ringAt;
   var init_cinema = __esm({
     "src/cinema.js"() {
       init_three_module();
@@ -30783,8 +30905,8 @@
       R = K.ring.r;
       H = K.ring.height;
       GAP = K.door.gapDeg * Math.PI / 180;
-      SPAN = Math.PI * 2 - GAP;
       DEG = Math.PI / 180;
+      DOOR_KEY = "bb.cinema.door";
       ringAt = (a2, r = R) => ({ x: Math.sin(a2) * r, z: Math.cos(a2) * r });
     }
   });
@@ -31242,6 +31364,13 @@
     }
     return { x: 0, z: RIM_POS.z + 4.6 };
   }
+  function discardBall(G) {
+    const { ball, machine, sfx, ui } = G;
+    ball.startPhysics(new Vector3(0, 0.9, 0), null);
+    sfx.play("tap", { volume: 0.45, rate: 0.8 });
+    ui.setPrompt("\u{1F3C0} \u7403\u4E22\u5728\u573A\u5730\u4E2D\u592E\u4E86 \xB7 \u8D70\u8FC7\u53BB\u6309 <b>E</b> \u6361\u56DE\u6765");
+    machine.set("noBall");
+  }
   var State, NoBallState, HoldState, ShotState, StateMachine;
   var init_states = __esm({
     "src/states.js"() {
@@ -31264,22 +31393,28 @@
         }
         onRightDown() {
         }
+        /** 空格：拍球 */
+        onTap() {
+        }
+        /** E：手上没人就捡球，球在身上就弃球 */
+        onGrab() {
+        }
       };
       NoBallState = class extends State {
         enter() {
           const { player, ball, ui } = this.G;
           player.speed = CFG.player.speedIdle;
           if (ball.mode !== "physics") ball.startPhysics(ball.position, null);
-          ui.setPrompt("\u8D70\u8FD1\u7BEE\u7403\uFF0C\u70B9\u51FB <b>\u9F20\u6807\u5DE6\u952E</b> \u62FE\u7403");
+          ui.setPrompt("\u8D70\u8FD1\u7BEE\u7403\uFF0C\u6309 <b>E</b> \u62FE\u7403");
         }
         update(dt) {
           const { player, ball, ui } = this.G;
           ball.syncFromPhysics();
           const near = ball.mode === "physics" && Math.hypot(player.pos.x - ball.position.x, player.pos.z - ball.position.z) < CFG.player.pickupRange && ball.position.y < 1.35;
-          ui.setPrompt(near ? "<b>\u5DE6\u952E</b> \u62FE\u7403" : "WASD \u79FB\u52A8 \xB7 \u8D70\u8FD1\u7BEE\u7403\u540E\u62FE\u53D6");
+          ui.setPrompt(near ? "<b>E</b> \u62FE\u7403" : "WASD \u79FB\u52A8 \xB7 \u8D70\u8FD1\u7BEE\u7403\u540E\u6309 E \u62FE\u53D6");
           this._near = near;
         }
-        onLeftDown() {
+        onGrab() {
           if (!this._near) return;
           const { ball, machine, sfx } = this.G;
           ball.startHeld();
@@ -31291,7 +31426,7 @@
         enter() {
           const { player, ui, modeDef } = this.G;
           player.speed = CFG.player.speedHold;
-          ui.setPrompt(modeDef.id === "free" ? "<b>\u5DE6\u952E</b> \u6295\u7BEE\uFF08\u6309\u4F4F\u84C4\u529B \u677E\u624B\u51FA\u624B\uFF09\xB7 <b>\u53F3\u952E</b> \u62CD\u7403 \xB7 \u5168\u573A\u4EFB\u610F\u4F4D\u7F6E" : "WASD \u8D70\u4F4D \xB7 <b>\u5DE6\u952E</b> \u6309\u4F4F\u84C4\u529B\u6295\u7BEE \xB7 <b>\u53F3\u952E</b> \u62CD\u7403");
+          ui.setPrompt(modeDef.id === "free" ? "<b>\u7A7A\u683C</b> \u62CD\u7403 \xB7 <b>\u5DE6\u952E</b> \u6295\u7BEE\uFF08\u6309\u4F4F\u84C4\u529B \u677E\u624B\u51FA\u624B\uFF09\xB7 <b>E</b> \u5F03\u7403 \xB7 \u5168\u573A\u4EFB\u610F\u4F4D\u7F6E" : "WASD \u8D70\u4F4D \xB7 <b>\u7A7A\u683C</b> \u62CD\u7403 \xB7 <b>\u5DE6\u952E</b> \u6309\u4F4F\u84C4\u529B\u6295\u7BEE \xB7 <b>E</b> \u5F03\u7403");
         }
         update(dt) {
           const { player, ball, camera, scoring, machine } = this.G;
@@ -31306,7 +31441,7 @@
           this.G.pendingCharge = true;
           this.G.machine.set("shot");
         }
-        onRightDown() {
+        onTap() {
           const { ball, sfx, fx, ui, scoring } = this.G;
           if (ball.tap()) {
             sfx.play("tap", { rate: 1.85 + Math.random() * 0.12, volume: 0.85 });
@@ -31314,6 +31449,9 @@
             if (points > 0) ui.showScorePopup(points, null, 0);
             fx.burstTap(ball.position);
           }
+        }
+        onGrab() {
+          discardBall(this.G);
         }
       };
       ShotState = class extends State {
@@ -31331,7 +31469,7 @@
           this.flightT = 0;
           this._prevY = void 0;
           ui.showPowerBar(true);
-          ui.setPrompt("<b>\u6309\u4F4F\u5DE6\u952E</b> \u84C4\u529B \xB7 <b>\u677E\u624B</b> \u6295\u7BEE \xB7 <b>\u53F3\u952E</b> \u53D6\u6D88");
+          ui.setPrompt("<b>\u6309\u4F4F\u5DE6\u952E</b> \u84C4\u529B \xB7 <b>\u677E\u624B</b> \u6295\u7BEE \xB7 <b>\u53F3\u952E</b> \u53D6\u6D88 \xB7 <b>E</b> \u5F03\u7403");
         }
         exit() {
           const { player, ui } = this.G;
@@ -31422,7 +31560,7 @@
           this.charging = false;
           if (this.charge < CFG.shot.cancelCharge) {
             this.charge = 0;
-            this.G.ui.setPrompt("<b>\u6309\u4F4F\u5DE6\u952E</b> \u84C4\u529B \xB7 <b>\u677E\u624B</b> \u6295\u7BEE \xB7 <b>\u53F3\u952E</b> \u53D6\u6D88");
+            this.G.ui.setPrompt("<b>\u6309\u4F4F\u5DE6\u952E</b> \u84C4\u529B \xB7 <b>\u677E\u624B</b> \u6295\u7BEE \xB7 <b>\u53F3\u952E</b> \u53D6\u6D88 \xB7 <b>E</b> \u5F03\u7403");
             return;
           }
           const { ball, player, sfx, scoring } = this.G;
@@ -31443,6 +31581,12 @@
           this.charge = 0;
           this.G.sfx.play("tap", { volume: 0.5, rate: 1.4 });
           this.G.machine.set("hold");
+        }
+        onGrab() {
+          if (this.flying) return;
+          this.charging = false;
+          this.charge = 0;
+          discardBall(this.G);
         }
         /** 进球事件 */
         onScore() {
@@ -32178,6 +32322,18 @@
           else pauseGame();
           return;
         }
+        if (gameState === "playing" && playerLoc === "gym") {
+          if (e.code === "Space") {
+            e.preventDefault();
+            document.activeElement?.blur?.();
+            machine.dispatch("onTap");
+            return;
+          }
+          if (k === "e") {
+            machine.dispatch("onGrab");
+            return;
+          }
+        }
         if (k in keys) {
           keys[k] = true;
           if (playerLoc === "cinema") cinema.onMoveKey();
@@ -32392,7 +32548,7 @@
         }, 2300);
         if (m && demo === "shot") {
           setTimeout(() => {
-            if (machine.name === "noBall") machine.dispatch("onLeftDown");
+            if (machine.name === "noBall") machine.dispatch("onGrab");
           }, 1500);
           setTimeout(() => {
             player.pos.set(0.5, 0, -8);
@@ -32400,7 +32556,7 @@
           setTimeout(() => machine.dispatch("onLeftDown"), 2900);
         }
         if (demo) {
-          const marks2 = [];
+          marks = [];
           let dbg = document.getElementById("dbg-out");
           if (!dbg) {
             dbg = document.createElement("div");
@@ -32411,8 +32567,8 @@
           mark = (s) => {
             const cur = machine.current;
             const extra = cur && cur.charging !== void 0 ? `[ch=${cur.charging ? 1 : 0},${(cur.charge ?? 0).toFixed(2)},fly=${cur.flying ? 1 : 0}]` : "";
-            marks2.push(`${Math.round(performance.now())}:${s}(${machine.name},t${scoring.taps},s${scoring.shotTaken})${extra}`);
-            dbg.textContent = marks2.join(" | ");
+            marks.push(`${Math.round(performance.now())}:${s}(${machine.name},t${scoring.taps},s${scoring.shotTaken})${extra}`);
+            dbg.textContent = marks.join(" | ");
           };
           addEventListener("error", (e) => mark(`ERR ${e.message} @${e.filename?.split("/").pop()}:${e.lineno}`));
         }
@@ -32428,35 +32584,62 @@
           }, 2e3);
         }
         if (demo === "tap") {
-          setTimeout(() => {
+          const toBall = () => {
+            ball.syncFromPhysics();
             player.pos.set(ball.position.x, 0, ball.position.z + 1.2);
-            if (machine.name === "noBall") machine.dispatch("onLeftDown");
+            machine.update(0.016);
+          };
+          setTimeout(() => {
+            toBall();
+            machine.dispatch("onGrab");
             mark("pickup");
           }, 1200);
           setTimeout(() => {
-            machine.dispatch("onRightDown");
+            machine.dispatch("onTap");
             mark("tap1");
           }, 1800);
           setTimeout(() => {
-            machine.dispatch("onRightDown");
+            machine.update(0.5);
+            machine.dispatch("onTap");
             mark("tap2");
           }, 2600);
           setTimeout(() => {
+            machine.dispatch("onGrab");
+            mark("discard");
+          }, 3e3);
+          setTimeout(() => {
+            ball.syncFromPhysics();
+            mark(`dropped ${ball.position.x.toFixed(1)},${ball.position.y.toFixed(1)},${ball.position.z.toFixed(1)}`);
+          }, 3200);
+          setTimeout(() => {
+            toBall();
+            machine.dispatch("onGrab");
+            mark("regrab");
+          }, 3600);
+          setTimeout(() => {
             machine.dispatch("onLeftDown");
             mark("charge");
-          }, 3400);
+          }, 4200);
+          setTimeout(() => {
+            machine.dispatch("onRightDown");
+            mark("cancel");
+          }, 4500);
+          setTimeout(() => {
+            machine.dispatch("onLeftDown");
+            mark("charge2");
+          }, 4800);
           setTimeout(() => {
             if (machine.current) machine.current.charge = 0.8;
             mark("setcharge");
-          }, 4200);
+          }, 5400);
           setTimeout(() => {
             machine.dispatch("onLeftUp");
             mark("release");
-          }, 4400);
+          }, 5600);
           setTimeout(() => {
             mark("final");
             console.log("DEMO_TAP", marks.join(" | "));
-          }, 6e3);
+          }, 7e3);
         }
         if (demo === "sit" || demo === "grid") {
           addEventListener("error", (e) => {
@@ -32541,6 +32724,33 @@
             const back = document.getElementById("cinema-bar").classList.contains("hidden") ? 0 : 1;
             mark(`BAR hide=${hidden} console=${cc} ghost=${ghost} back=${back}`);
           }, 8e3);
+          setTimeout(() => {
+            document.getElementById("cb-console").click();
+            document.getElementById("cb-door").click();
+          }, 8800);
+          setTimeout(() => {
+            const r = cinema.debugRing();
+            mark(`DOOR hidden=${cinema.doorVisible ? 0 : 1} slot0=${r[0] ? r[0].slotDeg : "-"} sum=${r.reduce((a2, x) => a2 + x.slotDeg, 0).toFixed(1)}`);
+          }, 9600);
+          setTimeout(() => {
+            const chips = document.querySelectorAll("#cc-hist .cc-chip");
+            mark(`HIST n=${cinema.debugLists().length} parts=${cinema.debugLists().map((p) => p.n).join("/")} chips=${chips.length} rows=${document.querySelectorAll("#cc-list .ccrow").length}`);
+            if (chips.length > 1) chips[1].click();
+          }, 10400);
+          setTimeout(() => {
+            mark(`BACK rows=${document.querySelectorAll("#cc-list .ccrow").length} btv=${document.querySelectorAll(".btv").length} voice=${cinema.debugRing().map((r) => r.voice).join("")}`);
+          }, 11400);
+          setTimeout(() => {
+            const orig = cinema.onExitRequest;
+            let fired = 0;
+            cinema.onExitRequest = () => {
+              fired++;
+              if (orig) orig();
+            };
+            document.getElementById("cb-exit").click();
+            mark(`EXIT fired=${fired}`);
+            cinema.onExitRequest = orig;
+          }, 12200);
         }
         if (demo === "ring") {
           const cnt = Math.max(1, Number(params.get("n")) || 5);
@@ -32594,6 +32804,7 @@
         }
       } catch {
       }
+      var marks;
       var mark;
     }
   });

@@ -276,6 +276,16 @@ addEventListener('keydown', (e) => {
     if (cinema.seated) cinema.onRightDown(); else pauseGame();
     return;
   }
+  if (gameState === 'playing' && playerLoc === 'gym') {
+    // 空格=拍球、E=捡球/弃球。空格会滚动页面、也会「按下」刚点过的按钮，两样都要挡掉
+    if (e.code === 'Space') {
+      e.preventDefault();
+      document.activeElement?.blur?.();
+      machine.dispatch('onTap');
+      return;
+    }
+    if (k === 'e') { machine.dispatch('onGrab'); return; }
+  }
   if (k in keys) {
     keys[k] = true;
     if (playerLoc === 'cinema') cinema.onMoveKey(); // 坐着按移动键 -> 起身
@@ -500,14 +510,14 @@ try {
     if (Number.isFinite(p)) { player.freePitch = p; player.pitch = p; }
   }, 2300);
   if (m && demo === 'shot') {
-    setTimeout(() => { if (machine.name === 'noBall') machine.dispatch('onLeftDown'); }, 1500); // 拾球
+    setTimeout(() => { if (machine.name === 'noBall') machine.dispatch('onGrab'); }, 1500); // E 拾球
     setTimeout(() => { player.pos.set(0.5, 0, -8); }, 2000);  // 传送到投篮区
     setTimeout(() => machine.dispatch('onLeftDown'), 2900);   // 按住蓄力
   }
   if (demo) {
     // 无头断言回读通道：结果写进专用 DOM 节点，再用 --screenshot 读图
     // （任何 demo 分支都可能调 mark()，所以只要有 demo 就先把通道建好）
-    const marks = [];
+    var marks = []; // var：下面各 demo 分支在块外，marks/mark 都得能引用到
     let dbg = document.getElementById('dbg-out');
     if (!dbg) {
       dbg = document.createElement('div');
@@ -542,20 +552,27 @@ try {
     }, 2000);
   }
   if (demo === 'tap') {
-    // 自动化：走到球边 → 左键拾球 → 右键拍球 → 左键蓄力 → 松手出手，断言计分链路
-    setTimeout(() => {
-      player.pos.set(ball.position.x, 0, ball.position.z + 1.2); // 球会滚，先贴到球边上
-      if (machine.name === 'noBall') machine.dispatch('onLeftDown');
-      mark('pickup');
-    }, 1200);
-    setTimeout(() => { machine.dispatch('onRightDown'); mark('tap1'); }, 1800);
-    setTimeout(() => { machine.dispatch('onRightDown'); mark('tap2'); }, 2600);
-    setTimeout(() => { machine.dispatch('onLeftDown'); mark('charge'); }, 3400);
-    // 无头环境 rAF 被限流（本例仅 ~6 帧），逐帧累加的 charge 近似为 0；
-    // 手动置为 0.8 以验证「松手出手」路径（真机按住 0.8s 即为此值）
-    setTimeout(() => { if (machine.current) machine.current.charge = 0.8; mark('setcharge'); }, 4200);
-    setTimeout(() => { machine.dispatch('onLeftUp'); mark('release'); }, 4400);
-    setTimeout(() => { mark('final'); console.log('DEMO_TAP', marks.join(' | ')); }, 6000);
+    // 自动化（新键位）：E 捡球 → 空格拍球 ×2 → E 弃球（球应落在场地中央）→ E 再捡 →
+    // 左键蓄力 → 右键取消 → 再蓄力 → 松手出手。断言状态机与计分链路。
+    // 无头 rAF 被限流，靠近判定 _near 与拍球动画都要靠 update() 推进，所以手动补帧。
+    const toBall = () => {
+      ball.syncFromPhysics(); // 先让网格跟刚体对齐，否则按旧位置传送会差一步
+      player.pos.set(ball.position.x, 0, ball.position.z + 1.2);
+      machine.update(0.016);
+    };
+    setTimeout(() => { toBall(); machine.dispatch('onGrab'); mark('pickup'); }, 1200);
+    setTimeout(() => { machine.dispatch('onTap'); mark('tap1'); }, 1800);
+    setTimeout(() => { machine.update(0.5); machine.dispatch('onTap'); mark('tap2'); }, 2600);
+    setTimeout(() => { machine.dispatch('onGrab'); mark('discard'); }, 3000);
+    setTimeout(() => { ball.syncFromPhysics(); mark(`dropped ${ball.position.x.toFixed(1)},${ball.position.y.toFixed(1)},${ball.position.z.toFixed(1)}`); }, 3200);
+    setTimeout(() => { toBall(); machine.dispatch('onGrab'); mark('regrab'); }, 3600);
+    setTimeout(() => { machine.dispatch('onLeftDown'); mark('charge'); }, 4200);
+    setTimeout(() => { machine.dispatch('onRightDown'); mark('cancel'); }, 4500);
+    setTimeout(() => { machine.dispatch('onLeftDown'); mark('charge2'); }, 4800);
+    // 逐帧累加的 charge 在无头下近似为 0，手动置 0.8 以验证「松手出手」（真机按住 0.8s 即为此值）
+    setTimeout(() => { if (machine.current) machine.current.charge = 0.8; mark('setcharge'); }, 5400);
+    setTimeout(() => { machine.dispatch('onLeftUp'); mark('release'); }, 5600);
+    setTimeout(() => { mark('final'); console.log('DEMO_TAP', marks.join(' | ')); }, 7000);
   }
   if (demo === 'sit' || demo === 'grid') {
     // 公共：走到圆床边 + 左键入座（可选再开大屏墙），供两种演示复用
@@ -652,6 +669,33 @@ try {
       const back = document.getElementById('cinema-bar').classList.contains('hidden') ? 0 : 1;
       mark(`BAR hide=${hidden} console=${cc} ghost=${ghost} back=${back}`);
     }, 8000);
+    // 隐藏出口：门洞补成整圈墙，银幕槽位从 346°/n 变成 360°/n（slotDeg 就是这件事的证据）
+    setTimeout(() => {
+      document.getElementById('cb-console').click();
+      document.getElementById('cb-door').click();
+    }, 8800);
+    setTimeout(() => {
+      const r = cinema.debugRing();
+      mark(`DOOR hidden=${cinema.doorVisible ? 0 : 1} slot0=${r[0] ? r[0].slotDeg : '-'} sum=${r.reduce((a, x) => a + x.slotDeg, 0).toFixed(1)}`);
+    }, 9600);
+    // 片单快照：开始播放（换/加片）各记一次，点旧 chip 整条换回
+    setTimeout(() => {
+      const chips = document.querySelectorAll('#cc-hist .cc-chip');
+      mark(`HIST n=${cinema.debugLists().length} parts=${cinema.debugLists().map((p) => p.n).join('/')} chips=${chips.length} rows=${document.querySelectorAll('#cc-list .ccrow').length}`);
+      if (chips.length > 1) chips[1].click();
+    }, 10400);
+    setTimeout(() => {
+      mark(`BACK rows=${document.querySelectorAll('#cc-list .ccrow').length} btv=${document.querySelectorAll('.btv').length} voice=${cinema.debugRing().map((r) => r.voice).join('')}`);
+    }, 11400);
+    // 放映条「🚪 退出影院」：只验接线（转场有淡入淡出，不靠无头帧序）
+    setTimeout(() => {
+      const orig = cinema.onExitRequest;
+      let fired = 0;
+      cinema.onExitRequest = () => { fired++; if (orig) orig(); };
+      document.getElementById('cb-exit').click();
+      mark(`EXIT fired=${fired}`);
+      cinema.onExitRequest = orig;
+    }, 12200);
   }
   if (demo === 'ring') {
     // 视觉验证「等高 + 铺满一整圈」：导入 ?n= 部假片（blob 解码不了 -> 银幕停在占位卡上，
