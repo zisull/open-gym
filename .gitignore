@@ -21,3 +21,5 @@ video/*.mkv
 
 # 无头验证用临时浏览器 profile（每次跑完即删）
 .profile-*/
+# 启动游戏.bat 用的独立浏览器 profile（游戏存档落在这里，删掉即恢复出厂）
+.playdata/
