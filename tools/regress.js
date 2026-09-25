@@ -1,12 +1,13 @@
 /**
  * tools/regress.js —— 一次跑完全量回归 demo（同一个浏览器顺序过 case，只打印断言通道与报错）。
  * 用法：node tools/regress.js [关键字过滤]      例：node tools/regress.js fade
- * 依赖：WorkBuddy 隔离 node workspace 里的 playwright-core（channel: 'msedge'），同 tools/shot.js。
+ * 依赖：playwright-core（位置见 tools/pw.js），跑的是本机 Edge 的无头实例。
  * 判定：每个 case 的 ERRORS 必须是 none，且断言行要和 README「回归实测」小节写死的一致。
  */
-const PW = 'C:/Users/zisul/.workbuddy/binaries/node/workspace/node_modules/playwright-core';
-const { chromium } = require(PW);
-const BASE = 'file:///D:/webgame/index.html';
+const path = require('path');
+const { pathToFileURL } = require('url');
+const { chromium } = require('./pw.js');   // playwright-core 位置由 tools/pw.js 解析（见其注释）
+const BASE = pathToFileURL(path.join(__dirname, '..', 'index.html')).href;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const CASES = [

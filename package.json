@@ -1,7 +1,7 @@
 {
-  "name": "first-touch-hoops",
+  "name": "open-gym",
   "version": "1.0.0",
-  "description": "纯前端第一人称3D篮球",
+  "description": "开放球馆 · OPEN GYM：纯前端 3D 第一人称球馆（篮球 / 影院 / 台球），离线双击即玩",
   "main": "index.js",
   "scripts": {
     "build": "esbuild src/main.js --bundle --format=iife --outfile=dist/game.js --target=es2020 --sourcemap",
