@@ -22301,6 +22301,8 @@
             think: 0.7,
             drive: 0.6,
             // 上桌前的停顿 / 导向线扫向目标的用时（秒）
+            next: 4.5,
+            // 一局打完，结果亮这么久就自动重摆开下一局（开球方轮换）
             // 三档难度：aim = 准星抖动（弧度）pow = 力度抖动比例
             levels: [
               { name: "\u8F7B\u677E", aim: 0.03, pow: 0.12 },
@@ -31758,6 +31760,7 @@
     let pottedOrder = [];
     let foulBy = [0, 0];
     let result = "";
+    let breaker = 0, overT = 0;
     let botT = 0, botStep = "", botPlan = null, botFrom = 0, botDelta = 0;
     let spinX = 0;
     let spinY = 0;
@@ -31797,9 +31800,9 @@
       if (!duel) {
         s = `\u{1F3B1} \u8FDB\u888B ${pottedNum}/15 \xB7 \u5F97\u5206 ${score}${fouls ? ` \xB7 \u6D17\u888B ${fouls}` : ""} \xB7 \u51FA\u6746 ${strokes} \xB7 \u7EAA\u5F55 ${best}`;
       } else if (phase === "over") {
-        s = `\u{1F3C1} ${result} \xB7 \u51FA\u6746 ${strokes} \xB7 \u70B9\u300C\u{1F02B} \u91CD\u6446\u300D\u518D\u6765\u4E00\u5C40`;
+        s = `\u{1F3C1} ${result} \xB7 \u51FA\u6746 ${strokes}`;
       } else {
-        s = `\u{1F3B1} ${turn === 0 ? "\u25B6 \u4F60\u7684\u56DE\u5408" : "\u7535\u8111\u56DE\u5408"} \xB7 \u4F60 ${grp[0] ? GN[grp[0]] : "\u5F85\u5B9A"} \xB7 \u7535\u8111 ${grp[1] ? GN[grp[1]] : "\u5F85\u5B9A"} \xB7 \u51FA\u6746 ${strokes}`;
+        s = `\u{1F3B1} \u4F60 ${grp[0] ? GN[grp[0]] : "\u5F85\u5B9A"} \xB7 \u7535\u8111 ${grp[1] ? GN[grp[1]] : "\u5F85\u5B9A"} \xB7 \u51FA\u6746 ${strokes}`;
       }
       if (s === _info) return;
       _info = s;
@@ -31896,6 +31899,7 @@
     }
     function endGame(winner, why) {
       phase = "over";
+      overT = 0;
       result = `${SIDE[winner]}\u80DC \xB7 ${why}`;
       sfx.play(winner === 0 ? "cheer" : "ui", { volume: 0.72 });
       renderBook();
@@ -32311,20 +32315,22 @@
         strike();
       }
     }
-    function startDuel() {
+    function startDuel(alternate) {
       rack();
+      if (!alternate) breaker = 0;
       pottedOrder = [];
       foulBy = [0, 0];
       grp = [null, null];
       result = "";
       shot = null;
-      turn = 0;
+      turn = breaker;
       strokes = 0;
       pottedNum = 0;
       score = 0;
       fouls = 0;
       phase = duel ? "break" : "idle";
       needRack = false;
+      overT = 0;
       botT = 0;
       botStep = "";
       botPlan = null;
@@ -32344,6 +32350,7 @@
     function syncModeBtn() {
       modeEl.textContent = duel ? `\u{1F916} \u5BF9\u6218 \xB7 ${K2.duel.levels[duel - 1].name}` : "\u{1F9D8} \u81EA\u7531\u7EC3\u53F0";
       modeEl.title = duel ? "\u70B9\u51FB\u5207\u5230\u4E0B\u4E00\u79CD\u73A9\u6CD5\uFF08\u81EA\u7531\u7EC3\u53F0 \u2192 \u8F7B\u677E \u2192 \u6807\u51C6 \u2192 \u804C\u4E1A\uFF09\uFF1B\u6362\u73A9\u6CD5\u4F1A\u91CD\u6446\u6574\u684C" : "\u70B9\u51FB\u5F00\u59CB\u4E0E\u7535\u8111\u6253 8 \u7403\uFF1A\u5148\u8FDB\u5B8C\u81EA\u5DF1\u4E00\u7EC4\uFF08\u5168\u8272/\u82B1\u8272\uFF09\u518D\u6253\u9ED1\u516B";
+      rackEl.classList.toggle("hidden", duel > 0);
     }
     modeEl.addEventListener("click", () => {
       duel = (duel + 1) % (K2.duel.levels.length + 1);
@@ -32352,7 +32359,8 @@
       startDuel();
       sfx.play("ui", { volume: 0.5, rate: duel ? 1.35 : 1 });
     });
-    $2("pool-rack").addEventListener("click", () => api.rerack());
+    const rackEl = $2("pool-rack");
+    rackEl.addEventListener("click", () => api.rerack());
     $2("pool-exit").addEventListener("click", () => {
       if (api.onExitRequest) api.onExitRequest();
     });
@@ -32482,6 +32490,14 @@
           power = Math.min(1, power + dt / K2.chargeTime);
         }
         if (duel && turn === 1 && phase !== "over") botTick(dt);
+        if (duel && phase === "over") {
+          overT += dt;
+          if (overT >= K2.duel.next) {
+            breaker = 1 - breaker;
+            startDuel(true);
+            sfx.play("ui", { volume: 0.5, rate: 1.2 });
+          }
+        }
         syncMeshes(dt);
         setBest();
         if (cueStick.visible) {
@@ -32501,13 +32517,13 @@
         }
         setPower(mode === "aim" && (charging || !mine()) ? power : 0);
         if (phase === "over") {
-          setHint(`\u{1F3C1} ${result} \xB7 \u70B9 <b>\u{1F02B} \u91CD\u6446</b> \u518D\u6765\u4E00\u5C40\uFF0C\u6216 <b>\u{1F9D8} \u81EA\u7531\u7EC3\u53F0</b> \u81EA\u5DF1\u7EC3`);
+          setHint(`\u{1F3C1} ${result} \xB7 <b>${Math.max(1, Math.ceil(K2.duel.next - overT))}</b> \u79D2\u540E\u81EA\u52A8\u5F00\u4E0B\u4E00\u5C40 \xB7 <b>E</b> \u7ACB\u5373\u5F00`);
         } else if (!mine()) {
           setHint(botPlan ? `\u{1F916} \u7535\u8111\u6B63\u5728\u7784\u51C6 <b>${botPlan.num}</b> \u53F7\u2026` : "\u{1F916} \u7535\u8111\u601D\u8003\u4E2D\u2026");
         } else if (mode === "walk") {
           setHint(nearTable() ? "<b>\u5DE6\u952E</b> \u4E0A\u624B\u7784\u51C6 \xB7 <b>\u53F3\u952E</b> \u7EE7\u7EED\u8D70\u52A8 \xB7 <b>Tab</b> \u7528\u9F20\u6807\u70B9\u7403\u5BA4\u6761" : "<b>Tab</b> \u7528\u9F20\u6807\u70B9\u7403\u5BA4\u6761");
         } else if (mode === "aim") {
-          setHint(hudOpen ? "\u{1F5B1} <b>\u62D6\u5C0F\u767D\u7403\u4E0A\u7684\u7EA2\u70B9</b> \u9009\u6746\u6CD5\uFF1A\u4E0B\uFF1D\u62C9\u6746\uFF08\u767D\u7403\u81EA\u5DF1\u56DE\u6765\uFF09\xB7 \u4E0A\uFF1D\u8DDF\u8FDB \xB7 \u5DE6\u53F3\uFF1D\u52A0\u585E \xB7 \u6309 <b>Tab</b> \u6216\u70B9\u7403\u53F0\u56DE\u5230\u7784\u51C6" : `<b>\u79FB\u52A8\u9F20\u6807</b> \u7784\u51C6 \xB7 <b>\u6309\u4F4F\u5DE6\u952E</b> \u84C4\u529B\u51FA\u6746 \xB7 <b>\u2191\u2193\u2190\u2192</b> \u6746\u6CD5\uFF1A<b>${spinLabel()}</b>\uFF08<b>Tab</b> \u7528\u9F20\u6807\u62D6\uFF09\xB7 <b>\u53F3\u952E</b> \u6536\u6746 \xB7 <b>E</b> \u91CD\u6446`);
+          setHint(hudOpen ? "\u{1F5B1} <b>\u62D6\u5C0F\u767D\u7403\u4E0A\u7684\u7EA2\u70B9</b> \u9009\u6746\u6CD5\uFF1A\u4E0B\uFF1D\u62C9\u6746\uFF08\u767D\u7403\u81EA\u5DF1\u56DE\u6765\uFF09\xB7 \u4E0A\uFF1D\u8DDF\u8FDB \xB7 \u5DE6\u53F3\uFF1D\u52A0\u585E \xB7 \u6309 <b>Tab</b> \u6216\u70B9\u7403\u53F0\u56DE\u5230\u7784\u51C6" : `<b>\u79FB\u52A8\u9F20\u6807</b> \u7784\u51C6 \xB7 <b>\u6309\u4F4F\u5DE6\u952E</b> \u84C4\u529B\u51FA\u6746 \xB7 <b>\u2191\u2193\u2190\u2192</b> \u6746\u6CD5\uFF1A<b>${spinLabel()}</b>\uFF08<b>Tab</b> \u7528\u9F20\u6807\u62D6\uFF09\xB7 <b>\u53F3\u952E</b> \u6536\u6746 \xB7 <b>E</b> ${duel ? "\u5F00\u65B0\u5C40" : "\u91CD\u6446"}`);
         } else {
           setHint("\u7403\u8FD8\u5728\u6EDA\u2026");
         }
@@ -34243,6 +34259,11 @@
       }
       addEventListener("keydown", (e) => {
         const k = e.key.toLowerCase();
+        if (gameState === "result" && (k === "enter" || e.code === "Space")) {
+          e.preventDefault();
+          document.getElementById("btn-again").click();
+          return;
+        }
         if (k === "escape" && gameState === "playing" && playerLoc === "cinema") {
           if (cinema.seated) cinema.onRightDown();
           else pauseGame();
@@ -35167,6 +35188,16 @@
             const z = pool.debugRuleShot([8], { first: 1 });
             mark(`M \u5F00\u7403\u649E\u8FDB\u9ED1\u516B\uFF1A\u6446\u56DE\u7EE7\u7EED ph=${z.phase} turn=${z.turn} live=${z.live} book=[${z.book}] eight=${R3(pool.debugBall(8))}`);
           }, 11e3);
+          setTimeout(() => {
+            pool.debugSetDuel(2);
+            pool.debugRuleShot([1], { first: 1 });
+            for (const n of [2, 3, 4, 5, 6, 7]) pool.debugRuleShot([n], { first: n });
+            pool.debugRuleShot([8], { first: 8 });
+            const a2 = st();
+            pool.debugSettle(CFG.pool.duel.next + 0.4);
+            const rk = document.getElementById("pool-rack");
+            mark(`N \u81EA\u52A8\u5F00\u65B0\u5C40 ${a2} \u2192 ${st()}\uFF08\u8BE5 ph=break turn=1\uFF09\uFF5C\u5BF9\u6218\u65F6\u91CD\u6446\u6309\u94AE=${rk.classList.contains("hidden") ? "\u9690" : "\u663E"}`);
+          }, 11400);
         }
         if (demo === "book") {
           setTimeout(() => {
@@ -35204,6 +35235,11 @@
             scoring.spots = 7;
             finishSession();
           }, 1200);
+          setTimeout(() => {
+            mark(`RES \u9762\u677F=${document.getElementById("result").classList.contains("hidden") ? 0 : 1} state=${GAME.state}`);
+            dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+          }, 1800);
+          setTimeout(() => mark(`RES Enter\u540E \u9762\u677F=${document.getElementById("result").classList.contains("hidden") ? 0 : 1} state=${GAME.state}`), 2600);
         }
       } catch {
       }

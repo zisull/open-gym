@@ -319,6 +319,12 @@ function setPoolHud(on) {
 }
 addEventListener('keydown', (e) => {
   const k = e.key.toLowerCase();
+  if (gameState === 'result' && (k === 'enter' || e.code === 'Space')) {
+    // 结算面板上键盘就是那条捷径：Enter / 空格 = 再来一局（台球室打完自动续，这里同一套"不用找按钮"的规矩）
+    e.preventDefault();
+    document.getElementById('btn-again').click();
+    return;
+  }
   if (k === 'escape' && gameState === 'playing' && playerLoc === 'cinema') {
     // 影院补一个 ESC 语义：入座时起身；走动时弹暂停（与球馆一致）
     if (cinema.seated) cinema.onRightDown(); else pauseGame();
@@ -1236,6 +1242,16 @@ try {
       const z = pool.debugRuleShot([8], { first: 1 });
       mark(`M 开球撞进黑八：摆回继续 ph=${z.phase} turn=${z.turn} live=${z.live} book=[${z.book}] eight=${R(pool.debugBall(8))}`);
     }, 11000);
+    setTimeout(() => {
+      // 一局打完不该冷场等人去点按钮：结果亮够秒数就自动重摆开下一局，而且开球方轮换
+      pool.debugSetDuel(2); pool.debugRuleShot([1], { first: 1 });
+      for (const n of [2, 3, 4, 5, 6, 7]) pool.debugRuleShot([n], { first: n });
+      pool.debugRuleShot([8], { first: 8 });          // 清台后一杆黑八 → 你胜 → phase=over
+      const a = st();
+      pool.debugSettle(CFG.pool.duel.next + 0.4);     // 走过自动续局的那个时间点
+      const rk = document.getElementById('pool-rack');
+      mark(`N 自动开新局 ${a} → ${st()}（该 ph=break turn=1）｜对战时重摆按钮=${rk.classList.contains('hidden') ? '隐' : '显'}`);
+    }, 11400);
   }
   if (demo === 'book') {
     // 定住给截图看「入库记录」：你 3 颗全色、电脑 2 颗花色，刚轮到你出杆
@@ -1270,5 +1286,11 @@ try {
       scoring.shotComboMax = 5; scoring.spots = 7;
       finishSession();
     }, 1200);
+    // Enter = 再来一局（结算面板上不用去找鼠标）
+    setTimeout(() => {
+      mark(`RES 面板=${document.getElementById('result').classList.contains('hidden') ? 0 : 1} state=${GAME.state}`);
+      dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    }, 1800);
+    setTimeout(() => mark(`RES Enter后 面板=${document.getElementById('result').classList.contains('hidden') ? 0 : 1} state=${GAME.state}`), 2600);
   }
 } catch { /* 生产环境忽略 */ }

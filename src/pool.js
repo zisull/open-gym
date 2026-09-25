@@ -351,6 +351,7 @@ export function createPool({ camera, player, sfx }) {
   let pottedOrder = [];     // 落袋顺序（入库 UI）
   let foulBy = [0, 0];
   let result = '';
+  let breaker = 0, overT = 0;   // 本局谁先开球 / 结果横幅已亮多久（到点自动开下一局）
   let botT = 0, botStep = '', botPlan = null, botFrom = 0, botDelta = 0;
   /* ---- 杆法（旋球）：球室条上那块小白球，红点拖到哪就打哪 ---- */
   let spinX = 0;   // −1 左塞 … +1 右塞
@@ -392,10 +393,10 @@ export function createPool({ camera, player, sfx }) {
     if (!duel) {
       s = `🎱 进袋 ${pottedNum}/15 · 得分 ${score}${fouls ? ` · 洗袋 ${fouls}` : ''} · 出杆 ${strokes} · 纪录 ${best}`;
     } else if (phase === 'over') {
-      s = `🏁 ${result} · 出杆 ${strokes} · 点「🀫 重摆」再来一局`;
+      s = `🏁 ${result} · 出杆 ${strokes}`;
     } else {
-      s = `🎱 ${turn === 0 ? '▶ 你的回合' : '电脑回合'} · 你 ${grp[0] ? GN[grp[0]] : '待定'} · ` +
-        `电脑 ${grp[1] ? GN[grp[1]] : '待定'} · 出杆 ${strokes}`;
+      // 「谁的回合」顶部入库条已经用 ▶ 标在行首了，这一条只补它没有的：分组与出杆数
+      s = `🎱 你 ${grp[0] ? GN[grp[0]] : '待定'} · 电脑 ${grp[1] ? GN[grp[1]] : '待定'} · 出杆 ${strokes}`;
     }
     if (s === _info) return;
     _info = s;
@@ -492,6 +493,7 @@ export function createPool({ camera, player, sfx }) {
   }
   function endGame(winner, why) {
     phase = 'over';
+    overT = 0;
     result = `${SIDE[winner]}胜 · ${why}`;
     sfx.play(winner === 0 ? 'cheer' : 'ui', { volume: 0.72 });
     renderBook();
@@ -868,13 +870,17 @@ export function createPool({ camera, player, sfx }) {
     }
   }
 
-  /** 开局 / 换玩法：整桌重摆，规则机回到"待开球" */
-  function startDuel() {
+  /** 开局 / 换玩法：整桌重摆，规则机回到"待开球"。
+   *  alternate=true 只有一条路会用到——打完一局自动续下一局，此时开球方轮换；
+   *  手动重摆/换玩法总是你先开球（玩家不该因为"点了按钮"而丢掉开球权） */
+  function startDuel(alternate) {
     rack();
+    if (!alternate) breaker = 0;
     pottedOrder = []; foulBy = [0, 0]; grp = [null, null]; result = ''; shot = null;
-    turn = 0; strokes = 0; pottedNum = 0; score = 0; fouls = 0;
+    turn = breaker; strokes = 0; pottedNum = 0; score = 0; fouls = 0;
     phase = duel ? 'break' : 'idle';
     needRack = false;
+    overT = 0;
     botT = 0; botStep = ''; botPlan = null;
     _book = null;
     renderBook(); setInfo();
@@ -892,6 +898,8 @@ export function createPool({ camera, player, sfx }) {
     modeEl.title = duel
       ? '点击切到下一种玩法（自由练台 → 轻松 → 标准 → 职业）；换玩法会重摆整桌'
       : '点击开始与电脑打 8 球：先进完自己一组（全色/花色）再打黑八';
+    // 对战里整局会自动续，重摆只是"打乱了想重来"——留给 E，条上少一颗按钮
+    rackEl.classList.toggle('hidden', duel > 0);
   }
   modeEl.addEventListener('click', () => {
     duel = (duel + 1) % (K.duel.levels.length + 1);
@@ -900,7 +908,8 @@ export function createPool({ camera, player, sfx }) {
     startDuel();
     sfx.play('ui', { volume: 0.5, rate: duel ? 1.35 : 1 });
   });
-  $('pool-rack').addEventListener('click', () => api.rerack());
+  const rackEl = $('pool-rack');
+  rackEl.addEventListener('click', () => api.rerack());
   $('pool-exit').addEventListener('click', () => { if (api.onExitRequest) api.onExitRequest(); });
 
   /* ================= 杆法盘：拖红点 / 方向键，两条路写同一个状态 ================= */
@@ -1010,6 +1019,15 @@ export function createPool({ camera, player, sfx }) {
         power = Math.min(1, power + dt / K.chargeTime);
       }
       if (duel && turn === 1 && phase !== 'over') botTick(dt);
+      /* 一局打完不冷场：结果亮几秒就自动重摆开下一局（开球方轮换），按 E 立刻开 */
+      if (duel && phase === 'over') {
+        overT += dt;
+        if (overT >= K.duel.next) {
+          breaker = 1 - breaker;
+          startDuel(true);
+          sfx.play('ui', { volume: 0.5, rate: 1.2 });
+        }
+      }
       syncMeshes(dt);
       setBest();
 
@@ -1031,7 +1049,7 @@ export function createPool({ camera, player, sfx }) {
       setPower(mode === 'aim' && (charging || !mine()) ? power : 0);
 
       if (phase === 'over') {
-        setHint(`🏁 ${result} · 点 <b>🀫 重摆</b> 再来一局，或 <b>🧘 自由练台</b> 自己练`);
+        setHint(`🏁 ${result} · <b>${Math.max(1, Math.ceil(K.duel.next - overT))}</b> 秒后自动开下一局 · <b>E</b> 立即开`);
       } else if (!mine()) {
         setHint(botPlan ? `🤖 电脑正在瞄准 <b>${botPlan.num}</b> 号…` : '🤖 电脑思考中…');
       } else if (mode === 'walk') {
@@ -1039,7 +1057,7 @@ export function createPool({ camera, player, sfx }) {
       } else if (mode === 'aim') {
         setHint(hudOpen
           ? '🖱 <b>拖小白球上的红点</b> 选杆法：下＝拉杆（白球自己回来）· 上＝跟进 · 左右＝加塞 · 按 <b>Tab</b> 或点球台回到瞄准'
-          : `<b>移动鼠标</b> 瞄准 · <b>按住左键</b> 蓄力出杆 · <b>↑↓←→</b> 杆法：<b>${spinLabel()}</b>（<b>Tab</b> 用鼠标拖）· <b>右键</b> 收杆 · <b>E</b> 重摆`);
+          : `<b>移动鼠标</b> 瞄准 · <b>按住左键</b> 蓄力出杆 · <b>↑↓←→</b> 杆法：<b>${spinLabel()}</b>（<b>Tab</b> 用鼠标拖）· <b>右键</b> 收杆 · <b>E</b> ${duel ? '开新局' : '重摆'}`);
       } else {
         setHint('球还在滚…');
       }
