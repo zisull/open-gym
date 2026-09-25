@@ -379,7 +379,7 @@ SAVE  落盘=0.600,-0.350 名称=低杆右塞
 
 ## 开发构建
 
-仓库刻意保持轻量：**`node_modules/`（45MB）不入库**，克隆下来只有 5.2MB / 49 个文件，
+仓库刻意保持轻量：**`node_modules/`（45MB）不入库**，克隆下来只有 5.2MB / 50 个文件，
 其中最大的是示例墙贴画 2.5MB 和打包产物 `dist/game.js` 1.5MB。
 所以拿到仓库不需要装任何东西就能玩；要改代码才需要下面这一步。
 
@@ -406,6 +406,9 @@ npm run videos       # 重新打包 video/ 片源
 npm run regress      # 全量回归：19 个 demo 一次跑完（篮球/影院/台球/主页/过场）
 npm run audit        # 两条收口审计：未被引用的 config 键 + 未被 import 的导出
 ```
+
+> `npm run regress` 的 19 个用例**不读本机素材**：干净克隆（`video/`、`imgs/wall/` 里
+> 没有你自己的文件）跑出来的断言输出与本机逐字一致，已实测。
 
 > 为什么打包成普通脚本：浏览器在 `file://` 下禁止 `<script type="module">` 与
 > fetch 本地文件，因此源码用 ES Module 组织、发布时 esbuild 打成 IIFE；
