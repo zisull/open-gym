@@ -548,7 +548,7 @@ export function makeScreenPlaceholderTexture() {
   ctx.font = `28px 'Microsoft YaHei', system-ui`;
   ctx.fillText('① 把视频文件放进 video/ 文件夹', 512, 280);
   ctx.fillText('② 双击 tools/gen_videos.bat 生成放映清单', 512, 326);
-  ctx.fillText('≤25MB 短片自动进放映单；大文件走「换片单」', 512, 392);
+  ctx.fillText('≤25MB 短片自动进放映单；大文件走「＋ 添加视频」', 512, 392);
   ctx.fillStyle = '#39445a';
   ctx.font = `24px 'Microsoft YaHei', system-ui`;
   ctx.fillText('「控制台」里可指定哪几部出声（多部一起响）、加片删片', 512, 448);

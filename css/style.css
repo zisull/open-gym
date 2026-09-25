@@ -277,13 +277,11 @@ body {
   position: fixed; left: 0; top: 0; width: 2px; height: 2px;
   opacity: 0.01; pointer-events: none; z-index: -1;
 }
-/* 大屏墙：片源数量不定，宫格行列由 cinema.js 写进 --cols/--rows/--col/--row */
+/* 大屏墙：每格的位置/尺寸由 cinema.js 按各片真实比例算好，写进 --x/--y/--w/--h */
 body.big-screen .btv {
-  width: calc(100vw / var(--cols, 1)); height: calc(100vh / var(--rows, 1));
-  left: calc(var(--col, 0) * 100vw / var(--cols, 1));
-  top: calc(var(--row, 0) * 100vh / var(--rows, 1));
+  left: var(--x, 0px); top: var(--y, 0px); width: var(--w, 100vw); height: var(--h, 100vh);
   opacity: 1; z-index: 60; pointer-events: auto;
-  background: #000; object-fit: contain;
+  background: #000; object-fit: cover; /* 铺满格子：只裁边缘，绝不出黑边 */
 }
 body.big-screen::after {
   content: none;
@@ -298,23 +296,33 @@ body.big-screen #cinema-bar { z-index: 62; }
   border: 1px solid var(--glass-line); border-radius: 10px;
 }
 
-/* 大屏墙格子层：与 .btv 用同一套 --cols/--rows，格子按 DOM 顺序自动落位，
-   所以第 i 格正好盖在第 i 块片源上；整格可点＝切换该片出声（管理操作在控制台里） */
-#big-wall {
-  position: fixed; inset: 0; z-index: 61; pointer-events: none;
-  display: grid;
-  grid-template-columns: repeat(var(--cols, 1), 1fr);
-  grid-template-rows: repeat(var(--rows, 1), 1fr);
-}
-.bwcell { position: relative; pointer-events: auto; cursor: pointer; }
+/* 大屏墙的格子层：每格绝对定位到 cinema.js 算出的马赛克矩形上，盖在第 i 块片源；
+   整格点＝切这部出声，✕＝从环上删掉，空格点一下＝往这个位置补一部 */
+#big-wall { position: fixed; inset: 0; z-index: 61; pointer-events: none; }
+.bwcell { position: absolute; pointer-events: auto; cursor: pointer; }
 .bwcell:hover { outline: 2px solid rgba(255, 255, 255, 0.3); outline-offset: -2px; }
 .bwcell:not(.live) { filter: brightness(0.55); }
+.bwcell.hole { background: repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.05) 0 12px, transparent 12px 24px); }
+.bwcell.hole .bwname { color: var(--text); }
 .bwspk {
-  position: absolute; right: 10px; top: 10px; width: 32px; height: 32px;
+  position: absolute; left: 10px; top: 10px; width: 32px; height: 32px;
   display: grid; place-items: center; border-radius: 50%; font-size: 15px;
   background: rgba(10, 14, 20, 0.62); border: 1px solid var(--glass-line); color: var(--dim);
 }
 .bwcell.live .bwspk { background: rgba(226, 140, 46, 0.9); border-color: transparent; color: #fff; }
+.bwkill {
+  position: absolute; right: 10px; top: 10px; width: 30px; height: 30px; padding: 0;
+  display: grid; place-items: center; border-radius: 50%; font-size: 13px;
+  background: rgba(10, 14, 20, 0.62); color: var(--dim); border: 1px solid var(--glass-line);
+}
+.bwkill:hover { background: rgba(200, 60, 50, 0.85); color: #fff; border-color: transparent; }
+/* 平铺视角右上角的「＋ 加一部」：编辑台入口，只在这个视角出现 */
+#bw-add {
+  position: fixed; right: 16px; top: 16px; z-index: 63;
+  padding: 8px 14px; font-size: 13px;
+  background: rgba(10, 14, 20, 0.78); color: var(--text);
+  border: 1px solid var(--glass-line); border-radius: 11px;
+}
 .bwname {
   position: absolute; left: 10px; bottom: 10px; max-width: calc(100% - 24px);
   padding: 3px 9px; border-radius: 8px; font-size: 12px; color: var(--dim);

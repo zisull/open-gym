@@ -29661,7 +29661,7 @@
     ctx.font = `28px 'Microsoft YaHei', system-ui`;
     ctx.fillText("\u2460 \u628A\u89C6\u9891\u6587\u4EF6\u653E\u8FDB video/ \u6587\u4EF6\u5939", 512, 280);
     ctx.fillText("\u2461 \u53CC\u51FB tools/gen_videos.bat \u751F\u6210\u653E\u6620\u6E05\u5355", 512, 326);
-    ctx.fillText("\u226425MB \u77ED\u7247\u81EA\u52A8\u8FDB\u653E\u6620\u5355\uFF1B\u5927\u6587\u4EF6\u8D70\u300C\u6362\u7247\u5355\u300D", 512, 392);
+    ctx.fillText("\u226425MB \u77ED\u7247\u81EA\u52A8\u8FDB\u653E\u6620\u5355\uFF1B\u5927\u6587\u4EF6\u8D70\u300C\uFF0B \u6DFB\u52A0\u89C6\u9891\u300D", 512, 392);
     ctx.fillStyle = "#39445a";
     ctx.font = `24px 'Microsoft YaHei', system-ui`;
     ctx.fillText("\u300C\u63A7\u5236\u53F0\u300D\u91CC\u53EF\u6307\u5B9A\u54EA\u51E0\u90E8\u51FA\u58F0\uFF08\u591A\u90E8\u4E00\u8D77\u54CD\uFF09\u3001\u52A0\u7247\u5220\u7247", 512, 448);
@@ -30249,6 +30249,7 @@
           mat.color.setHex(16777215);
           mat.needsUpdate = true;
           saveLayout();
+          if (document.body.classList.contains("big-screen")) layoutBigGrid(true);
         });
       }
       return s;
@@ -30419,7 +30420,7 @@
     function refreshStatus() {
       const live = sources.filter(Boolean).length;
       const v = voices.size;
-      setStatus(live ? `\u25B6 ${live} \u5757 ${SH}m \u9AD8\u5DE8\u5E55\u73AF\u7ED5 \xB7 \u{1F50A} ${v} \u8DEF\u51FA\u58F0 \xB7 \u{1F39B} \u63A7\u5236\u53F0\u7BA1\u7247\u5355 \xB7 \u6EDA\u8F6E\u62C9\u8FD1\u62C9\u8FDC` : "\u8FD8\u6CA1\u6709\u7247\u6E90\uFF1A\u628A\u89C6\u9891\u653E\u8FDB video/\uFF0C\u6216\u5728\u63A7\u5236\u53F0\u91CC\u300C\u{1F4C2} \u6362\u7247\u5355\u300D");
+      setStatus(live ? `\u25B6 ${live} \u5757 ${SH}m \u9AD8\u5DE8\u5E55\u73AF\u7ED5 \xB7 \u{1F50A} ${v} \u8DEF\u51FA\u58F0 \xB7 \u{1F39B} \u63A7\u5236\u53F0\u7BA1\u7247\u5355 \xB7 \u6EDA\u8F6E\u62C9\u8FD1\u62C9\u8FDC` : "\u8FD8\u6CA1\u6709\u7247\u6E90\uFF1A\u628A\u89C6\u9891\u653E\u8FDB video/\uFF0C\u6216\u5728\u5E73\u94FA\u89C6\u89D2\u70B9\u300C\uFF0B \u52A0\u4E00\u90E8\u300D");
     }
     const HIST_KEY = "bb.cinema.playlists";
     function loadPlaylists() {
@@ -30534,49 +30535,111 @@
     function layoutBigGrid(on) {
       const wall2 = $2("big-wall");
       wall2.textContent = "";
+      for (const s of screens) {
+        const vs = s.videoEl.style;
+        ["--x", "--y", "--w", "--h"].forEach((p) => vs.removeProperty(p));
+      }
+      $2("bw-add").classList.toggle("hidden", !on);
       if (!on) {
         wall2.classList.add("hidden");
-        for (const s of screens) {
-          const vs = s.videoEl.style;
-          ["--col", "--row", "--cols", "--rows"].forEach((p) => vs.removeProperty(p));
-        }
         return;
       }
-      const n = Math.max(screens.length, 1);
-      const cols = Math.ceil(Math.sqrt(n));
-      const rows = Math.ceil(n / cols);
-      wall2.style.setProperty("--cols", String(cols));
-      wall2.style.setProperty("--rows", String(rows));
+      const VW = window.innerWidth;
+      const VH = window.innerHeight;
+      const ars = screens.map((s) => s.src && s.src.ar || K.screen.defAr);
+      const h0 = Math.max(60, Math.sqrt(VW * VH / (ars.reduce((a2, x) => a2 + x, 0) || 1)));
+      const rows = [];
+      let items = [];
+      let sum = 0;
+      for (let i = 0; i < ars.length; i++) {
+        items.push(i);
+        sum += ars[i];
+        if (sum * h0 >= VW) {
+          rows.push({ items, sum });
+          items = [];
+          sum = 0;
+        }
+      }
+      if (items.length) rows.push({ items, sum });
+      const k = VH / (rows.reduce((a2, r) => a2 + VW / r.sum, 0) || 1);
+      const rects = [];
+      let y = 0;
+      for (const r of rows) {
+        const h = VW / r.sum * k;
+        let x = 0;
+        for (const i of r.items) {
+          const w = VW * ars[i] / r.sum;
+          rects[i] = { x, y, w, h };
+          x += w;
+        }
+        y += h;
+      }
+      const css = (rc) => `left:${rc.x.toFixed(1)}px;top:${rc.y.toFixed(1)}px;width:${rc.w.toFixed(1)}px;height:${rc.h.toFixed(1)}px`;
       screens.forEach((s, i) => {
+        const rc = rects[i] || { x: 0, y: 0, w: VW, h: VH };
         const vs = s.videoEl.style;
-        vs.setProperty("--cols", String(cols));
-        vs.setProperty("--rows", String(rows));
-        vs.setProperty("--col", String(i % cols));
-        vs.setProperty("--row", String(Math.floor(i / cols)));
-      });
-      screens.forEach((s, i) => {
+        vs.setProperty("--x", `${rc.x.toFixed(1)}px`);
+        vs.setProperty("--y", `${rc.y.toFixed(1)}px`);
+        vs.setProperty("--w", `${rc.w.toFixed(1)}px`);
+        vs.setProperty("--h", `${rc.h.toFixed(1)}px`);
         const cell = document.createElement("div");
-        cell.className = "bwcell" + (voices.has(i) ? " live" : "");
+        cell.className = "bwcell" + (voices.has(i) ? " live" : "") + (s.src ? "" : " hole");
+        cell.style.cssText = css(rc);
         const spk = document.createElement("span");
         spk.className = "bwspk";
         spk.textContent = voices.has(i) ? "\u{1F50A}" : "\u{1F507}";
         cell.appendChild(spk);
+        if (s.src) {
+          const kill = document.createElement("button");
+          kill.className = "btn bwkill";
+          kill.textContent = "\u2715";
+          kill.title = "\u4ECE\u73AF\u4E0A\u5220\u6389\u8FD9\u90E8";
+          kill.addEventListener("click", (e) => {
+            e.stopPropagation();
+            removeSource(i);
+          });
+          cell.appendChild(kill);
+        }
         const tag = document.createElement("span");
         tag.className = "bwname";
-        tag.textContent = s.src ? s.src.name : "\uFF08\u7A7A\u4F4D\uFF1A\u63A7\u5236\u53F0\u91CC\u52A0\u7247\uFF09";
+        tag.textContent = s.src ? s.src.name : "\uFF0B \u8FD9\u4E2A\u7A7A\u4F4D\u8865\u4E00\u90E8";
         cell.appendChild(tag);
-        cell.title = s.src ? "\u70B9\u51FB\u5207\u6362\u8FD9\u90E8\u7247\u662F\u5426\u51FA\u58F0" : "\u8FD9\u5757\u8FD8\u662F\u7A7A\u4F4D";
-        cell.addEventListener("click", () => tapScreen(i));
+        cell.title = s.src ? "\u70B9\u51FB\u5207\u6362\u8FD9\u90E8\u662F\u5426\u51FA\u58F0" : "\u8FD9\u5757\u8FD8\u662F\u7A7A\u4F4D\uFF1A\u70B9\u51FB\u9009\u4E00\u90E8\u7247\u8865\u4E0A";
+        cell.addEventListener("click", () => {
+          if (s.src) tapScreen(i);
+          else pickVideo(i);
+        });
         wall2.appendChild(cell);
       });
       wall2.classList.remove("hidden");
+    }
+    let pickSlot = -1;
+    function pickVideo(slot) {
+      pickSlot = slot < 0 ? -1 : slot;
+      $2("bw-add-in").click();
+    }
+    function insertSource(f, slot) {
+      const src = { name: f.name, url: URL.createObjectURL(f), local: true };
+      if (slot >= 0 && slot < sources.length && !sources[slot]) sources[slot] = src;
+      else if (sources.length < K.maxScreens) sources.push(src);
+      else {
+        try {
+          URL.revokeObjectURL(src.url);
+        } catch (e) {
+        }
+        setStatus(`\u73AF\u4E0A\u5DF2\u6EE1 ${K.maxScreens} \u5757\u5C4F\uFF0C\u5148\u5728\u5E73\u94FA\u89C6\u89D2\u91CC \u2715 \u6389\u4E00\u5757\u518D\u52A0`);
+        return;
+      }
+      rebuild();
+      playAll();
+      setStatus(`\u2795 \u5DF2\u52A0\u4E0A ${src.name}\uFF0C\u73AF\u4E0A\u5171 ${sources.filter(Boolean).length} \u90E8\u5DE8\u5E55\uFF08\u65B0\u52A0\u7684\u70B9\u4E00\u4E0B\u624D\u51FA\u58F0\uFF09`);
     }
     function removeSource(i) {
       const [gone] = sources.splice(i, 1);
       disposeSource(gone);
       rebuild();
       const live = sources.filter(Boolean).length;
-      setStatus(live ? `\u{1F5D1} \u5DF2\u79FB\u9664 1 \u90E8\uFF0C\u73AF\u4E0A\u8FD8\u6709 ${live} \u90E8\u5DE8\u5E55` : "\u7247\u5355\u7A7A\u4E86\uFF1A\u63A7\u5236\u53F0\u91CC\u70B9\u300C\uFF0B \u52A0\u5165\u89C6\u9891\u300D\u6216\u300C\u{1F4C2} \u6362\u7247\u5355\u300D");
+      setStatus(live ? `\u{1F5D1} \u5DF2\u79FB\u9664 1 \u90E8\uFF0C\u73AF\u4E0A\u8FD8\u6709 ${live} \u90E8\u5DE8\u5E55` : "\u7247\u5355\u7A7A\u4E86\uFF1A\u5E73\u94FA\u89C6\u89D2\u70B9\u300C\uFF0B \u52A0\u4E00\u90E8\u300D\uFF0C\u6216\u63A7\u5236\u53F0\u91CC\u300C\uFF0B \u6DFB\u52A0\u89C6\u9891\u300D");
       sfx.play("ui", { volume: 0.4 });
     }
     function applyAudio() {
@@ -30593,7 +30656,7 @@
       if (!screens.some((s) => s.src)) {
         const e = document.createElement("div");
         e.className = "cc-empty";
-        e.textContent = "\u7247\u5355\u662F\u7A7A\u7684\uFF1A\u4E0B\u9762\u300C\u{1F4C2} \u6362\u7247\u5355\u300D\u6574\u6761\u66FF\u6362\uFF0C\u6216\u300C\uFF0B \u52A0\u5165\u89C6\u9891\u300D\u8FFD\u52A0\u3002";
+        e.textContent = "\u7247\u5355\u662F\u7A7A\u7684\uFF1A\u300C\uFF0B \u6DFB\u52A0\u89C6\u9891\u300D\u9009\u4E00\u90E8\u5C31\u52A0\u4E00\u5757\uFF0C\u9009\u591A\u90E8\u5C31\u6574\u6761\u66FF\u6362\u3002";
         list.appendChild(e);
         return;
       }
@@ -30675,11 +30738,20 @@
       }
     });
     $2("cc-add").addEventListener("click", () => $2("cb-add-in").click());
+    $2("bw-add").addEventListener("click", () => pickVideo(-1));
+    $2("bw-add-in").addEventListener("change", (e) => {
+      const f = (e.target.files || [])[0];
+      e.target.value = "";
+      if (f) insertSource(f, pickSlot);
+    });
+    addEventListener("resize", () => {
+      if (document.body.classList.contains("big-screen")) layoutBigGrid(true);
+    });
     $2("cb-big").addEventListener("click", () => {
       const on = !document.body.classList.contains("big-screen");
       document.body.classList.toggle("big-screen", on);
       layoutBigGrid(on);
-      $2("cb-big").textContent = on ? "\u26F6 \u56DE\u5230\u5F71\u5385\u89C6\u89D2" : "\u26F6 \u653E\u5927\u89C2\u770B";
+      $2("cb-big").title = on ? "\u5E73\u94FA\u89C6\u89D2\u91CC\uFF1A\u2715 \u5220\u7247\u3001\u70B9\u7A7A\u683C\u8865\u4E00\u90E8\u3001\u53F3\u4E0A\u89D2\uFF0B\u52A0\u4E00\u90E8\uFF08\u518D\u70B9\u8FD9\u91CC\u6536\u56DE\u5F71\u5385\uFF09" : "\u5E73\u94FA\u89C6\u89D2\uFF1A\u6574\u5C4F\u6309\u5404\u7247\u6BD4\u4F8B\u62FC\u6EE1\uFF08\u65E0\u9ED1\u8FB9\uFF09\uFF0C\u52A0\u7247\u5220\u7247\u5C31\u5728\u8FD9\u91CC";
     });
     $2("cb-stand").addEventListener("click", () => stand());
     $2("cb-exit").addEventListener("click", () => {
@@ -30695,11 +30767,14 @@
       playAll();
       refreshStatus();
     });
-    $2("cb-file").addEventListener("click", () => $2("cb-file-in").click());
-    $2("cb-file-in").addEventListener("change", (e) => {
+    $2("cb-add-in").addEventListener("change", (e) => {
       const files = Array.from(e.target.files || []);
       e.target.value = "";
       if (!files.length) return;
+      if (files.length === 1) {
+        insertSource(files[0], -1);
+        return;
+      }
       const old = sources;
       const over = Math.max(0, files.length - K.maxScreens);
       sources = files.slice(0, K.maxScreens).map((f) => ({ name: f.name, url: URL.createObjectURL(f), local: true }));
@@ -30708,17 +30783,6 @@
       rebuild();
       playAll();
       setStatus(`\u{1F3AC} ${sources.length} \u90E8\u5DE8\u5E55\u73AF\u7ED5\u4E2D${over ? `\uFF08\u4E0A\u9650 ${K.maxScreens} \u5757\u5C4F\uFF0C\u591A\u51FA\u7684 ${over} \u90E8\u672A\u5BFC\u5165\uFF09` : ""}`);
-    });
-    $2("cb-add-in").addEventListener("change", (e) => {
-      const files = Array.from(e.target.files || []);
-      e.target.value = "";
-      if (!files.length) return;
-      const room = Math.max(0, K.maxScreens - sources.length);
-      const take = files.slice(0, room);
-      for (const f of take) sources.push({ name: f.name, url: URL.createObjectURL(f), local: true });
-      rebuild();
-      playAll();
-      setStatus(take.length ? `\u2795 \u8FFD\u52A0 ${take.length} \u90E8\uFF0C\u73AF\u4E0A\u5171 ${sources.filter(Boolean).length} \u90E8\u5DE8\u5E55\uFF08\u65B0\u52A0\u7684\u5728\u63A7\u5236\u53F0\u52FE \u{1F50A} \u624D\u51FA\u58F0\uFF09` + (files.length - take.length ? `\uFF08\u5DF2\u5230 ${K.maxScreens} \u5757\u5C4F\u4E0A\u9650\uFF0C${files.length - take.length} \u90E8\u672A\u5BFC\u5165\uFF09` : "") : `\u73AF\u4E0A\u5DF2\u6EE1 ${K.maxScreens} \u5757\u5C4F\uFF0C\u5148\u5728\u63A7\u5236\u53F0\u91CC\u79FB\u8D70\u51E0\u90E8\u518D\u52A0`);
     });
     async function addShare() {
       const md = navigator.mediaDevices;
@@ -30835,7 +30899,7 @@
       if (document.body.classList.contains("big-screen")) {
         document.body.classList.remove("big-screen");
         layoutBigGrid(false);
-        $2("cb-big").textContent = "\u26F6 \u653E\u5927\u89C2\u770B";
+        $2("cb-big").title = "\u5E73\u94FA\u89C6\u89D2\uFF1A\u6574\u5C4F\u6309\u5404\u7247\u6BD4\u4F8B\u62FC\u6EE1\uFF08\u65E0\u9ED1\u8FB9\uFF09\uFF0C\u52A0\u7247\u5220\u7247\u5C31\u5728\u8FD9\u91CC";
       }
       canvasLock();
     }
@@ -30969,6 +31033,26 @@
       /** 无头验证用：当前厅壳形态（厅形 / 多边形边数 / 外接半径 / 走动 AABB） */
       debugHall() {
         return { shape, edges, ap: +AP.toFixed(2), rc: +(edges ? circumR(edges, AP) : R).toFixed(2), bound: +ROOM_BOUNDS.maxX.toFixed(2) };
+      },
+      /** 测试钩子：blob 假文件在无头下解不出元数据，手工指定某块幕的宽高比以便重排（真实链路是 loadedmetadata） */
+      debugSetAr(i, ar) {
+        const s = screens[i];
+        if (!s || !s.src) return false;
+        s.src.ar = ar;
+        rebuild();
+        return true;
+      },
+      /** 测试钩子：删掉环上第 i 部（与格子上的 ✕ 同一条链路），用来造出「空洞位」 */
+      debugRemove(i) {
+        removeSource(i);
+      },
+      /** 测试钩子：把第 i 位挖成空洞（保留位置，和「播放过」快照换回带洞片单时同一种状态） */
+      debugHole(i) {
+        if (i >= sources.length) return false;
+        disposeSource(sources[i]);
+        sources[i] = null;
+        rebuild();
+        return true;
       },
       /** 无头验证用：环上每块幕的几何（高度 / 槽位圆心角 / 实占圆心角 / 幕面实宽 / 宽高比 / 是否有片源）
        *  两种厅形都用「圆心角」表达，所以弧幕和直墙平面幕可以直接用同一组断言比。 */
@@ -32765,27 +32849,32 @@
             cinema.onWheel(120);
             const el = document.getElementById("dbg-out");
             const vs = Array.from(document.querySelectorAll(".btv"));
-            const vs0 = vs[0]?.style;
-            el.textContent = `${demo.toUpperCase()} seated=${cinema.seated} bar=${document.getElementById("cinema-bar").classList.contains("hidden") ? 0 : 1} eye=${player.eyeHeight.toFixed(2)} pos=${player.pos.x.toFixed(1)},${player.pos.z.toFixed(1)} big=${document.body.classList.contains("big-screen") ? 1 : 0} n=${vs.length} src=${vs.map((v) => v.currentSrc || v.src ? 1 : 0).join("")} ring=${cinema.debugRing().map((r) => `h${r.h}/a${r.arcDeg}${r.src}`).join(",")} vce=${cinema.debugRing().map((r) => r.voice).join("")} zoom=${fov0.toFixed(1)}>${fovIn.toFixed(1)}>${camera.fov.toFixed(1)} grid=${vs0?.getPropertyValue("--cols") || "-"}x${vs0?.getPropertyValue("--rows") || "-"}`;
+            el.textContent = `${demo.toUpperCase()} seated=${cinema.seated} bar=${document.getElementById("cinema-bar").classList.contains("hidden") ? 0 : 1} eye=${player.eyeHeight.toFixed(2)} pos=${player.pos.x.toFixed(1)},${player.pos.z.toFixed(1)} big=${document.body.classList.contains("big-screen") ? 1 : 0} n=${vs.length} src=${vs.map((v) => v.currentSrc || v.src ? 1 : 0).join("")} ring=${cinema.debugRing().map((r) => `h${r.h}/a${r.arcDeg}${r.src}`).join(",")} vce=${cinema.debugRing().map((r) => r.voice).join("")} zoom=${fov0.toFixed(1)}>${fovIn.toFixed(1)}>${camera.fov.toFixed(1)} tile=${vs.map((v) => `${Math.round(Number(v.style.getPropertyValue("--w").replace("px", "")) || 0)}x` + Math.round(Number(v.style.getPropertyValue("--h").replace("px", "")) || 0)).join(",")} fit=${vs[0] ? getComputedStyle(vs[0]).objectFit : "-"} cells=${document.querySelectorAll("#big-wall .bwcell").length} add=${document.getElementById("bw-add").classList.contains("hidden") ? 0 : 1}`;
           }, 3400);
         }
         if (demo === "import") {
-          setTimeout(() => {
-            const inp = document.getElementById("cb-file-in");
-            const mk = (n) => new File([new Blob(["x"], { type: "video/mp4" })], n, { type: "video/mp4" });
-            Object.defineProperty(inp, "files", { value: [mk("demo-a.mp4"), mk("demo-b.mp4")] });
+          const set = (names) => {
+            const inp = document.getElementById("cb-add-in");
+            Object.defineProperty(inp, "files", {
+              value: names.map((n) => new File([new Blob(["x"], { type: "video/mp4" })], n, { type: "video/mp4" })),
+              configurable: true
+            });
             inp.dispatchEvent(new Event("change"));
-          }, 2600);
+          };
+          const ring = () => cinema.debugRing().map((r) => r.src).join("");
+          setTimeout(() => set(["demo-one.mp4"]), 2600);
+          setTimeout(() => mark(`ADD1 n=${document.querySelectorAll(".btv").length} ring=${ring()}`), 3300);
+          setTimeout(() => set(["demo-a.mp4", "demo-b.mp4"]), 3900);
           setTimeout(() => {
             const saved = JSON.parse(localStorage.getItem("bb.cinema.screens") || "[]");
-            mark(`IMP n=${document.querySelectorAll(".btv").length} ring=${cinema.debugRing().map((r) => r.src).join("")} saved=${saved.map((x) => x ? x.n : "-").join(",")}`);
-          }, 3400);
+            mark(`IMP2 n=${document.querySelectorAll(".btv").length} ring=${ring()} saved=${saved.map((x) => x ? x.n : "-").join(",")}`);
+          }, 4600);
           setTimeout(() => {
             document.getElementById("cb-reset").click();
-          }, 4200);
+          }, 5200);
           setTimeout(() => {
-            mark(`RESET n=${document.querySelectorAll(".btv").length} ring=${cinema.debugRing().map((r) => r.src).join("")}`);
-          }, 4800);
+            mark(`RESET n=${document.querySelectorAll(".btv").length} ring=${ring()}`);
+          }, 5800);
         }
         if (demo === "wall") {
           const spk = () => document.querySelectorAll("#cc-list .cc-spk");
@@ -32800,8 +32889,12 @@
           setTimeout(() => {
             const inp = document.getElementById("cb-add-in");
             const mk = (n) => new File([new Blob(["x"], { type: "video/mp4" })], n, { type: "video/mp4" });
-            Object.defineProperty(inp, "files", { value: [mk("add-a.mp4"), mk("add-b.mp4")] });
-            inp.dispatchEvent(new Event("change"));
+            const one = (n) => {
+              Object.defineProperty(inp, "files", { value: [mk(n)], configurable: true });
+              inp.dispatchEvent(new Event("change"));
+            };
+            one("add-a.mp4");
+            setTimeout(() => one("add-b.mp4"), 400);
           }, 3400);
           setTimeout(() => mark(`P1 ${st()} open=${document.getElementById("cinema-console").classList.contains("hidden") ? 0 : 1}`), 4200);
           setTimeout(() => {
@@ -32845,10 +32938,13 @@
             mark(`ROUND shape=${hall.shape} edges=${hall.edges} ap=${hall.ap} rc=${hall.rc} slot0=${r[0] ? r[0].slotDeg : "-"} w0=${r[0] ? r[0].w : "-"} sum=${r.reduce((a2, x) => a2 + x.slotDeg, 0).toFixed(1)}`);
           }, 10800);
           setTimeout(() => {
-            const chips = document.querySelectorAll("#cc-hist .cc-chip");
-            mark(`HIST n=${cinema.debugLists().length} parts=${cinema.debugLists().map((p) => p.n).join("/")} chips=${chips.length} rows=${document.querySelectorAll("#cc-list .ccrow").length}`);
-            if (chips.length > 1) chips[1].click();
+            const l = cinema.debugLists();
+            mark(`HIST n=${l.length} parts=${l.map((p) => p.n).join("/")} chips=${document.querySelectorAll("#cc-hist .cc-chip").length} rows=${document.querySelectorAll("#cc-list .ccrow").length}`);
           }, 11400);
+          setTimeout(() => {
+            const chips = document.querySelectorAll("#cc-hist .cc-chip");
+            if (chips.length) chips[chips.length - 1].click();
+          }, 11800);
           setTimeout(() => {
             mark(`BACK rows=${document.querySelectorAll("#cc-list .ccrow").length} btv=${document.querySelectorAll(".btv").length} voice=${cinema.debugRing().map((r) => r.voice).join("")}`);
           }, 12400);
@@ -32867,11 +32963,17 @@
         if (demo === "ring") {
           const cnt = Math.max(1, Number(params.get("n")) || 5);
           const poly = params.get("shape") === "poly";
+          const big = params.get("big") === "1";
+          const mix = params.get("mix") === "1";
+          const hole = params.get("hole") === "1";
           setTimeout(() => {
-            const inp = document.getElementById("cb-file-in");
+            const inp = document.getElementById("cb-add-in");
             const files = Array.from({ length: cnt }, (_, i) => new File([new Blob(["x"], { type: "video/mp4" })], `demo-${i}.mp4`, { type: "video/mp4" }));
             Object.defineProperty(inp, "files", { value: files });
             inp.dispatchEvent(new Event("change"));
+            if (mix) cinema.debugSetAr(0, 9 / 16);
+            if (big) document.getElementById("cb-big").click();
+            if (hole) cinema.debugHole(1);
             player.pos.set(0, 0, CFG.cinema.bed.z + 1.6);
             player.freeYaw = 0;
             player.yaw = 0;
@@ -32881,7 +32983,15 @@
           setTimeout(() => {
             const r = cinema.debugRing();
             const hall = cinema.debugHall();
-            mark(`RING n=${cnt} shape=${hall.shape} edges=${hall.edges} rc=${hall.rc} w=${r.map((x) => x.w).join("/")} arc=${r.map((x) => x.arcDeg).join("/")} sum=${r.reduce((a2, x) => a2 + x.slotDeg, 0).toFixed(1)}`);
+            const tile = Array.from(document.querySelectorAll(".btv")).map((v) => {
+              const p = (k) => Number(v.style.getPropertyValue(k).replace("px", "")) || 0;
+              return `${p("--x").toFixed(0)},${p("--y").toFixed(0)} ${p("--w").toFixed(0)}x${p("--h").toFixed(0)}`;
+            });
+            const last = Array.from(document.querySelectorAll(".btv")).reduce((a2, v) => {
+              const p = (k) => Number(v.style.getPropertyValue(k).replace("px", "")) || 0;
+              return { x: Math.max(a2.x, p("--x") + p("--w")), y: Math.max(a2.y, p("--y") + p("--h")) };
+            }, { x: 0, y: 0 });
+            mark(`RING n=${cnt} shape=${hall.shape} edges=${hall.edges} rc=${hall.rc} w=${r.map((x) => x.w).join("/")} arc=${r.map((x) => x.arcDeg).join("/")} sum=${r.reduce((a2, x) => a2 + x.slotDeg, 0).toFixed(1)}` + (big ? ` big=${last.x.toFixed(0)}x${last.y.toFixed(0)}/${innerWidth}x${innerHeight} cells=${document.querySelectorAll("#big-wall .bwcell").length} tile=${tile.join(" | ")}` : ""));
           }, 3600);
         }
         if (demo === "exit") {

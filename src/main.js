@@ -594,7 +594,6 @@ try {
       cinema.onWheel(120);
       const el = document.getElementById('dbg-out');
       const vs = Array.from(document.querySelectorAll('.btv'));
-      const vs0 = vs[0]?.style;
       el.textContent = `${demo.toUpperCase()} seated=${cinema.seated}`
         + ` bar=${document.getElementById('cinema-bar').classList.contains('hidden') ? 0 : 1}`
         + ` eye=${player.eyeHeight.toFixed(2)} pos=${player.pos.x.toFixed(1)},${player.pos.z.toFixed(1)}`
@@ -603,30 +602,40 @@ try {
         + ` ring=${cinema.debugRing().map((r) => `h${r.h}/a${r.arcDeg}${r.src}`).join(',')}`
         + ` vce=${cinema.debugRing().map((r) => r.voice).join('')}`
         + ` zoom=${fov0.toFixed(1)}>${fovIn.toFixed(1)}>${camera.fov.toFixed(1)}`
-        + ` grid=${vs0?.getPropertyValue('--cols') || '-'}x${vs0?.getPropertyValue('--rows') || '-'}`;
+        // 马赛克铺法：每格 w x h（px），按各片 ar 加权铺满整屏 —— 断言 Σ行宽=视口宽、Σ行高=视口高
+        + ` tile=${vs.map((v) => `${Math.round(Number(v.style.getPropertyValue('--w').replace('px', '')) || 0)}`
+          + 'x'
+          + Math.round(Number(v.style.getPropertyValue('--h').replace('px', '')) || 0)).join(',')}`
+        + ` fit=${vs[0] ? getComputedStyle(vs[0]).objectFit : '-'}`
+        + ` cells=${document.querySelectorAll('#big-wall .bwcell').length}`
+        + ` add=${document.getElementById('bw-add').classList.contains('hidden') ? 0 : 1}`;
     }, 3400);
   }
   if (demo === 'import') {
-    // 多选导入＝整条替换：造两个假 File 走同一条 change 通道，断言环上只剩这 2 部
-    // （默认片单那 1 部不再保留），且存档列表就是这两部；随后「恢复默认」退回片单。
-    setTimeout(() => {
-      const inp = document.getElementById('cb-file-in');
-      const mk = (n) => new File([new Blob(['x'], { type: 'video/mp4' })], n, { type: 'video/mp4' });
-      Object.defineProperty(inp, 'files', { value: [mk('demo-a.mp4'), mk('demo-b.mp4')] });
+    // 「＋ 添加视频」按**这次选了几部**决定动作：1 部＝追加（默认片单那部保留），
+    // 多部＝整条替换（旧片单不保留、存档就是这几部）。最后「恢复默认」退回片单。
+    const set = (names) => {
+      const inp = document.getElementById('cb-add-in');
+      Object.defineProperty(inp, 'files', {
+        value: names.map((n) => new File([new Blob(['x'], { type: 'video/mp4' })], n, { type: 'video/mp4' })),
+        configurable: true,
+      });
       inp.dispatchEvent(new Event('change'));
-    }, 2600);
+    };
+    const ring = () => cinema.debugRing().map((r) => r.src).join('');
+    setTimeout(() => set(['demo-one.mp4']), 2600);
+    setTimeout(() => mark(`ADD1 n=${document.querySelectorAll('.btv').length} ring=${ring()}`), 3300);
+    setTimeout(() => set(['demo-a.mp4', 'demo-b.mp4']), 3900);
     setTimeout(() => {
       const saved = JSON.parse(localStorage.getItem('bb.cinema.screens') || '[]');
-      mark(`IMP n=${document.querySelectorAll('.btv').length}`
-        + ` ring=${cinema.debugRing().map((r) => r.src).join('')}`
+      mark(`IMP2 n=${document.querySelectorAll('.btv').length} ring=${ring()}`
         + ` saved=${saved.map((x) => (x ? x.n : '-')).join(',')}`);
-    }, 3400);
+    }, 4600);
     // 「恢复默认」应退回片单排布（本地导入的两块屏消失）
-    setTimeout(() => { document.getElementById('cb-reset').click(); }, 4200);
+    setTimeout(() => { document.getElementById('cb-reset').click(); }, 5200);
     setTimeout(() => {
-      mark(`RESET n=${document.querySelectorAll('.btv').length}`
-        + ` ring=${cinema.debugRing().map((r) => r.src).join('')}`);
-    }, 4800);
+      mark(`RESET n=${document.querySelectorAll('.btv').length} ring=${ring()}`);
+    }, 5800);
   }
   if (demo === 'wall') {
     // 统一控制台 + 多路出声：入座→开控制台→追加 2 部→勾 3 路出声→删 1 部→整体静音/还原→收条唤回。
@@ -644,10 +653,15 @@ try {
       document.getElementById('cb-console').click();
     }, 2600);
     setTimeout(() => {
+      // 单部添加：一次 change 只塞一个文件 → 语义是「追加一块幕」（选多部才叫整条替换）
       const inp = document.getElementById('cb-add-in');
       const mk = (n) => new File([new Blob(['x'], { type: 'video/mp4' })], n, { type: 'video/mp4' });
-      Object.defineProperty(inp, 'files', { value: [mk('add-a.mp4'), mk('add-b.mp4')] });
-      inp.dispatchEvent(new Event('change'));
+      const one = (n) => {
+        Object.defineProperty(inp, 'files', { value: [mk(n)], configurable: true });
+        inp.dispatchEvent(new Event('change'));
+      };
+      one('add-a.mp4');
+      setTimeout(() => one('add-b.mp4'), 400);
     }, 3400);
     setTimeout(() => mark(`P1 ${st()} open=${document.getElementById('cinema-console').classList.contains('hidden') ? 0 : 1}`), 4200);
     setTimeout(() => { const b = spk(); b[1].click(); b[2].click(); }, 5000); // 三部一起出声
@@ -689,12 +703,16 @@ try {
       mark(`ROUND shape=${hall.shape} edges=${hall.edges} ap=${hall.ap} rc=${hall.rc}`
         + ` slot0=${r[0] ? r[0].slotDeg : '-'} w0=${r[0] ? r[0].w : '-'} sum=${r.reduce((a, x) => a + x.slotDeg, 0).toFixed(1)}`);
     }, 10800);
-    // 片单快照：开始播放（换/加片）各记一次，点旧 chip 整条换回
+    // 片单快照：换片/加片各记一次；重复片单只「挪到最前」不新增副本 → 三次 playAll 只留 2 份
+    setTimeout(() => {
+      const l = cinema.debugLists();
+      mark(`HIST n=${l.length} parts=${l.map((p) => p.n).join('/')} chips=${document.querySelectorAll('#cc-hist .cc-chip').length} rows=${document.querySelectorAll('#cc-list .ccrow').length}`);
+    }, 11400);
+    // 点最旧那条 chip（1 部）→ 环上整条换回那一场（含当时的出声设置）
     setTimeout(() => {
       const chips = document.querySelectorAll('#cc-hist .cc-chip');
-      mark(`HIST n=${cinema.debugLists().length} parts=${cinema.debugLists().map((p) => p.n).join('/')} chips=${chips.length} rows=${document.querySelectorAll('#cc-list .ccrow').length}`);
-      if (chips.length > 1) chips[1].click();
-    }, 11400);
+      if (chips.length) chips[chips.length - 1].click();
+    }, 11800);
     setTimeout(() => {
       mark(`BACK rows=${document.querySelectorAll('#cc-list .ccrow').length} btv=${document.querySelectorAll('.btv').length} voice=${cinema.debugRing().map((r) => r.voice).join('')}`);
     }, 12400);
@@ -714,11 +732,18 @@ try {
     // 正多边形厅（n 部片 = n 条直墙）
     const cnt = Math.max(1, Number(params.get('n')) || 5);
     const poly = params.get('shape') === 'poly';
+    const big = params.get('big') === '1'; // 顺手开平铺视角，验马赛克是否真的铺满视口
+    const mix = params.get('mix') === '1'; // 混一部竖版（9:16），看马赛克是否按各自比例分格
+    const hole = params.get('hole') === '1'; // 中间挖一个空洞，看空格是否显示「点这里补一部」
     setTimeout(() => {
-      const inp = document.getElementById('cb-file-in');
+      // 一次选 cnt 部 → 走「多部＝整条替换」这条语义
+      const inp = document.getElementById('cb-add-in');
       const files = Array.from({ length: cnt }, (_, i) => new File([new Blob(['x'], { type: 'video/mp4' })], `demo-${i}.mp4`, { type: 'video/mp4' }));
       Object.defineProperty(inp, 'files', { value: files });
       inp.dispatchEvent(new Event('change'));
+      if (mix) cinema.debugSetAr(0, 9 / 16); // blob 元数据解不出来，只能手工喂 ar 再重排
+      if (big) document.getElementById('cb-big').click(); // 先开平铺：此时 ✕ 删片是在平铺里点的
+      if (hole) cinema.debugHole(1); // 再把第 2 位挖成空洞：平铺里该位变成「＋ 补一部」空格
       player.pos.set(0, 0, CFG.cinema.bed.z + 1.6);
       player.freeYaw = 0; player.yaw = 0;
       cinema.onLeftDown();
@@ -727,8 +752,19 @@ try {
     setTimeout(() => {
       const r = cinema.debugRing();
       const hall = cinema.debugHall();
+      // 马赛克断言：每格 w x h + 左上角，Σ(最后一格右边界) 应等于视口宽高（无空隙、无黑边）
+      const tile = Array.from(document.querySelectorAll('.btv')).map((v) => {
+        const p = (k) => Number(v.style.getPropertyValue(k).replace('px', '')) || 0;
+        return `${p('--x').toFixed(0)},${p('--y').toFixed(0)} ${p('--w').toFixed(0)}x${p('--h').toFixed(0)}`;
+      });
+      const last = Array.from(document.querySelectorAll('.btv')).reduce((a, v) => {
+        const p = (k) => Number(v.style.getPropertyValue(k).replace('px', '')) || 0;
+        return { x: Math.max(a.x, p('--x') + p('--w')), y: Math.max(a.y, p('--y') + p('--h')) };
+      }, { x: 0, y: 0 });
       mark(`RING n=${cnt} shape=${hall.shape} edges=${hall.edges} rc=${hall.rc}`
-        + ` w=${r.map((x) => x.w).join('/')} arc=${r.map((x) => x.arcDeg).join('/')} sum=${r.reduce((a, x) => a + x.slotDeg, 0).toFixed(1)}`);
+        + ` w=${r.map((x) => x.w).join('/')} arc=${r.map((x) => x.arcDeg).join('/')} sum=${r.reduce((a, x) => a + x.slotDeg, 0).toFixed(1)}`
+        + (big ? ` big=${last.x.toFixed(0)}x${last.y.toFixed(0)}/${innerWidth}x${innerHeight}`
+          + ` cells=${document.querySelectorAll('#big-wall .bwcell').length} tile=${tile.join(' | ')}` : ''));
     }, 3600);
   }
   if (demo === 'exit') {

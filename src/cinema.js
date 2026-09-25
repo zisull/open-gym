@@ -9,8 +9,10 @@
  * 半径**定：6 边以上就取 ring.r（与圆筒同距），3~5 边按 `polyK` 略微收小，免得墙比幕宽一大截。
  * 两种厅形**都没有门**：墙是一整圈闭合的（黑匣子不漏光、整圈都能挂幕），回球场只走放映条的
  * 「🚪 退出影院」。
- * 片源管理统一在放映控制台（抽屉）：一行一部管出声/播停/删片，底部换片单、加入、恢复默认；
- * 「放大观看」宫格只做切出声。
+ * 片源管理分两面：**放映控制台**（抽屉）管"看与听"——一行一部管出声/播停、总音量、厅形、
+ * 共享窗口、恢复默认；**「⛶ 放大观看」的平铺视角**是编辑台——整屏按各片真实比例拼成马赛克
+ * （无黑边），格子上 ✕ 删片、点空格补片、右上角 ＋ 单部添加、点格切出声。
+ * 导入语义按「这次选了几部」走：选 1 部＝加一块（追加），选多部＝整条替换。
  * 「开始播放」会把当次片单名字存成历史快照（bb.cinema.playlists），控制台底部一键换回。
  * file:// 下本地相对路径视频会污染 WebGL 贴图，因此片源只允许
  * data:（video/manifest.js 内嵌短片）或 blob:（"选择视频"文件）两种同源形式。
@@ -263,6 +265,8 @@ export function createCinema({ camera, player, sfx }) {
         mat.color.setHex(0xffffff);
         mat.needsUpdate = true;
         saveLayout(); // 宽高比一并存档，下次开机不用等元数据再重排
+        // 平铺视角是按真实比例拼的，比例一到手就得重排一次
+        if (document.body.classList.contains('big-screen')) layoutBigGrid(true);
       });
     }
     return s;
@@ -436,7 +440,7 @@ export function createCinema({ camera, player, sfx }) {
     const v = voices.size;
     setStatus(live
       ? `▶ ${live} 块 ${SH}m 高巨幕环绕 · 🔊 ${v} 路出声 · 🎛 控制台管片单 · 滚轮拉近拉远`
-      : '还没有片源：把视频放进 video/，或在控制台里「📂 换片单」');
+      : '还没有片源：把视频放进 video/，或在平铺视角点「＋ 加一部」');
   }
 
   /* ================= 播放过的片单（快照历史）=================
@@ -554,50 +558,98 @@ export function createCinema({ camera, player, sfx }) {
   }
 
   /**
-   * 放大观看：全部片源铺满屏幕的宫格，格数随屏数变（CSS 变量交给 style.css 排版）。
-   * #big-wall 是同规格的格子层（格子按 DOM 顺序落位，天然与第 i 块片源对齐）：
-   * 整格点一下＝该片加入/移出出声，出声的亮角标 🔊、不出声的压暗——只管"听哪个"，
-   * 加片删片统一走控制台，不再在这儿摆一套重复的按钮。
+   * 放大观看 = 编辑台。整屏按各片**真实比例**拼成马赛克，格子上直接管片。
+   * 拼法：先按目标行高 h0 贪心分行，每行按 ar 加权把视口宽度分完（自然行高 = VW/Σar），
+   * 再把所有行高等比归一到视口高度——拼不满就把余量**纵向摊开**，不留空格；
+   * 画面一律 object-fit:cover，所以只裁边缘、绝不出黑边。
+   * 一格上的操作：整格点＝切这部出声／空洞格点＝往这个位置补一部／右上角 ✕＝从环上删掉。
    */
   function layoutBigGrid(on) {
     const wall = $('big-wall');
     wall.textContent = ''; // 重建前清空旧格子（含事件监听）
-    if (!on) {
-      wall.classList.add('hidden');
-      for (const s of screens) {
-        const vs = s.videoEl.style;
-        ['--col', '--row', '--cols', '--rows'].forEach((p) => vs.removeProperty(p));
-      }
-      return;
-    }
-    const n = Math.max(screens.length, 1);
-    const cols = Math.ceil(Math.sqrt(n));
-    const rows = Math.ceil(n / cols);
-    wall.style.setProperty('--cols', String(cols));
-    wall.style.setProperty('--rows', String(rows));
-    screens.forEach((s, i) => {
+    for (const s of screens) {
       const vs = s.videoEl.style;
-      vs.setProperty('--cols', String(cols));
-      vs.setProperty('--rows', String(rows));
-      vs.setProperty('--col', String(i % cols));
-      vs.setProperty('--row', String(Math.floor(i / cols)));
-    });
+      ['--x', '--y', '--w', '--h'].forEach((p) => vs.removeProperty(p));
+    }
+    $('bw-add').classList.toggle('hidden', !on);
+    if (!on) { wall.classList.add('hidden'); return; }
+    const VW = window.innerWidth;
+    const VH = window.innerHeight;
+    const ars = screens.map((s) => (s.src && s.src.ar) || K.screen.defAr);
+    const h0 = Math.max(60, Math.sqrt((VW * VH) / (ars.reduce((a, x) => a + x, 0) || 1)));
+    const rows = [];
+    let items = [];
+    let sum = 0;
+    for (let i = 0; i < ars.length; i++) {
+      items.push(i);
+      sum += ars[i];
+      if (sum * h0 >= VW) { rows.push({ items, sum }); items = []; sum = 0; }
+    }
+    if (items.length) rows.push({ items, sum });
+    const k = VH / (rows.reduce((a, r) => a + VW / r.sum, 0) || 1); // 行高归一系数：把整屏纵向填满
+    const rects = [];
+    let y = 0;
+    for (const r of rows) {
+      const h = (VW / r.sum) * k;
+      let x = 0;
+      for (const i of r.items) {
+        const w = (VW * ars[i]) / r.sum;
+        rects[i] = { x, y, w, h };
+        x += w;
+      }
+      y += h;
+    }
+    const css = (rc) => `left:${rc.x.toFixed(1)}px;top:${rc.y.toFixed(1)}px;width:${rc.w.toFixed(1)}px;height:${rc.h.toFixed(1)}px`;
     screens.forEach((s, i) => {
+      const rc = rects[i] || { x: 0, y: 0, w: VW, h: VH };
+      const vs = s.videoEl.style;
+      vs.setProperty('--x', `${rc.x.toFixed(1)}px`);
+      vs.setProperty('--y', `${rc.y.toFixed(1)}px`);
+      vs.setProperty('--w', `${rc.w.toFixed(1)}px`);
+      vs.setProperty('--h', `${rc.h.toFixed(1)}px`);
       const cell = document.createElement('div');
-      cell.className = 'bwcell' + (voices.has(i) ? ' live' : '');
+      cell.className = 'bwcell' + (voices.has(i) ? ' live' : '') + (s.src ? '' : ' hole');
+      cell.style.cssText = css(rc);
       const spk = document.createElement('span');
       spk.className = 'bwspk';
       spk.textContent = voices.has(i) ? '🔊' : '🔇';
       cell.appendChild(spk);
+      if (s.src) {
+        const kill = document.createElement('button');
+        kill.className = 'btn bwkill';
+        kill.textContent = '✕';
+        kill.title = '从环上删掉这部';
+        kill.addEventListener('click', (e) => { e.stopPropagation(); removeSource(i); });
+        cell.appendChild(kill);
+      }
       const tag = document.createElement('span');
       tag.className = 'bwname';
-      tag.textContent = s.src ? s.src.name : '（空位：控制台里加片）';
+      tag.textContent = s.src ? s.src.name : '＋ 这个空位补一部';
       cell.appendChild(tag);
-      cell.title = s.src ? '点击切换这部片是否出声' : '这块还是空位';
-      cell.addEventListener('click', () => tapScreen(i));
+      cell.title = s.src ? '点击切换这部是否出声' : '这块还是空位：点击选一部片补上';
+      cell.addEventListener('click', () => { if (s.src) tapScreen(i); else pickVideo(i); });
       wall.appendChild(cell);
     });
     wall.classList.remove('hidden');
+  }
+
+  /** 开系统文件框选一部片：slot 指到某个空洞就补那个位置，-1 表示加到环尾 */
+  let pickSlot = -1;
+  function pickVideo(slot) { pickSlot = slot < 0 ? -1 : slot; $('bw-add-in').click(); }
+
+  /** 真正落位一部新片源（平铺视角的 ＋、空洞格、控制台的单选都走这里） */
+  function insertSource(f, slot) {
+    const src = { name: f.name, url: URL.createObjectURL(f), local: true };
+    if (slot >= 0 && slot < sources.length && !sources[slot]) sources[slot] = src;
+    else if (sources.length < K.maxScreens) sources.push(src);
+    else {
+      try { URL.revokeObjectURL(src.url); } catch (e) { /* noop */ }
+      setStatus(`环上已满 ${K.maxScreens} 块屏，先在平铺视角里 ✕ 掉一块再加`);
+      return;
+    }
+    rebuild();
+    playAll();
+    setStatus(`➕ 已加上 ${src.name}，环上共 ${sources.filter(Boolean).length} 部巨幕（新加的点一下才出声）`);
   }
 
   /** 移除环上第 i 部片源：银幕、格子、控制台一起重排，并写回存档（空洞占位格同样可删） */
@@ -606,7 +658,7 @@ export function createCinema({ camera, player, sfx }) {
     disposeSource(gone);
     rebuild();
     const live = sources.filter(Boolean).length;
-    setStatus(live ? `🗑 已移除 1 部，环上还有 ${live} 部巨幕` : '片单空了：控制台里点「＋ 加入视频」或「📂 换片单」');
+    setStatus(live ? `🗑 已移除 1 部，环上还有 ${live} 部巨幕` : '片单空了：平铺视角点「＋ 加一部」，或控制台里「＋ 添加视频」');
     sfx.play('ui', { volume: 0.4 });
   }
 
@@ -629,7 +681,7 @@ export function createCinema({ camera, player, sfx }) {
     if (!screens.some((s) => s.src)) {
       const e = document.createElement('div');
       e.className = 'cc-empty';
-      e.textContent = '片单是空的：下面「📂 换片单」整条替换，或「＋ 加入视频」追加。';
+      e.textContent = '片单是空的：「＋ 添加视频」选一部就加一块，选多部就整条替换。';
       list.appendChild(e);
       return;
     }
@@ -699,11 +751,23 @@ export function createCinema({ camera, player, sfx }) {
     try { localStorage.setItem('bb.cinema.vol', $('cb-vol').value); } catch (e) { /* 同上 */ }
   });
   $('cc-add').addEventListener('click', () => $('cb-add-in').click());
+  $('bw-add').addEventListener('click', () => pickVideo(-1));
+  $('bw-add-in').addEventListener('change', (e) => {
+    const f = (e.target.files || [])[0];
+    e.target.value = '';
+    if (f) insertSource(f, pickSlot);
+  });
+  // 窗口尺寸变了就重排马赛克（拼法完全按视口算，不重算会留下空隙）
+  addEventListener('resize', () => {
+    if (document.body.classList.contains('big-screen')) layoutBigGrid(true);
+  });
   $('cb-big').addEventListener('click', () => {
     const on = !document.body.classList.contains('big-screen');
     document.body.classList.toggle('big-screen', on);
     layoutBigGrid(on);
-    $('cb-big').textContent = on ? '⛶ 回到影厅视角' : '⛶ 放大观看';
+    // 标签固定「⛶ 放大观看」：平铺里还有 ✕/空格补片/＋加一部 这些操作，按钮不必改字表示"退出"
+    $('cb-big').title = on ? '平铺视角里：✕ 删片、点空格补一部、右上角＋加一部（再点这里收回影厅）'
+      : '平铺视角：整屏按各片比例拼满（无黑边），加片删片就在这里';
   });
   $('cb-stand').addEventListener('click', () => stand());
   $('cb-exit').addEventListener('click', () => { if (api.onExitRequest) api.onExitRequest(); });
@@ -712,42 +776,26 @@ export function createCinema({ camera, player, sfx }) {
     const old = sources;
     sources = defaultSources();
     old.forEach(disposeSource);
-    voiceNames = null; // 换片单就把出声选择清回默认（第一部响）
+    voiceNames = null; // 整条替换就把出声选择清回默认（第一部响）
     rebuild();
     playAll();
     refreshStatus();
   });
-  $('cb-file').addEventListener('click', () => $('cb-file-in').click());
-  $('cb-file-in').addEventListener('change', (e) => {
-    const files = Array.from(e.target.files || []);
-    e.target.value = '';
-    if (!files.length) return;
-    // 多选即全量替换：这一次选了几部，环上就放这几部，旧片单不再保留
-    const old = sources;
-    const over = Math.max(0, files.length - K.maxScreens);
-    sources = files.slice(0, K.maxScreens).map((f) => ({ name: f.name, url: URL.createObjectURL(f), local: true }));
-    old.forEach(disposeSource); // 旧本地片源的 blob URL 释放，防内存泄漏
-    voiceNames = null;
-    rebuild();
-    playAll();
-    setStatus(`🎬 ${sources.length} 部巨幕环绕中${over ? `（上限 ${K.maxScreens} 块屏，多出的 ${over} 部未导入）` : ''}`);
-  });
-
-  // 控制台的「＋ 加入视频」：这是**追加**（与「📂 换片单」的整条替换相对），加完立刻重排环；
-  // 新加的片默认不出声，避免一追加就突然多一路音轨糊在原有那路上
+  // 「＋ 添加视频」按**这次选了几部**决定动作：选 1 部＝往环上加一块，选多部＝整条替换。
+  // 加进来的新片默认不出声，避免一上来就多一路音轨糊在原有那路上。
   $('cb-add-in').addEventListener('change', (e) => {
     const files = Array.from(e.target.files || []);
     e.target.value = '';
     if (!files.length) return;
-    const room = Math.max(0, K.maxScreens - sources.length);
-    const take = files.slice(0, room);
-    for (const f of take) sources.push({ name: f.name, url: URL.createObjectURL(f), local: true });
+    if (files.length === 1) { insertSource(files[0], -1); return; }
+    const old = sources;
+    const over = Math.max(0, files.length - K.maxScreens);
+    sources = files.slice(0, K.maxScreens).map((f) => ({ name: f.name, url: URL.createObjectURL(f), local: true }));
+    old.forEach(disposeSource); // 旧本地片源的 blob URL 释放，防内存泄漏
+    voiceNames = null; // 整条换掉就把出声选择清回默认（第一部响）
     rebuild();
     playAll();
-    setStatus(take.length
-      ? `➕ 追加 ${take.length} 部，环上共 ${sources.filter(Boolean).length} 部巨幕（新加的在控制台勾 🔊 才出声）`
-        + (files.length - take.length ? `（已到 ${K.maxScreens} 块屏上限，${files.length - take.length} 部未导入）` : '')
-      : `环上已满 ${K.maxScreens} 块屏，先在控制台里移走几部再加`);
+    setStatus(`🎬 ${sources.length} 部巨幕环绕中${over ? `（上限 ${K.maxScreens} 块屏，多出的 ${over} 部未导入）` : ''}`);
   });
 
   /* ================= 📡 共享窗口：把屏幕上任意窗口/网页挂上一块幕 =================
@@ -865,7 +913,7 @@ export function createCinema({ camera, player, sfx }) {
     if (document.body.classList.contains('big-screen')) {
       document.body.classList.remove('big-screen');
       layoutBigGrid(false);
-      $('cb-big').textContent = '⛶ 放大观看';
+      $('cb-big').title = '平铺视角：整屏按各片比例拼满（无黑边），加片删片就在这里';
     }
     canvasLock();
   }
@@ -989,6 +1037,24 @@ export function createCinema({ camera, player, sfx }) {
     /** 无头验证用：当前厅壳形态（厅形 / 多边形边数 / 外接半径 / 走动 AABB） */
     debugHall() {
       return { shape, edges, ap: +AP.toFixed(2), rc: +(edges ? circumR(edges, AP) : R).toFixed(2), bound: +ROOM_BOUNDS.maxX.toFixed(2) };
+    },
+    /** 测试钩子：blob 假文件在无头下解不出元数据，手工指定某块幕的宽高比以便重排（真实链路是 loadedmetadata） */
+    debugSetAr(i, ar) {
+      const s = screens[i];
+      if (!s || !s.src) return false;
+      s.src.ar = ar;
+      rebuild();
+      return true;
+    },
+    /** 测试钩子：删掉环上第 i 部（与格子上的 ✕ 同一条链路），用来造出「空洞位」 */
+    debugRemove(i) { removeSource(i); },
+    /** 测试钩子：把第 i 位挖成空洞（保留位置，和「播放过」快照换回带洞片单时同一种状态） */
+    debugHole(i) {
+      if (i >= sources.length) return false;
+      disposeSource(sources[i]);
+      sources[i] = null;
+      rebuild();
+      return true;
     },
     /** 无头验证用：环上每块幕的几何（高度 / 槽位圆心角 / 实占圆心角 / 幕面实宽 / 宽高比 / 是否有片源）
      *  两种厅形都用「圆心角」表达，所以弧幕和直墙平面幕可以直接用同一组断言比。 */
