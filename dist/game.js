@@ -7097,7 +7097,7 @@
       }
     }
   }
-  var REVISION, CullFaceNone, CullFaceBack, CullFaceFront, PCFShadowMap, PCFSoftShadowMap, VSMShadowMap, FrontSide, BackSide, DoubleSide, NoBlending, NormalBlending, AdditiveBlending, SubtractiveBlending, MultiplyBlending, CustomBlending, AddEquation, SubtractEquation, ReverseSubtractEquation, MinEquation, MaxEquation, ZeroFactor, OneFactor, SrcColorFactor, OneMinusSrcColorFactor, SrcAlphaFactor, OneMinusSrcAlphaFactor, DstAlphaFactor, OneMinusDstAlphaFactor, DstColorFactor, OneMinusDstColorFactor, SrcAlphaSaturateFactor, ConstantColorFactor, OneMinusConstantColorFactor, ConstantAlphaFactor, OneMinusConstantAlphaFactor, NeverDepth, AlwaysDepth, LessDepth, LessEqualDepth, EqualDepth, GreaterEqualDepth, GreaterDepth, NotEqualDepth, MultiplyOperation, MixOperation, AddOperation, NoToneMapping, LinearToneMapping, ReinhardToneMapping, CineonToneMapping, ACESFilmicToneMapping, CustomToneMapping, AgXToneMapping, UVMapping, CubeReflectionMapping, CubeRefractionMapping, EquirectangularReflectionMapping, EquirectangularRefractionMapping, CubeUVReflectionMapping, RepeatWrapping, ClampToEdgeWrapping, MirroredRepeatWrapping, NearestFilter, NearestMipmapNearestFilter, NearestMipmapLinearFilter, LinearFilter, LinearMipmapNearestFilter, LinearMipmapLinearFilter, UnsignedByteType, ByteType, ShortType, UnsignedShortType, IntType, UnsignedIntType, FloatType, HalfFloatType, UnsignedShort4444Type, UnsignedShort5551Type, UnsignedInt248Type, AlphaFormat, RGBAFormat, LuminanceFormat, LuminanceAlphaFormat, DepthFormat, DepthStencilFormat, RedFormat, RedIntegerFormat, RGFormat, RGIntegerFormat, RGBAIntegerFormat, RGB_S3TC_DXT1_Format, RGBA_S3TC_DXT1_Format, RGBA_S3TC_DXT3_Format, RGBA_S3TC_DXT5_Format, RGB_PVRTC_4BPPV1_Format, RGB_PVRTC_2BPPV1_Format, RGBA_PVRTC_4BPPV1_Format, RGBA_PVRTC_2BPPV1_Format, RGB_ETC1_Format, RGB_ETC2_Format, RGBA_ETC2_EAC_Format, RGBA_ASTC_4x4_Format, RGBA_ASTC_5x4_Format, RGBA_ASTC_5x5_Format, RGBA_ASTC_6x5_Format, RGBA_ASTC_6x6_Format, RGBA_ASTC_8x5_Format, RGBA_ASTC_8x6_Format, RGBA_ASTC_8x8_Format, RGBA_ASTC_10x5_Format, RGBA_ASTC_10x6_Format, RGBA_ASTC_10x8_Format, RGBA_ASTC_10x10_Format, RGBA_ASTC_12x10_Format, RGBA_ASTC_12x12_Format, RGBA_BPTC_Format, RGB_BPTC_SIGNED_Format, RGB_BPTC_UNSIGNED_Format, RED_RGTC1_Format, SIGNED_RED_RGTC1_Format, RED_GREEN_RGTC2_Format, SIGNED_RED_GREEN_RGTC2_Format, InterpolateDiscrete, InterpolateLinear, InterpolateSmooth, ZeroCurvatureEnding, ZeroSlopeEnding, WrapAroundEnding, LinearEncoding, sRGBEncoding, BasicDepthPacking, RGBADepthPacking, TangentSpaceNormalMap, ObjectSpaceNormalMap, NoColorSpace, SRGBColorSpace, LinearSRGBColorSpace, DisplayP3ColorSpace, LinearDisplayP3ColorSpace, LinearTransfer, SRGBTransfer, Rec709Primaries, P3Primaries, KeepStencilOp, AlwaysStencilFunc, NeverCompare, LessCompare, EqualCompare, LessEqualCompare, GreaterCompare, NotEqualCompare, GreaterEqualCompare, AlwaysCompare, StaticDrawUsage, GLSL3, _SRGBAFormat, WebGLCoordinateSystem, WebGPUCoordinateSystem, EventDispatcher, _lut, _seed, DEG2RAD, RAD2DEG, MathUtils, Vector2, Matrix3, _m3, _cache, LINEAR_SRGB_TO_LINEAR_DISPLAY_P3, LINEAR_DISPLAY_P3_TO_LINEAR_SRGB, COLOR_SPACES, SUPPORTED_WORKING_COLOR_SPACES, ColorManagement, _canvas, ImageUtils, _sourceId, Source, _textureId, Texture, Vector4, RenderTarget, WebGLRenderTarget, DataArrayTexture, Data3DTexture, Quaternion, Vector3, _vector$c, _quaternion$4, Box3, _points, _vector$b, _box$4, _v0$2, _v1$7, _v2$4, _f0, _f1, _f2, _center, _extents, _triangleNormal, _testAxis, _box$3, _v1$6, _v2$3, Sphere, _vector$a, _segCenter, _segDir, _diff, _edge1, _edge2, _normal$1, Ray, Matrix4, _v1$5, _m1$2, _zero, _one, _x, _y, _z, _matrix$1, _quaternion$3, Euler, Layers, _object3DId, _v1$4, _q1, _m1$1, _target, _position$3, _scale$2, _quaternion$2, _xAxis, _yAxis, _zAxis, _addedEvent, _removedEvent, Object3D, _v0$1, _v1$3, _v2$2, _v3$1, _vab, _vac, _vbc, _vap, _vbp, _vcp, warnedGetUV, Triangle, _colorKeywords, _hslA, _hslB, Color, _color, _materialId, Material, MeshBasicMaterial, _vector$9, _vector2$1, BufferAttribute, Uint16BufferAttribute, Uint32BufferAttribute, Float32BufferAttribute, _id$2, _m1, _obj, _offset, _box$2, _boxMorphTargets, _vector$8, BufferGeometry, _inverseMatrix$3, _ray$3, _sphere$6, _sphereHitAt, _vA$1, _vB$1, _vC$1, _tempA, _morphA, _uvA$1, _uvB$1, _uvC$1, _normalA, _normalB, _normalC, _intersectionPoint, _intersectionPointWorld, Mesh, BoxGeometry, UniformsUtils, default_vertex, default_fragment, ShaderMaterial, Camera, PerspectiveCamera, fov, aspect, CubeCamera, CubeTexture, WebGLCubeRenderTarget, _vector1, _vector2, _normalMatrix, Plane, _sphere$5, _vector$7, Frustum, PlaneGeometry, alphahash_fragment, alphahash_pars_fragment, alphamap_fragment, alphamap_pars_fragment, alphatest_fragment, alphatest_pars_fragment, aomap_fragment, aomap_pars_fragment, batching_pars_vertex, batching_vertex, begin_vertex, beginnormal_vertex, bsdfs, iridescence_fragment, bumpmap_pars_fragment, clipping_planes_fragment, clipping_planes_pars_fragment, clipping_planes_pars_vertex, clipping_planes_vertex, color_fragment, color_pars_fragment, color_pars_vertex, color_vertex, common, cube_uv_reflection_fragment, defaultnormal_vertex, displacementmap_pars_vertex, displacementmap_vertex, emissivemap_fragment, emissivemap_pars_fragment, colorspace_fragment, colorspace_pars_fragment, envmap_fragment, envmap_common_pars_fragment, envmap_pars_fragment, envmap_pars_vertex, envmap_vertex, fog_vertex, fog_pars_vertex, fog_fragment, fog_pars_fragment, gradientmap_pars_fragment, lightmap_fragment, lightmap_pars_fragment, lights_lambert_fragment, lights_lambert_pars_fragment, lights_pars_begin, envmap_physical_pars_fragment, lights_toon_fragment, lights_toon_pars_fragment, lights_phong_fragment, lights_phong_pars_fragment, lights_physical_fragment, lights_physical_pars_fragment, lights_fragment_begin, lights_fragment_maps, lights_fragment_end, logdepthbuf_fragment, logdepthbuf_pars_fragment, logdepthbuf_pars_vertex, logdepthbuf_vertex, map_fragment, map_pars_fragment, map_particle_fragment, map_particle_pars_fragment, metalnessmap_fragment, metalnessmap_pars_fragment, morphcolor_vertex, morphnormal_vertex, morphtarget_pars_vertex, morphtarget_vertex, normal_fragment_begin, normal_fragment_maps, normal_pars_fragment, normal_pars_vertex, normal_vertex, normalmap_pars_fragment, clearcoat_normal_fragment_begin, clearcoat_normal_fragment_maps, clearcoat_pars_fragment, iridescence_pars_fragment, opaque_fragment, packing, premultiplied_alpha_fragment, project_vertex, dithering_fragment, dithering_pars_fragment, roughnessmap_fragment, roughnessmap_pars_fragment, shadowmap_pars_fragment, shadowmap_pars_vertex, shadowmap_vertex, shadowmask_pars_fragment, skinbase_vertex, skinning_pars_vertex, skinning_vertex, skinnormal_vertex, specularmap_fragment, specularmap_pars_fragment, tonemapping_fragment, tonemapping_pars_fragment, transmission_fragment, transmission_pars_fragment, uv_pars_fragment, uv_pars_vertex, uv_vertex, worldpos_vertex, vertex$h, fragment$h, vertex$g, fragment$g, vertex$f, fragment$f, vertex$e, fragment$e, vertex$d, fragment$d, vertex$c, fragment$c, vertex$b, fragment$b, vertex$a, fragment$a, vertex$9, fragment$9, vertex$8, fragment$8, vertex$7, fragment$7, vertex$6, fragment$6, vertex$5, fragment$5, vertex$4, fragment$4, vertex$3, fragment$3, vertex$2, fragment$2, vertex$1, fragment$1, ShaderChunk, UniformsLib, ShaderLib, _rgb, OrthographicCamera, LOD_MIN, EXTRA_LOD_SIGMA, MAX_SAMPLES, _flatCamera, _clearColor, _oldTarget, _oldActiveCubeFace, _oldActiveMipmapLevel, PHI, INV_PHI, _axisDirections, PMREMGenerator, DepthTexture, emptyTexture, emptyShadowTexture, emptyArrayTexture, empty3dTexture, emptyCubeTexture, arrayCacheF32, arrayCacheI32, mat4array, mat3array, mat2array, SingleUniform, PureArrayUniform, StructuredUniform, RePathPart, WebGLUniforms, COMPLETION_STATUS_KHR, programIdCount, includePattern, shaderChunkMap, unrollLoopPattern, _id$1, WebGLShaderCache, WebGLShaderStage, nextVersion, MeshDepthMaterial, MeshDistanceMaterial, vertex, fragment, ArrayCamera, Group, _moveEvent, WebXRController, WebXRManager, WebGLRenderer, WebGL1Renderer, Fog, Scene, InstancedBufferAttribute, _instanceLocalMatrix, _instanceWorldMatrix, _instanceIntersects, _box3, _identity, _mesh$1, _sphere$3, InstancedMesh, PointsMaterial, _inverseMatrix, _ray, _sphere, _position$2, Points, VideoTexture, CanvasTexture, Curve, EllipseCurve, ArcCurve, tmp, px, py, pz, CatmullRomCurve3, CubicBezierCurve, CubicBezierCurve3, LineCurve, LineCurve3, QuadraticBezierCurve, QuadraticBezierCurve3, SplineCurve, Curves, CircleGeometry, CylinderGeometry, SphereGeometry, TorusGeometry, TubeGeometry, RawShaderMaterial, MeshStandardMaterial, MeshPhysicalMaterial, Interpolant, CubicInterpolant, LinearInterpolant, DiscreteInterpolant, KeyframeTrack, BooleanKeyframeTrack, ColorKeyframeTrack, NumberKeyframeTrack, QuaternionLinearInterpolant, QuaternionKeyframeTrack, StringKeyframeTrack, VectorKeyframeTrack, Cache, LoadingManager, DefaultLoadingManager, Loader, ImageLoader, TextureLoader, Light, HemisphereLight, _projScreenMatrix$1, _lightPositionWorld$1, _lookTarget$1, LightShadow, _projScreenMatrix, _lightPositionWorld, _lookTarget, PointLightShadow, PointLight, DirectionalLightShadow, DirectionalLight, Clock, _RESERVED_CHARS_RE, _reservedRe, _wordChar, _wordCharOrDot, _directoryRe, _nodeRe, _objectRe, _propertyRe, _trackRe, _supportedObjectNames, Composite, PropertyBinding, _controlInterpolantsResultBuffer, Raycaster;
+  var REVISION, CullFaceNone, CullFaceBack, CullFaceFront, PCFShadowMap, PCFSoftShadowMap, VSMShadowMap, FrontSide, BackSide, DoubleSide, NoBlending, NormalBlending, AdditiveBlending, SubtractiveBlending, MultiplyBlending, CustomBlending, AddEquation, SubtractEquation, ReverseSubtractEquation, MinEquation, MaxEquation, ZeroFactor, OneFactor, SrcColorFactor, OneMinusSrcColorFactor, SrcAlphaFactor, OneMinusSrcAlphaFactor, DstAlphaFactor, OneMinusDstAlphaFactor, DstColorFactor, OneMinusDstColorFactor, SrcAlphaSaturateFactor, ConstantColorFactor, OneMinusConstantColorFactor, ConstantAlphaFactor, OneMinusConstantAlphaFactor, NeverDepth, AlwaysDepth, LessDepth, LessEqualDepth, EqualDepth, GreaterEqualDepth, GreaterDepth, NotEqualDepth, MultiplyOperation, MixOperation, AddOperation, NoToneMapping, LinearToneMapping, ReinhardToneMapping, CineonToneMapping, ACESFilmicToneMapping, CustomToneMapping, AgXToneMapping, UVMapping, CubeReflectionMapping, CubeRefractionMapping, EquirectangularReflectionMapping, EquirectangularRefractionMapping, CubeUVReflectionMapping, RepeatWrapping, ClampToEdgeWrapping, MirroredRepeatWrapping, NearestFilter, NearestMipmapNearestFilter, NearestMipmapLinearFilter, LinearFilter, LinearMipmapNearestFilter, LinearMipmapLinearFilter, UnsignedByteType, ByteType, ShortType, UnsignedShortType, IntType, UnsignedIntType, FloatType, HalfFloatType, UnsignedShort4444Type, UnsignedShort5551Type, UnsignedInt248Type, AlphaFormat, RGBAFormat, LuminanceFormat, LuminanceAlphaFormat, DepthFormat, DepthStencilFormat, RedFormat, RedIntegerFormat, RGFormat, RGIntegerFormat, RGBAIntegerFormat, RGB_S3TC_DXT1_Format, RGBA_S3TC_DXT1_Format, RGBA_S3TC_DXT3_Format, RGBA_S3TC_DXT5_Format, RGB_PVRTC_4BPPV1_Format, RGB_PVRTC_2BPPV1_Format, RGBA_PVRTC_4BPPV1_Format, RGBA_PVRTC_2BPPV1_Format, RGB_ETC1_Format, RGB_ETC2_Format, RGBA_ETC2_EAC_Format, RGBA_ASTC_4x4_Format, RGBA_ASTC_5x4_Format, RGBA_ASTC_5x5_Format, RGBA_ASTC_6x5_Format, RGBA_ASTC_6x6_Format, RGBA_ASTC_8x5_Format, RGBA_ASTC_8x6_Format, RGBA_ASTC_8x8_Format, RGBA_ASTC_10x5_Format, RGBA_ASTC_10x6_Format, RGBA_ASTC_10x8_Format, RGBA_ASTC_10x10_Format, RGBA_ASTC_12x10_Format, RGBA_ASTC_12x12_Format, RGBA_BPTC_Format, RGB_BPTC_SIGNED_Format, RGB_BPTC_UNSIGNED_Format, RED_RGTC1_Format, SIGNED_RED_RGTC1_Format, RED_GREEN_RGTC2_Format, SIGNED_RED_GREEN_RGTC2_Format, InterpolateDiscrete, InterpolateLinear, InterpolateSmooth, ZeroCurvatureEnding, ZeroSlopeEnding, WrapAroundEnding, LinearEncoding, sRGBEncoding, BasicDepthPacking, RGBADepthPacking, TangentSpaceNormalMap, ObjectSpaceNormalMap, NoColorSpace, SRGBColorSpace, LinearSRGBColorSpace, DisplayP3ColorSpace, LinearDisplayP3ColorSpace, LinearTransfer, SRGBTransfer, Rec709Primaries, P3Primaries, KeepStencilOp, AlwaysStencilFunc, NeverCompare, LessCompare, EqualCompare, LessEqualCompare, GreaterCompare, NotEqualCompare, GreaterEqualCompare, AlwaysCompare, StaticDrawUsage, GLSL3, _SRGBAFormat, WebGLCoordinateSystem, WebGPUCoordinateSystem, EventDispatcher, _lut, _seed, DEG2RAD, RAD2DEG, MathUtils, Vector2, Matrix3, _m3, _cache, LINEAR_SRGB_TO_LINEAR_DISPLAY_P3, LINEAR_DISPLAY_P3_TO_LINEAR_SRGB, COLOR_SPACES, SUPPORTED_WORKING_COLOR_SPACES, ColorManagement, _canvas, ImageUtils, _sourceId, Source, _textureId, Texture, Vector4, RenderTarget, WebGLRenderTarget, DataArrayTexture, Data3DTexture, Quaternion, Vector3, _vector$c, _quaternion$4, Box3, _points, _vector$b, _box$4, _v0$2, _v1$7, _v2$4, _f0, _f1, _f2, _center, _extents, _triangleNormal, _testAxis, _box$3, _v1$6, _v2$3, Sphere, _vector$a, _segCenter, _segDir, _diff, _edge1, _edge2, _normal$1, Ray, Matrix4, _v1$5, _m1$2, _zero, _one, _x, _y, _z, _matrix$1, _quaternion$3, Euler, Layers, _object3DId, _v1$4, _q1, _m1$1, _target, _position$3, _scale$2, _quaternion$2, _xAxis, _yAxis, _zAxis, _addedEvent, _removedEvent, Object3D, _v0$1, _v1$3, _v2$2, _v3$1, _vab, _vac, _vbc, _vap, _vbp, _vcp, warnedGetUV, Triangle, _colorKeywords, _hslA, _hslB, Color, _color, _materialId, Material, MeshBasicMaterial, _vector$9, _vector2$1, BufferAttribute, Uint16BufferAttribute, Uint32BufferAttribute, Float32BufferAttribute, _id$2, _m1, _obj, _offset, _box$2, _boxMorphTargets, _vector$8, BufferGeometry, _inverseMatrix$3, _ray$3, _sphere$6, _sphereHitAt, _vA$1, _vB$1, _vC$1, _tempA, _morphA, _uvA$1, _uvB$1, _uvC$1, _normalA, _normalB, _normalC, _intersectionPoint, _intersectionPointWorld, Mesh, BoxGeometry, UniformsUtils, default_vertex, default_fragment, ShaderMaterial, Camera, PerspectiveCamera, fov, aspect, CubeCamera, CubeTexture, WebGLCubeRenderTarget, _vector1, _vector2, _normalMatrix, Plane, _sphere$5, _vector$7, Frustum, PlaneGeometry, alphahash_fragment, alphahash_pars_fragment, alphamap_fragment, alphamap_pars_fragment, alphatest_fragment, alphatest_pars_fragment, aomap_fragment, aomap_pars_fragment, batching_pars_vertex, batching_vertex, begin_vertex, beginnormal_vertex, bsdfs, iridescence_fragment, bumpmap_pars_fragment, clipping_planes_fragment, clipping_planes_pars_fragment, clipping_planes_pars_vertex, clipping_planes_vertex, color_fragment, color_pars_fragment, color_pars_vertex, color_vertex, common, cube_uv_reflection_fragment, defaultnormal_vertex, displacementmap_pars_vertex, displacementmap_vertex, emissivemap_fragment, emissivemap_pars_fragment, colorspace_fragment, colorspace_pars_fragment, envmap_fragment, envmap_common_pars_fragment, envmap_pars_fragment, envmap_pars_vertex, envmap_vertex, fog_vertex, fog_pars_vertex, fog_fragment, fog_pars_fragment, gradientmap_pars_fragment, lightmap_fragment, lightmap_pars_fragment, lights_lambert_fragment, lights_lambert_pars_fragment, lights_pars_begin, envmap_physical_pars_fragment, lights_toon_fragment, lights_toon_pars_fragment, lights_phong_fragment, lights_phong_pars_fragment, lights_physical_fragment, lights_physical_pars_fragment, lights_fragment_begin, lights_fragment_maps, lights_fragment_end, logdepthbuf_fragment, logdepthbuf_pars_fragment, logdepthbuf_pars_vertex, logdepthbuf_vertex, map_fragment, map_pars_fragment, map_particle_fragment, map_particle_pars_fragment, metalnessmap_fragment, metalnessmap_pars_fragment, morphcolor_vertex, morphnormal_vertex, morphtarget_pars_vertex, morphtarget_vertex, normal_fragment_begin, normal_fragment_maps, normal_pars_fragment, normal_pars_vertex, normal_vertex, normalmap_pars_fragment, clearcoat_normal_fragment_begin, clearcoat_normal_fragment_maps, clearcoat_pars_fragment, iridescence_pars_fragment, opaque_fragment, packing, premultiplied_alpha_fragment, project_vertex, dithering_fragment, dithering_pars_fragment, roughnessmap_fragment, roughnessmap_pars_fragment, shadowmap_pars_fragment, shadowmap_pars_vertex, shadowmap_vertex, shadowmask_pars_fragment, skinbase_vertex, skinning_pars_vertex, skinning_vertex, skinnormal_vertex, specularmap_fragment, specularmap_pars_fragment, tonemapping_fragment, tonemapping_pars_fragment, transmission_fragment, transmission_pars_fragment, uv_pars_fragment, uv_pars_vertex, uv_vertex, worldpos_vertex, vertex$h, fragment$h, vertex$g, fragment$g, vertex$f, fragment$f, vertex$e, fragment$e, vertex$d, fragment$d, vertex$c, fragment$c, vertex$b, fragment$b, vertex$a, fragment$a, vertex$9, fragment$9, vertex$8, fragment$8, vertex$7, fragment$7, vertex$6, fragment$6, vertex$5, fragment$5, vertex$4, fragment$4, vertex$3, fragment$3, vertex$2, fragment$2, vertex$1, fragment$1, ShaderChunk, UniformsLib, ShaderLib, _rgb, OrthographicCamera, LOD_MIN, EXTRA_LOD_SIGMA, MAX_SAMPLES, _flatCamera, _clearColor, _oldTarget, _oldActiveCubeFace, _oldActiveMipmapLevel, PHI, INV_PHI, _axisDirections, PMREMGenerator, DepthTexture, emptyTexture, emptyShadowTexture, emptyArrayTexture, empty3dTexture, emptyCubeTexture, arrayCacheF32, arrayCacheI32, mat4array, mat3array, mat2array, SingleUniform, PureArrayUniform, StructuredUniform, RePathPart, WebGLUniforms, COMPLETION_STATUS_KHR, programIdCount, includePattern, shaderChunkMap, unrollLoopPattern, _id$1, WebGLShaderCache, WebGLShaderStage, nextVersion, MeshDepthMaterial, MeshDistanceMaterial, vertex, fragment, ArrayCamera, Group, _moveEvent, WebXRController, WebXRManager, WebGLRenderer, WebGL1Renderer, Fog, Scene, InstancedBufferAttribute, _instanceLocalMatrix, _instanceWorldMatrix, _instanceIntersects, _box3, _identity, _mesh$1, _sphere$3, InstancedMesh, LineBasicMaterial, _start$1, _end$1, _inverseMatrix$1, _ray$1, _sphere$1, Line, PointsMaterial, _inverseMatrix, _ray, _sphere, _position$2, Points, VideoTexture, CanvasTexture, Curve, EllipseCurve, ArcCurve, tmp, px, py, pz, CatmullRomCurve3, CubicBezierCurve, CubicBezierCurve3, LineCurve, LineCurve3, QuadraticBezierCurve, QuadraticBezierCurve3, SplineCurve, Curves, CircleGeometry, CylinderGeometry, ConeGeometry, SphereGeometry, TorusGeometry, TubeGeometry, RawShaderMaterial, MeshStandardMaterial, MeshPhysicalMaterial, LineDashedMaterial, Interpolant, CubicInterpolant, LinearInterpolant, DiscreteInterpolant, KeyframeTrack, BooleanKeyframeTrack, ColorKeyframeTrack, NumberKeyframeTrack, QuaternionLinearInterpolant, QuaternionKeyframeTrack, StringKeyframeTrack, VectorKeyframeTrack, Cache, LoadingManager, DefaultLoadingManager, Loader, ImageLoader, TextureLoader, Light, HemisphereLight, _projScreenMatrix$1, _lightPositionWorld$1, _lookTarget$1, LightShadow, _projScreenMatrix, _lightPositionWorld, _lookTarget, PointLightShadow, PointLight, DirectionalLightShadow, DirectionalLight, Clock, _RESERVED_CHARS_RE, _reservedRe, _wordChar, _wordCharOrDot, _directoryRe, _nodeRe, _objectRe, _propertyRe, _trackRe, _supportedObjectNames, Composite, PropertyBinding, _controlInterpolantsResultBuffer, Raycaster;
   var init_three_module = __esm({
     "node_modules/three/build/three.module.js"() {
       REVISION = "160";
@@ -18099,6 +18099,155 @@
           this.dispatchEvent({ type: "dispose" });
         }
       };
+      LineBasicMaterial = class extends Material {
+        constructor(parameters) {
+          super();
+          this.isLineBasicMaterial = true;
+          this.type = "LineBasicMaterial";
+          this.color = new Color(16777215);
+          this.map = null;
+          this.linewidth = 1;
+          this.linecap = "round";
+          this.linejoin = "round";
+          this.fog = true;
+          this.setValues(parameters);
+        }
+        copy(source) {
+          super.copy(source);
+          this.color.copy(source.color);
+          this.map = source.map;
+          this.linewidth = source.linewidth;
+          this.linecap = source.linecap;
+          this.linejoin = source.linejoin;
+          this.fog = source.fog;
+          return this;
+        }
+      };
+      _start$1 = /* @__PURE__ */ new Vector3();
+      _end$1 = /* @__PURE__ */ new Vector3();
+      _inverseMatrix$1 = /* @__PURE__ */ new Matrix4();
+      _ray$1 = /* @__PURE__ */ new Ray();
+      _sphere$1 = /* @__PURE__ */ new Sphere();
+      Line = class extends Object3D {
+        constructor(geometry = new BufferGeometry(), material = new LineBasicMaterial()) {
+          super();
+          this.isLine = true;
+          this.type = "Line";
+          this.geometry = geometry;
+          this.material = material;
+          this.updateMorphTargets();
+        }
+        copy(source, recursive) {
+          super.copy(source, recursive);
+          this.material = Array.isArray(source.material) ? source.material.slice() : source.material;
+          this.geometry = source.geometry;
+          return this;
+        }
+        computeLineDistances() {
+          const geometry = this.geometry;
+          if (geometry.index === null) {
+            const positionAttribute = geometry.attributes.position;
+            const lineDistances = [0];
+            for (let i = 1, l = positionAttribute.count; i < l; i++) {
+              _start$1.fromBufferAttribute(positionAttribute, i - 1);
+              _end$1.fromBufferAttribute(positionAttribute, i);
+              lineDistances[i] = lineDistances[i - 1];
+              lineDistances[i] += _start$1.distanceTo(_end$1);
+            }
+            geometry.setAttribute("lineDistance", new Float32BufferAttribute(lineDistances, 1));
+          } else {
+            console.warn("THREE.Line.computeLineDistances(): Computation only possible with non-indexed BufferGeometry.");
+          }
+          return this;
+        }
+        raycast(raycaster, intersects) {
+          const geometry = this.geometry;
+          const matrixWorld = this.matrixWorld;
+          const threshold = raycaster.params.Line.threshold;
+          const drawRange = geometry.drawRange;
+          if (geometry.boundingSphere === null) geometry.computeBoundingSphere();
+          _sphere$1.copy(geometry.boundingSphere);
+          _sphere$1.applyMatrix4(matrixWorld);
+          _sphere$1.radius += threshold;
+          if (raycaster.ray.intersectsSphere(_sphere$1) === false) return;
+          _inverseMatrix$1.copy(matrixWorld).invert();
+          _ray$1.copy(raycaster.ray).applyMatrix4(_inverseMatrix$1);
+          const localThreshold = threshold / ((this.scale.x + this.scale.y + this.scale.z) / 3);
+          const localThresholdSq = localThreshold * localThreshold;
+          const vStart = new Vector3();
+          const vEnd = new Vector3();
+          const interSegment = new Vector3();
+          const interRay = new Vector3();
+          const step = this.isLineSegments ? 2 : 1;
+          const index = geometry.index;
+          const attributes = geometry.attributes;
+          const positionAttribute = attributes.position;
+          if (index !== null) {
+            const start = Math.max(0, drawRange.start);
+            const end = Math.min(index.count, drawRange.start + drawRange.count);
+            for (let i = start, l = end - 1; i < l; i += step) {
+              const a2 = index.getX(i);
+              const b2 = index.getX(i + 1);
+              vStart.fromBufferAttribute(positionAttribute, a2);
+              vEnd.fromBufferAttribute(positionAttribute, b2);
+              const distSq = _ray$1.distanceSqToSegment(vStart, vEnd, interRay, interSegment);
+              if (distSq > localThresholdSq) continue;
+              interRay.applyMatrix4(this.matrixWorld);
+              const distance = raycaster.ray.origin.distanceTo(interRay);
+              if (distance < raycaster.near || distance > raycaster.far) continue;
+              intersects.push({
+                distance,
+                // What do we want? intersection point on the ray or on the segment??
+                // point: raycaster.ray.at( distance ),
+                point: interSegment.clone().applyMatrix4(this.matrixWorld),
+                index: i,
+                face: null,
+                faceIndex: null,
+                object: this
+              });
+            }
+          } else {
+            const start = Math.max(0, drawRange.start);
+            const end = Math.min(positionAttribute.count, drawRange.start + drawRange.count);
+            for (let i = start, l = end - 1; i < l; i += step) {
+              vStart.fromBufferAttribute(positionAttribute, i);
+              vEnd.fromBufferAttribute(positionAttribute, i + 1);
+              const distSq = _ray$1.distanceSqToSegment(vStart, vEnd, interRay, interSegment);
+              if (distSq > localThresholdSq) continue;
+              interRay.applyMatrix4(this.matrixWorld);
+              const distance = raycaster.ray.origin.distanceTo(interRay);
+              if (distance < raycaster.near || distance > raycaster.far) continue;
+              intersects.push({
+                distance,
+                // What do we want? intersection point on the ray or on the segment??
+                // point: raycaster.ray.at( distance ),
+                point: interSegment.clone().applyMatrix4(this.matrixWorld),
+                index: i,
+                face: null,
+                faceIndex: null,
+                object: this
+              });
+            }
+          }
+        }
+        updateMorphTargets() {
+          const geometry = this.geometry;
+          const morphAttributes = geometry.morphAttributes;
+          const keys = Object.keys(morphAttributes);
+          if (keys.length > 0) {
+            const morphAttribute = morphAttributes[keys[0]];
+            if (morphAttribute !== void 0) {
+              this.morphTargetInfluences = [];
+              this.morphTargetDictionary = {};
+              for (let m = 0, ml = morphAttribute.length; m < ml; m++) {
+                const name = morphAttribute[m].name || String(m);
+                this.morphTargetInfluences.push(0);
+                this.morphTargetDictionary[name] = m;
+              }
+            }
+          }
+        }
+      };
       PointsMaterial = class extends Material {
         constructor(parameters) {
           super();
@@ -19121,6 +19270,24 @@
           return new _CylinderGeometry(data.radiusTop, data.radiusBottom, data.height, data.radialSegments, data.heightSegments, data.openEnded, data.thetaStart, data.thetaLength);
         }
       };
+      ConeGeometry = class _ConeGeometry extends CylinderGeometry {
+        constructor(radius = 1, height = 1, radialSegments = 32, heightSegments = 1, openEnded = false, thetaStart = 0, thetaLength = Math.PI * 2) {
+          super(0, radius, height, radialSegments, heightSegments, openEnded, thetaStart, thetaLength);
+          this.type = "ConeGeometry";
+          this.parameters = {
+            radius,
+            height,
+            radialSegments,
+            heightSegments,
+            openEnded,
+            thetaStart,
+            thetaLength
+          };
+        }
+        static fromJSON(data) {
+          return new _ConeGeometry(data.radius, data.height, data.radialSegments, data.heightSegments, data.openEnded, data.thetaStart, data.thetaLength);
+        }
+      };
       SphereGeometry = class _SphereGeometry extends BufferGeometry {
         constructor(radius = 1, widthSegments = 32, heightSegments = 16, phiStart = 0, phiLength = Math.PI * 2, thetaStart = 0, thetaLength = Math.PI) {
           super();
@@ -19559,6 +19726,24 @@
           this.specularIntensityMap = source.specularIntensityMap;
           this.specularColor.copy(source.specularColor);
           this.specularColorMap = source.specularColorMap;
+          return this;
+        }
+      };
+      LineDashedMaterial = class extends LineBasicMaterial {
+        constructor(parameters) {
+          super();
+          this.isLineDashedMaterial = true;
+          this.type = "LineDashedMaterial";
+          this.scale = 1;
+          this.dashSize = 3;
+          this.gapSize = 1;
+          this.setValues(parameters);
+        }
+        copy(source) {
+          super.copy(source);
+          this.scale = source.scale;
+          this.dashSize = source.dashSize;
+          this.gapSize = source.gapSize;
           return this;
         }
       };
@@ -22082,6 +22267,33 @@
           // lookUp 为落座仰角（弧度）——把视线抬到银幕带中心（屏心 3.5m），一坐下就看到画面
           bed: { x: 0, z: 0, r: 2.5, sitR: 1.8, eyeSit: 1.15, lookUp: 0.27 },
           walkSpeed: 3
+        },
+        /* ---------- 台球室（球馆 +Z 端墙左侧的绿门进入；独立场景 + 台面 2D 物理） ---------- */
+        pool: {
+          gymDoor: { x: -6, z: 16.35, r: 1.25 },
+          // 球馆侧入口（与电影院红门左右对称）
+          room: { halfW: 4.9, halfL: 6.4, height: 3.1 },
+          // 台面：库内沿半长/半宽按标准 9 尺台比例（2.54 x 1.27）；h 为呢绒上表面离地高度
+          table: { h: 0.82, halfL: 1.27, halfW: 0.635, railW: 0.13, frame: 0.62 },
+          ball: { r: 0.03 },
+          // 袋口：r = 球心进入判定的半径（比标准略宽，休闲好进袋）；两个 mouth 是库边在袋口处留的缺口
+          pocket: { r: 0.078, cornerMouth: 0.105, sideMouth: 0.088 },
+          // 台面物理（2D）：滚阻 = decel + drag*速度（慢球靠常数项刹住、快球多耗在空气/呢绒上），
+          // 库边恢复/切向摩擦、球-球恢复、静止阈值、子步数、单杆最长解算时间
+          phys: { decel: 0.95, drag: 0.35, cushionRest: 0.72, cushionFric: 0.965, ballRest: 0.96, stop: 0.02, sub: 8, maxTime: 9 },
+          speed: [0.6, 6.6],
+          // 出杆初速区间（力度 0 → 1）
+          chargeTime: 1,
+          // 蓄力 0→1 用时（秒）
+          cancelCharge: 0.05,
+          // 低于此力度视为收杆，不出手
+          // 上手视角：眼睛在母球正后方 dist、高于球心 drop，看向前方 look 米处的球心
+          aim: { sens: 26e-4, dist: 0.52, drop: 0.34, look: 1, blend: 11 },
+          reach: 1.15,
+          // 距台边多近可以「上手」（矩形判定，四边都好使）
+          walkSpeed: 3,
+          guide: { dash: 0.045, gap: 0.03, objLen: 0.46, cueLen: 0.3, cushLen: 0.52 },
+          score: { ball: 20, clear: 100, foul: 30 }
         }
       };
     }
@@ -22228,18 +22440,18 @@
           }
           const A = this.elements;
           const B = matrix.elements;
-          const T = target.elements;
+          const T2 = target.elements;
           const a11 = A[0], a12 = A[1], a13 = A[2], a21 = A[3], a22 = A[4], a23 = A[5], a31 = A[6], a32 = A[7], a33 = A[8];
           const b11 = B[0], b12 = B[1], b13 = B[2], b21 = B[3], b22 = B[4], b23 = B[5], b31 = B[6], b32 = B[7], b33 = B[8];
-          T[0] = a11 * b11 + a12 * b21 + a13 * b31;
-          T[1] = a11 * b12 + a12 * b22 + a13 * b32;
-          T[2] = a11 * b13 + a12 * b23 + a13 * b33;
-          T[3] = a21 * b11 + a22 * b21 + a23 * b31;
-          T[4] = a21 * b12 + a22 * b22 + a23 * b32;
-          T[5] = a21 * b13 + a22 * b23 + a23 * b33;
-          T[6] = a31 * b11 + a32 * b21 + a33 * b31;
-          T[7] = a31 * b12 + a32 * b22 + a33 * b32;
-          T[8] = a31 * b13 + a32 * b23 + a33 * b33;
+          T2[0] = a11 * b11 + a12 * b21 + a13 * b31;
+          T2[1] = a11 * b12 + a12 * b22 + a13 * b32;
+          T2[2] = a11 * b13 + a12 * b23 + a13 * b33;
+          T2[3] = a21 * b11 + a22 * b21 + a23 * b31;
+          T2[4] = a21 * b12 + a22 * b22 + a23 * b32;
+          T2[5] = a21 * b13 + a22 * b23 + a23 * b33;
+          T2[6] = a31 * b11 + a32 * b21 + a33 * b31;
+          T2[7] = a31 * b12 + a32 * b22 + a33 * b32;
+          T2[8] = a31 * b13 + a32 * b23 + a33 * b33;
           return target;
         }
         /**
@@ -22488,20 +22700,20 @@
             target = new _Mat3();
           }
           const M = this.elements;
-          const T = target.elements;
+          const T2 = target.elements;
           let tmp3;
-          T[0] = M[0];
-          T[4] = M[4];
-          T[8] = M[8];
+          T2[0] = M[0];
+          T2[4] = M[4];
+          T2[8] = M[8];
           tmp3 = M[1];
-          T[1] = M[3];
-          T[3] = tmp3;
+          T2[1] = M[3];
+          T2[3] = tmp3;
           tmp3 = M[2];
-          T[2] = M[6];
-          T[6] = tmp3;
+          T2[2] = M[6];
+          T2[6] = tmp3;
           tmp3 = M[5];
-          T[5] = M[7];
-          T[7] = tmp3;
+          T2[5] = M[7];
+          T2[7] = tmp3;
           return target;
         }
       };
@@ -27303,7 +27515,7 @@
           const sides = sphereBox_sides;
           xi.vsub(xj, box_to_sphere);
           sj.getSideNormals(sides, qj);
-          const R2 = si.radius;
+          const R3 = si.radius;
           let found = false;
           const side_ns = sphereBox_side_ns;
           const side_ns1 = sphereBox_side_ns1;
@@ -27319,7 +27531,7 @@
             const h = ns.length();
             ns.normalize();
             const dot = box_to_sphere.dot(ns);
-            if (dot < h + R2 && dot > 0) {
+            if (dot < h + R3 && dot > 0) {
               const ns1 = sphereBox_ns1;
               const ns2 = sphereBox_ns2;
               ns1.copy(sides[(idx + 1) % 3]);
@@ -27331,7 +27543,7 @@
               const dot1 = box_to_sphere.dot(ns1);
               const dot2 = box_to_sphere.dot(ns2);
               if (dot1 < h1 && dot1 > -h1 && dot2 < h2 && dot2 > -h2) {
-                const dist2 = Math.abs(dot - h - R2);
+                const dist2 = Math.abs(dot - h - R3);
                 if (side_distance === null || dist2 < side_distance) {
                   side_distance = dist2;
                   side_dot1 = dot1;
@@ -27351,7 +27563,7 @@
           if (side_penetrations) {
             found = true;
             const r2 = this.createContactEquation(bi, bj, si, sj, rsi, rsj);
-            side_ns.scale(-R2, r2.ri);
+            side_ns.scale(-R3, r2.ri);
             r2.ni.copy(side_ns);
             r2.ni.negate(r2.ni);
             side_ns.scale(side_h, side_ns);
@@ -27389,7 +27601,7 @@
                 }
                 xj.vadd(rj, sphere_to_corner);
                 sphere_to_corner.vsub(xi, sphere_to_corner);
-                if (sphere_to_corner.lengthSquared() < R2 * R2) {
+                if (sphere_to_corner.lengthSquared() < R3 * R3) {
                   if (justTest) {
                     return true;
                   }
@@ -27398,7 +27610,7 @@
                   r2.ri.copy(sphere_to_corner);
                   r2.ri.normalize();
                   r2.ni.copy(r2.ri);
-                  r2.ri.scale(R2, r2.ri);
+                  r2.ri.scale(R3, r2.ri);
                   r2.rj.copy(rj);
                   r2.ri.vadd(xi, r2.ri);
                   r2.ri.vsub(bi.position, r2.ri);
@@ -27439,7 +27651,7 @@
                 dist.vsub(xj, dist);
                 const tdist = Math.abs(orthonorm);
                 const ndist = dist.length();
-                if (tdist < sides[l].length() && ndist < R2) {
+                if (tdist < sides[l].length() && ndist < R3) {
                   if (justTest) {
                     return true;
                   }
@@ -27453,7 +27665,7 @@
                   res.ri.vadd(xj, res.ri);
                   res.ri.vsub(xi, res.ri);
                   res.ri.normalize();
-                  res.ri.scale(R2, res.ri);
+                  res.ri.scale(R3, res.ri);
                   res.ri.vadd(xi, res.ri);
                   res.ri.vsub(bi.position, res.ri);
                   res.rj.vadd(xj, res.rj);
@@ -27517,7 +27729,7 @@
           const normals = sj.faceNormals;
           const faces = sj.faces;
           const verts = sj.vertices;
-          const R2 = si.radius;
+          const R3 = si.radius;
           let found = false;
           for (let i = 0; i !== verts.length; i++) {
             const v = verts[i];
@@ -27526,7 +27738,7 @@
             xj.vadd(worldCorner, worldCorner);
             const sphere_to_corner = sphereConvex_sphereToCorner;
             worldCorner.vsub(xi, sphere_to_corner);
-            if (sphere_to_corner.lengthSquared() < R2 * R2) {
+            if (sphere_to_corner.lengthSquared() < R3 * R3) {
               if (justTest) {
                 return true;
               }
@@ -27535,7 +27747,7 @@
               r.ri.copy(sphere_to_corner);
               r.ri.normalize();
               r.ni.copy(r.ri);
-              r.ri.scale(R2, r.ri);
+              r.ri.scale(R3, r.ri);
               worldCorner.vsub(xj, r.rj);
               r.ri.vadd(xi, r.ri);
               r.ri.vsub(bi.position, r.ri);
@@ -27555,7 +27767,7 @@
             qj.vmult(verts[face[0]], worldPoint);
             worldPoint.vadd(xj, worldPoint);
             const worldSpherePointClosestToPlane = sphereConvex_worldSpherePointClosestToPlane;
-            worldNormal.scale(-R2, worldSpherePointClosestToPlane);
+            worldNormal.scale(-R3, worldSpherePointClosestToPlane);
             xi.vadd(worldSpherePointClosestToPlane, worldSpherePointClosestToPlane);
             const penetrationVec = sphereConvex_penetrationVec;
             worldSpherePointClosestToPlane.vsub(worldPoint, penetrationVec);
@@ -27576,12 +27788,12 @@
                 }
                 found = true;
                 const r = this.createContactEquation(bi, bj, si, sj, rsi, rsj);
-                worldNormal.scale(-R2, r.ri);
+                worldNormal.scale(-R3, r.ri);
                 worldNormal.negate(r.ni);
                 const penetrationVec2 = v3pool.get();
                 worldNormal.scale(-penetration, penetrationVec2);
                 const penetrationSpherePoint = v3pool.get();
-                worldNormal.scale(-R2, penetrationSpherePoint);
+                worldNormal.scale(-R3, penetrationSpherePoint);
                 xi.vsub(xj, r.rj);
                 r.rj.vadd(penetrationSpherePoint, r.rj);
                 r.rj.vadd(penetrationVec2, r.rj);
@@ -27617,7 +27829,7 @@
                   p.vadd(v12, p);
                   const xi_to_p = v3pool.get();
                   p.vsub(xi, xi_to_p);
-                  if (dot > 0 && dot * dot < edge.lengthSquared() && xi_to_p.lengthSquared() < R2 * R2) {
+                  if (dot > 0 && dot * dot < edge.lengthSquared() && xi_to_p.lengthSquared() < R3 * R3) {
                     if (justTest) {
                       return true;
                     }
@@ -27625,7 +27837,7 @@
                     p.vsub(xj, r.rj);
                     p.vsub(xi, r.ni);
                     r.ni.normalize();
-                    r.ni.scale(R2, r.ri);
+                    r.ni.scale(R3, r.ri);
                     r.rj.vadd(xj, r.rj);
                     r.rj.vsub(bj.position, r.rj);
                     r.ri.vadd(xi, r.ri);
@@ -29625,14 +29837,14 @@
     const tex = new CanvasTexture(cv);
     return tex;
   }
-  function makeDoorSignTexture(text, sub) {
+  function makeDoorSignTexture(text, sub, bg) {
     const cv = document.createElement("canvas");
     cv.width = 512;
     cv.height = 128;
     const ctx = cv.getContext("2d");
     const g = ctx.createLinearGradient(0, 0, 0, 128);
-    g.addColorStop(0, "#3d0f14");
-    g.addColorStop(1, "#1e0a0d");
+    g.addColorStop(0, bg ? bg[0] : "#3d0f14");
+    g.addColorStop(1, bg ? bg[1] : "#1e0a0d");
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, 512, 128);
     ctx.strokeStyle = "rgba(255,190,90,0.85)";
@@ -29675,6 +29887,118 @@
     ctx.font = `24px 'Microsoft YaHei', system-ui`;
     ctx.fillText("\u300C\u63A7\u5236\u53F0\u300D\u91CC\u53EF\u6307\u5B9A\u54EA\u51E0\u90E8\u51FA\u58F0\uFF08\u591A\u90E8\u4E00\u8D77\u54CD\uFF09\u3001\u52A0\u7247\u5220\u7247", 512, 448);
     ctx.fillText("MP4 \xB7 WebM \xB7 MOV \xB7 M4V \xB7 Ogg\uFF08\u4EE5\u6D4F\u89C8\u5668\u53EF\u89E3\u7801\u4E3A\u51C6\uFF09", 512, 486);
+    const tex = new CanvasTexture(cv);
+    tex.colorSpace = SRGBColorSpace;
+    return tex;
+  }
+  function makeFeltTexture(len, wid, pad, pockets) {
+    const PPM = 400;
+    const W = Math.round(len * PPM), H2 = Math.round(wid * PPM);
+    const cv = document.createElement("canvas");
+    cv.width = W;
+    cv.height = H2;
+    const ctx = cv.getContext("2d");
+    const rnd = mulberry32(20260925);
+    const X = (x) => (x / len + 0.5) * W;
+    const Z = (z) => (z / wid + 0.5) * H2;
+    const S = (m) => m * PPM;
+    const g = ctx.createLinearGradient(0, 0, 0, H2);
+    g.addColorStop(0, "#17573c");
+    g.addColorStop(0.5, "#1d6b49");
+    g.addColorStop(1, "#17573c");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H2);
+    for (let i = 0; i < 26e3; i++) {
+      const x = rnd() * W, y = rnd() * H2;
+      ctx.strokeStyle = rnd() > 0.5 ? "rgba(255,255,255,0.020)" : "rgba(0,0,0,0.050)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + 3.2, y + 2.2);
+      ctx.stroke();
+    }
+    const pl = X(-len / 2 + pad), pr = X(len / 2 - pad);
+    const pt = Z(-wid / 2 + pad), pb = Z(wid / 2 - pad);
+    for (let i = 8; i > 0; i--) {
+      ctx.strokeStyle = `rgba(0,0,0,${0.035 * (9 - i)})`;
+      ctx.lineWidth = S(0.012);
+      ctx.strokeRect(
+        pl + i * S(0.012) / 2,
+        pt + i * S(0.012) / 2,
+        pr - pl - i * S(0.012),
+        pb - pt - i * S(0.012)
+      );
+    }
+    const lamp = ctx.createRadialGradient(W / 2, H2 / 2, H2 * 0.1, W / 2, H2 / 2, W * 0.5);
+    lamp.addColorStop(0, "rgba(255,246,214,0.12)");
+    lamp.addColorStop(1, "rgba(255,246,214,0)");
+    ctx.fillStyle = lamp;
+    ctx.fillRect(0, 0, W, H2);
+    const hx = (len / 2 - pad) / 2;
+    ctx.strokeStyle = "rgba(235,245,240,0.20)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(X(-hx), pt);
+    ctx.lineTo(X(-hx), pb);
+    ctx.stroke();
+    for (const fx of [-hx, hx]) {
+      ctx.fillStyle = "rgba(240,248,244,0.5)";
+      ctx.beginPath();
+      ctx.arc(X(fx), H2 / 2, 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    for (const p of pockets) {
+      const r = S(p.r);
+      const gg = ctx.createRadialGradient(X(p.x), Z(p.z), r * 0.35, X(p.x), Z(p.z), r);
+      gg.addColorStop(0, "#000000");
+      gg.addColorStop(0.72, "#04070a");
+      gg.addColorStop(1, "rgba(2,4,6,0.35)");
+      ctx.fillStyle = gg;
+      ctx.beginPath();
+      ctx.arc(X(p.x), Z(p.z), r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "rgba(190,160,95,0.35)";
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.arc(X(p.x), Z(p.z), r * 0.97, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    const tex = new CanvasTexture(cv);
+    tex.colorSpace = SRGBColorSpace;
+    tex.anisotropy = 8;
+    return tex;
+  }
+  function makePoolBallTexture(num, color, striped) {
+    const W = 256, H2 = 128;
+    const cv = document.createElement("canvas");
+    cv.width = W;
+    cv.height = H2;
+    const ctx = cv.getContext("2d");
+    const rnd = mulberry32(9e3 + num);
+    const hex = `#${color.toString(16).padStart(6, "0")}`;
+    ctx.fillStyle = striped || num === 0 ? "#f7f3e7" : hex;
+    ctx.fillRect(0, 0, W, H2);
+    if (striped) {
+      ctx.fillStyle = hex;
+      ctx.fillRect(0, H2 * 0.3, W, H2 * 0.4);
+    }
+    for (let i = 0; i < 1200; i++) {
+      ctx.fillStyle = `rgba(0,0,0,${rnd() * 0.05})`;
+      ctx.fillRect(rnd() * W, rnd() * H2, 1.6, 1.6);
+    }
+    if (num > 0) {
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      for (const u of [0.25, 0.75]) {
+        ctx.fillStyle = "#faf7ef";
+        ctx.beginPath();
+        ctx.arc(W * u, H2 * 0.5, 21, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#1a1a1a";
+        ctx.font = `bold ${num > 9 ? 23 : 27}px system-ui`;
+        ctx.fillText(String(num), W * u, H2 * 0.5 + 1);
+      }
+    }
     const tex = new CanvasTexture(cv);
     tex.colorSpace = SRGBColorSpace;
     return tex;
@@ -29916,7 +30240,7 @@
       scene.add(g);
     };
     mkRail(20, -CFG.court.halfW - 1.2, 0, Math.PI / 2);
-    mkRail(9.5, -2.75, CFG.court.halfL + 1.2, 0);
+    mkRail(7.1, -1.55, CFG.court.halfL + 1.2, 0);
     mkRail(1.5, 9.75, CFG.court.halfL + 1.2, 0);
     const ad1 = new Mesh(new BoxGeometry(0.1, 0.8, 19.5), new MeshStandardMaterial({ color: 725536, emissive: 2250239, emissiveIntensity: 0.55, roughness: 0.4 }));
     ad1.position.set(-CFG.court.halfW - 1.7, 0.45, 0);
@@ -29941,16 +30265,17 @@
       door.position.set(dx, 1.3, -CFG.gym.halfL + 0.12);
       scene.add(door);
     }
-    {
-      const D = CFG.cinema.gymDoor;
+    const mkEntryDoor = (dx, opt) => {
       const g = new Group();
-      g.position.set(D.x, 0, CFG.gym.halfL - 0.06);
+      g.position.set(dx, 0, CFG.gym.halfL - 0.06);
       g.rotation.y = Math.PI;
-      const frameMat = new MeshStandardMaterial({ color: 7214624, roughness: 0.5, metalness: 0.3 });
-      const frame = new Mesh(new BoxGeometry(2.05, 3.15, 0.1), frameMat);
+      const frame = new Mesh(
+        new BoxGeometry(2.05, 3.15, 0.1),
+        new MeshStandardMaterial({ color: opt.frame, roughness: 0.5, metalness: 0.3 })
+      );
       frame.position.y = 1.57;
       g.add(frame);
-      const slab = new Mesh(new BoxGeometry(1.7, 2.8, 0.12), paintedWood(2824722, 0.7));
+      const slab = new Mesh(new BoxGeometry(1.7, 2.8, 0.12), paintedWood(opt.slab, 0.7));
       slab.position.set(0, 1.4, 0.04);
       g.add(slab);
       const handle = new Mesh(new SphereGeometry(0.05, 10, 8), railMat);
@@ -29958,11 +30283,11 @@
       g.add(handle);
       const crack = new Mesh(
         new PlaneGeometry(1.56, 0.05),
-        new MeshBasicMaterial({ color: 16756838 })
+        new MeshBasicMaterial({ color: opt.crack })
       );
       crack.position.set(0, 2.72, 0.115);
       g.add(crack);
-      const signTex = makeDoorSignTexture("\u7535 \u5F71 \u9662", "\u{1F3AC} \u8D70\u8FDB\u95E8\u5373\u53EF\u89C2\u5F71");
+      const signTex = makeDoorSignTexture(opt.title, opt.sub, opt.signBg);
       const sign = new Mesh(
         new PlaneGeometry(2.3, 0.58),
         new MeshStandardMaterial({ map: signTex, emissiveMap: signTex, emissive: 16777215, emissiveIntensity: 0.9, roughness: 0.6 })
@@ -29971,13 +30296,32 @@
       g.add(sign);
       const mat2 = new Mesh(
         new CircleGeometry(0.95, 28),
-        new MeshStandardMaterial({ color: 5903392, emissive: 8003370, emissiveIntensity: 0.5, roughness: 0.9 })
+        new MeshStandardMaterial({ color: opt.mat, emissive: opt.matGlow, emissiveIntensity: 0.5, roughness: 0.9 })
       );
       mat2.rotation.x = -Math.PI / 2;
       mat2.position.set(0, 0.012, 1.1);
       g.add(mat2);
       scene.add(g);
-    }
+    };
+    mkEntryDoor(CFG.cinema.gymDoor.x, {
+      frame: 7214624,
+      slab: 2824722,
+      crack: 16756838,
+      mat: 5903392,
+      matGlow: 8003370,
+      title: "\u7535 \u5F71 \u9662",
+      sub: "\u{1F3AC} \u8D70\u8FDB\u95E8\u5373\u53EF\u89C2\u5F71"
+    });
+    mkEntryDoor(CFG.pool.gymDoor.x, {
+      frame: 1333813,
+      slab: 2234898,
+      crack: 16767370,
+      mat: 1130538,
+      matGlow: 1862469,
+      title: "\u53F0 \u7403 \u5BA4",
+      sub: "\u{1F3B1} \u8D70\u8FDB\u95E8\u5373\u53EF\u5F00\u6746",
+      signBg: ["#0f2c22", "#061310"]
+    });
     return { netGroup, rim, adTex, floor };
   }
   function addWallArt(scene) {
@@ -31107,6 +31451,885 @@
     }
   });
 
+  // src/pool.js
+  function rayCircle(px2, pz2, dx, dz, cx, cz, rr) {
+    const ox = px2 - cx, oz = pz2 - cz;
+    const b2 = ox * dx + oz * dz;
+    const c2 = ox * ox + oz * oz - rr * rr;
+    const disc = b2 * b2 - c2;
+    if (disc < 0) return -1;
+    const s = Math.sqrt(disc);
+    let t = -b2 - s;
+    if (t < 1e-5) t = -b2 + s;
+    return t > 1e-5 ? t : -1;
+  }
+  function rayRail(px2, pz2, dx, dz, rl) {
+    const lim = rl.n === "x" ? BX - R2 : BZ - R2;
+    const face = rl.s * lim;
+    const d = rl.n === "x" ? dx : dz;
+    if (Math.abs(d) < 1e-6) return -1;
+    const t = (face - (rl.n === "x" ? px2 : pz2)) / d;
+    if (t < 1e-5) return -1;
+    const q = rl.n === "x" ? pz2 + dz * t : px2 + dx * t;
+    const other = rl.n === "x" ? BZ - R2 : BX - R2;
+    if (q < -other || q > other) return -1;
+    return q >= rl.lo && q <= rl.hi ? t : -1;
+  }
+  function rayEdge(px2, pz2, dx, dz) {
+    let t = Infinity;
+    const hit = (v, c2, face) => {
+      if (Math.abs(v) < 1e-6) return;
+      const q = (face - c2) / v;
+      if (q > 1e-5 && q < t) t = q;
+    };
+    hit(dx, px2, BX - R2);
+    hit(dx, px2, -(BX - R2));
+    hit(dz, pz2, BZ - R2);
+    hit(dz, pz2, -(BZ - R2));
+    return t;
+  }
+  function createPool({ camera, player, sfx }) {
+    const scene = new Scene();
+    scene.background = new Color(526861);
+    const $2 = (id) => document.getElementById(id);
+    const bar = $2("pool-bar");
+    const hintEl = $2("pool-hint");
+    const infoEl = $2("pb-info");
+    const fillEl = $2("pb-fill");
+    const RW = K2.room.halfW, RL = K2.room.halfL, RH = K2.room.height;
+    const shell = new Mesh(
+      new BoxGeometry(RW * 2, RH, RL * 2),
+      new MeshStandardMaterial({ color: 1776930, roughness: 0.93, metalness: 0.03, side: BackSide, envMapIntensity: 0.1 })
+    );
+    shell.position.y = RH / 2;
+    scene.add(shell);
+    const rug = new Mesh(
+      new PlaneGeometry(RW * 2 - 0.04, RL * 2 - 0.04),
+      new MeshStandardMaterial({ map: makeCarpetTexture(), color: 6713470, roughness: 0.97, envMapIntensity: 0.04 })
+    );
+    rug.rotation.x = -Math.PI / 2;
+    rug.position.y = 0.012;
+    scene.add(rug);
+    const dadoMat = new MeshStandardMaterial({ color: 2760728, roughness: 0.6, metalness: 0.1, envMapIntensity: 0.25 });
+    for (const w of [
+      { len: RW * 2 - 0.04, x: 0, z: -RL + 0.07, ry: 0 },
+      { len: RW * 2 - 0.04, x: 0, z: RL - 0.07, ry: Math.PI },
+      { len: RL * 2 - 0.04, x: -RW + 0.07, z: 0, ry: Math.PI / 2 },
+      { len: RL * 2 - 0.04, x: RW - 0.07, z: 0, ry: -Math.PI / 2 }
+    ]) {
+      const m = new Mesh(new PlaneGeometry(w.len, 1.05), dadoMat);
+      m.position.set(w.x, 0.53, w.z);
+      m.rotation.y = w.ry;
+      scene.add(m);
+    }
+    const woodMat = new MeshStandardMaterial({ color: 3810329, roughness: 0.42, metalness: 0.12, envMapIntensity: 0.7 });
+    const railMat = new MeshStandardMaterial({ color: 2890514, roughness: 0.38, metalness: 0.14, envMapIntensity: 0.8 });
+    const brassMat = new MeshStandardMaterial({ color: 11570506, roughness: 0.26, metalness: 0.9, envMapIntensity: 1.1 });
+    const cabinet = new Mesh(new BoxGeometry(RX * 2 - 0.06, TH - 0.02, RZ * 2 - 0.06), woodMat);
+    cabinet.position.y = (TH - 0.02) / 2;
+    scene.add(cabinet);
+    const felt = new Mesh(
+      new PlaneGeometry(RX * 2, RZ * 2),
+      new MeshStandardMaterial({
+        map: makeFeltTexture(RX * 2, RZ * 2, T.railW, POCKETS),
+        roughness: 0.95,
+        metalness: 0,
+        envMapIntensity: 0.12
+      })
+    );
+    felt.rotation.x = -Math.PI / 2;
+    felt.position.y = TH;
+    scene.add(felt);
+    const RAIL_H = 0.105;
+    for (const rl of RAILS) {
+      const len = rl.hi - rl.lo;
+      const face = rl.s * (rl.n === "x" ? BX : BZ);
+      const along = (rl.lo + rl.hi) / 2;
+      const m = new Mesh(
+        new BoxGeometry(rl.n === "z" ? len : T.railW, RAIL_H, rl.n === "x" ? len : T.railW),
+        railMat
+      );
+      m.position.set(
+        rl.n === "x" ? face + rl.s * T.railW / 2 : along,
+        TH + RAIL_H / 2 - 0.02,
+        rl.n === "z" ? face + rl.s * T.railW / 2 : along
+      );
+      scene.add(m);
+      const n = rl.n === "z" ? 3 : 2;
+      for (let i = 1; i <= n; i++) {
+        const q = rl.lo + (rl.hi - rl.lo) * (i / (n + 1));
+        const d = new Mesh(new SphereGeometry(0.011, 8, 6), brassMat);
+        d.position.set(
+          rl.n === "x" ? face + rl.s * T.railW * 0.5 : q,
+          TH + RAIL_H - 0.02,
+          rl.n === "x" ? q : face + rl.s * T.railW * 0.5
+        );
+        scene.add(d);
+      }
+    }
+    scene.add(new HemisphereLight(2896704, 460810, 0.5));
+    const lampGroup = new Group();
+    lampGroup.position.y = 1.95;
+    scene.add(lampGroup);
+    const shadeGeo = new ConeGeometry(0.15, 0.13, 20, 1, true);
+    const bulbGeo = new SphereGeometry(0.045, 12, 8);
+    const bulbMat = new MeshStandardMaterial({ color: 2761495, emissive: 16770736, emissiveIntensity: 2.6 });
+    const rodMat = new MeshStandardMaterial({ color: 1316378, roughness: 0.5, metalness: 0.7 });
+    for (const lx of [-0.85, 0, 0.85]) {
+      const sd = new Mesh(shadeGeo, brassMat);
+      sd.position.set(lx, 0, 0);
+      lampGroup.add(sd);
+      const bl = new Mesh(bulbGeo, bulbMat);
+      bl.position.set(lx, -0.075, 0);
+      lampGroup.add(bl);
+      const rod = new Mesh(new CylinderGeometry(8e-3, 8e-3, RH - 1.95, 6), rodMat);
+      rod.position.set(lx, (RH - 1.95) / 2, 0);
+      lampGroup.add(rod);
+      const lp = new PointLight(16768938, 1.35, 5.5, 1.7);
+      lp.position.set(lx, -0.13, 0);
+      lampGroup.add(lp);
+    }
+    {
+      const stand = new Group();
+      stand.position.set(-RW + 0.6, 0, -RL + 1);
+      const base = new Mesh(new BoxGeometry(0.5, 0.06, 0.3), woodMat);
+      base.position.y = 0.03;
+      stand.add(base);
+      const cueMatA = new MeshStandardMaterial({ color: 12159566, roughness: 0.35, metalness: 0.1, envMapIntensity: 0.8 });
+      const cueMatB = new MeshStandardMaterial({ color: 7028516, roughness: 0.35, metalness: 0.1, envMapIntensity: 0.8 });
+      for (let i = 0; i < 4; i++) {
+        const stick = new Mesh(new CylinderGeometry(9e-3, 0.017, 1.5, 8), i % 2 ? cueMatA : cueMatB);
+        stick.position.set(-0.16 + i * 0.11, 0.78, 0);
+        stick.rotation.z = 0.07;
+        stand.add(stick);
+      }
+      scene.add(stand);
+    }
+    const ballGeo = new SphereGeometry(R2, 24, 16);
+    const balls = [];
+    function mkBall(num) {
+      const tex = makePoolBallTexture(num, num <= 8 ? HUE[num] : HUE[num - 8], num >= 9);
+      const mesh = new Mesh(ballGeo, new MeshStandardMaterial({
+        map: tex,
+        roughness: 0.1,
+        metalness: 0.02,
+        envMapIntensity: 1.5
+      }));
+      mesh.position.set(0, YC, 0);
+      scene.add(mesh);
+      const b2 = { num, mesh, x: 0, z: 0, vx: 0, vz: 0, potted: false, sink: 0 };
+      balls.push(b2);
+      return b2;
+    }
+    const cue = mkBall(0);
+    for (const n of RACK_ORDER) mkBall(n);
+    function rack() {
+      for (const b2 of balls) {
+        b2.potted = false;
+        b2.sink = 0;
+        b2.vx = 0;
+        b2.vz = 0;
+        b2.mesh.visible = true;
+        b2.mesh.scale.setScalar(1);
+        b2.mesh.quaternion.identity();
+        if (b2.num === 0) {
+          b2.x = -BX / 2;
+          b2.z = 0;
+        } else {
+          const k = RACK_ORDER.indexOf(b2.num);
+          const row = Math.floor((Math.sqrt(8 * k + 1) - 1) / 2);
+          const idx = k - row * (row + 1) / 2;
+          b2.x = BX / 2 + row * (R2 * Math.sqrt(3));
+          b2.z = (idx - row / 2) * 2 * R2;
+        }
+        b2.mesh.position.set(b2.x, YC, b2.z);
+      }
+    }
+    rack();
+    const cueStick = new Group();
+    {
+      const mk = (r1, r2, len, z, mat) => {
+        const m = new Mesh(new CylinderGeometry(r1, r2, len, 12), mat);
+        m.rotation.x = Math.PI / 2;
+        m.position.z = z;
+        cueStick.add(m);
+      };
+      mk(6e-3, 6e-3, 0.02, -0.01, new MeshStandardMaterial({ color: 4157096, roughness: 0.85 }));
+      mk(55e-4, 0.0125, 1.05, -0.545, new MeshStandardMaterial({ color: 14201987, roughness: 0.3, metalness: 0.05, envMapIntensity: 0.9 }));
+      mk(0.0125, 0.016, 0.48, -1.31, new MeshStandardMaterial({ color: 2364944, roughness: 0.4, metalness: 0.15, envMapIntensity: 0.7 }));
+    }
+    cueStick.visible = false;
+    scene.add(cueStick);
+    const guideGroup = new Group();
+    guideGroup.position.y = TH + 8e-3;
+    scene.add(guideGroup);
+    function mkLine(cap, color, opacity) {
+      const geo = new BufferGeometry();
+      geo.setAttribute("position", new BufferAttribute(new Float32Array(cap * 3), 3));
+      geo.setDrawRange(0, 0);
+      const line = new Line(geo, new LineDashedMaterial({
+        color,
+        dashSize: GD.dash,
+        gapSize: GD.gap,
+        transparent: true,
+        opacity,
+        depthWrite: false
+      }));
+      line.frustumCulled = false;
+      line.renderOrder = 3;
+      guideGroup.add(line);
+      return {
+        count() {
+          return geo.drawRange.count;
+        },
+        /** 折线总长；出现 NaN 顶点返回 -1（线会整条消失，且不报错，必须显式断言） */
+        length() {
+          const n = Math.min(geo.drawRange.count, cap);
+          if (n < 2) return 0;
+          const a2 = geo.attributes.position;
+          let L = 0;
+          for (let i = 1; i < n; i++) {
+            const dx = a2.getX(i) - a2.getX(i - 1), dz = a2.getZ(i) - a2.getZ(i - 1);
+            if (!Number.isFinite(dx) || !Number.isFinite(dz)) return -1;
+            L += Math.hypot(dx, dz);
+          }
+          return L;
+        },
+        show(pts) {
+          const n = Math.min(cap, pts.length);
+          if (n < 2) {
+            geo.setDrawRange(0, 0);
+            return;
+          }
+          const a2 = geo.attributes.position;
+          for (let i = 0; i < n; i++) a2.setXYZ(i, pts[i].x, 0, pts[i].z);
+          a2.needsUpdate = true;
+          geo.setDrawRange(0, n);
+          line.computeLineDistances();
+        }
+      };
+    }
+    const gMain = mkLine(2, 16184038, 0.95);
+    const gObj = mkLine(2, 16761963, 0.9);
+    const gCue = mkLine(2, 9425151, 0.75);
+    const gCush = mkLine(2, 12576969, 0.6);
+    const gGhost = mkLine(33, 16777215, 0.8);
+    const HIDE = [];
+    function hideGuide() {
+      gMain.show(HIDE);
+      gObj.show(HIDE);
+      gCue.show(HIDE);
+      gCush.show(HIDE);
+      gGhost.show(HIDE);
+    }
+    let mode = "walk";
+    let aimA = 0;
+    let power = 0;
+    let charging = false;
+    let rollT = 0;
+    let aimT = 0;
+    let needRack = false;
+    let strokes = 0, pottedNum = 0, score = 0, fouls = 0;
+    let best = Number(localStorage.getItem("bb.pool.best") || 0);
+    const dir = new Vector2(1, 0);
+    const _eye = new Vector3(), _tgt = new Vector3(), _up = new Vector3(0, 1, 0);
+    const _m = new Matrix4(), _q = new Quaternion();
+    const _spin = new Vector3(), _dq = new Quaternion();
+    const holdEye = new Vector3(), holdQuat = new Quaternion();
+    const ROOM_BOUNDS2 = { minX: -(RW - 0.7), maxX: RW - 0.7, minZ: -(RL - 0.7), maxZ: RL - 0.7 };
+    const TABLE_BLOCKERS = [{ x: -BX * 0.8, z: 0, r: 1 }, { x: 0, z: 0, r: 1 }, { x: BX * 0.8, z: 0, r: 1 }];
+    const GYM_BOUNDS = {
+      minX: CFG.gym.playerMinX,
+      maxX: CFG.gym.playerMaxX,
+      minZ: CFG.gym.playerMinZ,
+      maxZ: CFG.gym.playerMaxZ
+    };
+    const GYM_BLOCKERS = [{ x: 0, z: CFG.hoop.boardFaceZ - 0.95, r: 0.9 }];
+    const nearTable = () => Math.abs(player.pos.x) < RX + K2.reach && Math.abs(player.pos.z) < RZ + K2.reach;
+    const rolling = () => balls.some((b2) => !b2.potted && (b2.vx !== 0 || b2.vz !== 0));
+    let _hint = null;
+    function setHint(t) {
+      if (t === _hint) return;
+      _hint = t;
+      hintEl.innerHTML = t || "";
+      hintEl.classList.toggle("hidden", !t);
+    }
+    let _info = null;
+    function setInfo() {
+      const s = `\u{1F3B1} \u8FDB\u888B ${pottedNum}/15 \xB7 \u5F97\u5206 ${score}${fouls ? ` \xB7 \u6D17\u888B ${fouls}` : ""} \xB7 \u51FA\u6746 ${strokes} \xB7 \u7EAA\u5F55 ${best}`;
+      if (s === _info) return;
+      _info = s;
+      infoEl.textContent = s;
+    }
+    let _pw = -1;
+    function setPower(v) {
+      const q = Math.round(v * 100);
+      if (q === _pw) return;
+      _pw = q;
+      fillEl.style.width = `${q}%`;
+    }
+    function setBest() {
+      if (best < score) {
+        best = score;
+        localStorage.setItem("bb.pool.best", String(best));
+      }
+    }
+    function respotCue() {
+      cue.potted = false;
+      cue.sink = 0;
+      cue.vx = cue.vz = 0;
+      cue.mesh.visible = true;
+      cue.mesh.scale.setScalar(1);
+      const free = (x, z) => balls.every((b2) => b2 === cue || b2.potted || Math.hypot(b2.x - x, b2.z - z) > 2.2 * R2);
+      for (let i = 0; i < 90; i++) {
+        const z = (i % 2 ? 1 : -1) * Math.ceil(i / 2) * 2 * R2;
+        for (let j = 0; j < 14; j++) {
+          const x = -BX / 2 - 2 * R2 + j * 4 * R2;
+          if (Math.abs(x) > BX - R2 || Math.abs(z) > BZ - R2) continue;
+          if (free(x, z)) {
+            cue.x = x;
+            cue.z = z;
+            cue.mesh.position.set(x, YC, z);
+            return;
+          }
+        }
+      }
+      cue.x = -BX / 2;
+      cue.z = 0;
+    }
+    function pot(b2) {
+      b2.potted = true;
+      b2.sink = 0.01;
+      b2.vx = b2.vz = 0;
+      if (b2.num === 0) {
+        fouls++;
+        score = Math.max(0, score - K2.score.foul);
+        sfx.play("bounce", { volume: 0.5, rate: 0.55 });
+        setInfo();
+        return;
+      }
+      pottedNum++;
+      score += K2.score.ball;
+      sfx.play("bounce", { volume: 0.55, rate: 0.7 + Math.random() * 0.1 });
+      if (pottedNum >= RACK_ORDER.length) {
+        score += K2.score.clear;
+        needRack = true;
+        sfx.play("cheer", { volume: 0.7 });
+      }
+      setInfo();
+    }
+    function substep(h) {
+      for (const b2 of balls) {
+        if (b2.potted) continue;
+        const sp = Math.hypot(b2.vx, b2.vz);
+        if (sp === 0) continue;
+        const ns = Math.max(0, sp - (PH.decel + PH.drag * sp) * h);
+        const f = ns / sp;
+        b2.vx *= f;
+        b2.vz *= f;
+        const mx = b2.vx * h, mz = b2.vz * h;
+        b2.x += mx;
+        b2.z += mz;
+        if (ns < PH.stop) {
+          b2.vx = 0;
+          b2.vz = 0;
+        } else {
+          const d = Math.hypot(mx, mz);
+          _spin.set(b2.vz, 0, -b2.vx).normalize();
+          _dq.setFromAxisAngle(_spin, d / R2);
+          b2.mesh.quaternion.premultiply(_dq);
+        }
+      }
+      for (const b2 of balls) {
+        if (b2.potted || b2.vx === 0 && b2.vz === 0) continue;
+        for (const rl of RAILS_Z) {
+          if (b2.x < rl.lo || b2.x > rl.hi) continue;
+          const pen = (b2.z - rl.s * BZ) * rl.s - R2;
+          if (pen > 0) {
+            b2.z -= rl.s * pen;
+            const imp = Math.abs(b2.vz);
+            b2.vz = -b2.vz * PH.cushionRest;
+            b2.vx *= PH.cushionFric;
+            if (imp > 0.3) sfx.play("rim", { volume: Math.min(0.45, imp / 8), rate: 1.35 });
+          }
+        }
+        for (const rl of RAILS_X) {
+          if (b2.z < rl.lo || b2.z > rl.hi) continue;
+          const pen = (b2.x - rl.s * BX) * rl.s - R2;
+          if (pen > 0) {
+            b2.x -= rl.s * pen;
+            const imp = Math.abs(b2.vx);
+            b2.vx = -b2.vx * PH.cushionRest;
+            b2.vz *= PH.cushionFric;
+            if (imp > 0.3) sfx.play("rim", { volume: Math.min(0.45, imp / 8), rate: 1.35 });
+          }
+        }
+      }
+      for (const b2 of balls) {
+        if (b2.potted) continue;
+        if (Math.abs(b2.x) < BX + 0.05 && Math.abs(b2.z) < BZ + 0.05) continue;
+        let target = null, bd = 1e9;
+        for (const p of POCKETS) {
+          const d = Math.hypot(b2.x - p.x, b2.z - p.z);
+          if (d < bd) {
+            bd = d;
+            target = p;
+          }
+        }
+        if (bd < K2.pocket.r * 2) pot(b2);
+        else {
+          b2.x = MathUtils.clamp(b2.x, -BX + R2, BX - R2);
+          b2.z = MathUtils.clamp(b2.z, -BZ + R2, BZ - R2);
+        }
+      }
+      for (let i = 1; i < balls.length; i++) {
+        const a2 = balls[i];
+        if (a2.potted) continue;
+        for (let j = 0; j < i; j++) {
+          const c2 = balls[j];
+          if (c2.potted) continue;
+          let dx = c2.x - a2.x, dz = c2.z - a2.z;
+          const d = Math.hypot(dx, dz);
+          if (d >= 2 * R2 || d === 0) continue;
+          dx /= d;
+          dz /= d;
+          const over = (2 * R2 - d) / 2;
+          a2.x -= dx * over;
+          a2.z -= dz * over;
+          c2.x += dx * over;
+          c2.z += dz * over;
+          const rel = (c2.vx - a2.vx) * dx + (c2.vz - a2.vz) * dz;
+          if (rel >= 0) continue;
+          const jimp = -(1 + PH.ballRest) * rel / 2;
+          a2.vx -= dx * jimp;
+          a2.vz -= dz * jimp;
+          c2.vx += dx * jimp;
+          c2.vz += dz * jimp;
+          if (-rel > 0.35) sfx.play("tap", { volume: Math.min(0.65, -rel / 6), rate: 2.1 });
+        }
+      }
+    }
+    function syncMeshes(dt) {
+      for (const b2 of balls) {
+        b2.mesh.position.x = b2.x;
+        b2.mesh.position.z = b2.z;
+        if (b2.potted) {
+          b2.sink = Math.min(1, b2.sink + dt * 2.6);
+          b2.mesh.position.y = YC - b2.sink * 0.2;
+          b2.mesh.scale.setScalar(Math.max(0.01, 1 - b2.sink * 0.55));
+          if (b2.sink >= 1) b2.mesh.visible = false;
+        } else if (b2.mesh.position.y !== YC) {
+          b2.sink = 0;
+          b2.mesh.position.y = YC;
+          b2.mesh.scale.setScalar(1);
+        }
+      }
+    }
+    function predict() {
+      const g = { kind: "none", ball: -1, t: 0, gx: 0, gz: 0, ox: 0, oz: 0, rl: null };
+      if (cue.potted) return g;
+      let tBest = Infinity, hit = null;
+      for (const b2 of balls) {
+        if (b2 === cue || b2.potted) continue;
+        const t = rayCircle(cue.x, cue.z, dir.x, dir.y, b2.x, b2.z, 2 * R2);
+        if (t > 0 && t < tBest) {
+          tBest = t;
+          hit = b2;
+        }
+      }
+      let tRail = Infinity, rail = null;
+      for (const rl of RAILS) {
+        const t = rayRail(cue.x, cue.z, dir.x, dir.y, rl);
+        if (t > 0 && t < tRail) {
+          tRail = t;
+          rail = rl;
+        }
+      }
+      const tEdge = rayEdge(cue.x, cue.z, dir.x, dir.y);
+      if (hit && tBest <= Math.min(tRail, tEdge)) {
+        const gx = cue.x + dir.x * tBest, gz = cue.z + dir.y * tBest;
+        const nx = hit.x - gx, nz = hit.z - gz;
+        const nl = Math.hypot(nx, nz) || 1;
+        g.kind = "ball";
+        g.ball = hit.num;
+        g.t = tBest;
+        g.gx = gx;
+        g.gz = gz;
+        g.ox = nx / nl;
+        g.oz = nz / nl;
+      } else if (rail && tRail <= tEdge) {
+        g.kind = "rail";
+        g.t = tRail;
+        g.rl = rail;
+        g.gx = cue.x + dir.x * tRail;
+        g.gz = cue.z + dir.y * tRail;
+      } else if (Number.isFinite(tEdge)) {
+        g.kind = "pocket";
+        g.t = tEdge;
+        g.gx = cue.x + dir.x * tEdge;
+        g.gz = cue.z + dir.y * tEdge;
+      }
+      return g;
+    }
+    function drawGuide() {
+      const g = predict();
+      if (mode !== "aim" || g.kind === "none") {
+        hideGuide();
+        return g;
+      }
+      const end = g.kind === "pocket" ? nearestPocket(g.gx, g.gz) : { x: g.gx, z: g.gz };
+      gMain.show([{ x: cue.x, z: cue.z }, { x: end.x, z: end.z }]);
+      gObj.show(HIDE);
+      gCue.show(HIDE);
+      gCush.show(HIDE);
+      gGhost.show(HIDE);
+      if (g.kind === "ball") {
+        const pts = [];
+        for (let i = 0; i <= 32; i++) {
+          const a2 = i / 32 * Math.PI * 2;
+          pts.push({ x: g.gx + Math.cos(a2) * R2, z: g.gz + Math.sin(a2) * R2 });
+        }
+        gGhost.show(pts);
+        const ob = balls.find((b2) => b2.num === g.ball);
+        if (ob) {
+          gObj.show([{ x: ob.x, z: ob.z }, { x: ob.x + g.ox * GD.objLen, z: ob.z + g.oz * GD.objLen }]);
+          const dot = dir.x * g.ox + dir.y * g.oz;
+          const tx = dir.x - g.ox * dot, tz = dir.y - g.oz * dot;
+          const tl = Math.hypot(tx, tz);
+          if (tl > 0.08) {
+            gCue.show([{ x: g.gx, z: g.gz }, { x: g.gx + tx / tl * GD.cueLen, z: g.gz + tz / tl * GD.cueLen }]);
+          }
+        }
+      } else if (g.kind === "rail") {
+        const nx = g.rl.n === "x" ? g.rl.s : 0, nz = g.rl.n === "z" ? g.rl.s : 0;
+        const dot = dir.x * nx + dir.y * nz;
+        const rx = dir.x - 2 * dot * nx, rz = dir.y - 2 * dot * nz;
+        const t2 = rayEdge(g.gx, g.gz, rx, rz);
+        const L = Math.min(GD.cushLen, t2 > 0 ? t2 : GD.cushLen);
+        gCush.show([{ x: g.gx, z: g.gz }, { x: g.gx + rx * L, z: g.gz + rz * L }]);
+      }
+      return g;
+    }
+    function nearestPocket(x, z) {
+      let b2 = POCKETS[0], bd = 1e9;
+      for (const p of POCKETS) {
+        const d = Math.hypot(x - p.x, z - p.z);
+        if (d < bd) {
+          bd = d;
+          b2 = p;
+        }
+      }
+      return b2;
+    }
+    function aimPose() {
+      _eye.set(cue.x - dir.x * K2.aim.dist, YC + K2.aim.drop, cue.z - dir.y * K2.aim.dist);
+      _tgt.set(cue.x + dir.x * K2.aim.look, YC, cue.z + dir.y * K2.aim.look);
+      _m.lookAt(_eye, _tgt, _up);
+      _q.setFromRotationMatrix(_m);
+    }
+    function takeOver() {
+      if (cue.potted) respotCue();
+      const fx = -Math.sin(player.yaw), fz = -Math.cos(player.yaw);
+      aimA = Math.atan2(fz, fx);
+      dir.set(Math.cos(aimA), Math.sin(aimA));
+      mode = "aim";
+      power = 0;
+      charging = false;
+      player.speed = 0;
+      cueStick.visible = true;
+      sfx.play("ui", { volume: 0.4 });
+    }
+    function releaseCue() {
+      if (mode === "roll") return;
+      mode = "walk";
+      power = 0;
+      charging = false;
+      player.speed = K2.walkSpeed;
+      cueStick.visible = false;
+      setPower(0);
+      hideGuide();
+    }
+    function strike() {
+      const v = MathUtils.lerp(K2.speed[0], K2.speed[1], power);
+      const pw = power;
+      cue.vx = dir.x * v;
+      cue.vz = dir.y * v;
+      strokes++;
+      setInfo();
+      rollT = 0;
+      mode = "roll";
+      aimPose();
+      holdEye.copy(_eye);
+      holdQuat.copy(_q);
+      power = 0;
+      charging = false;
+      setPower(0);
+      cueStick.visible = false;
+      hideGuide();
+      sfx.play("shoot", { volume: 0.45 + pw * 0.4, rate: 1.45 - v / 16 });
+    }
+    function canvasLock() {
+      const c2 = document.getElementById("gl");
+      try {
+        const p = c2.requestPointerLock?.();
+        if (p && p.catch) p.catch(() => {
+        });
+      } catch (e) {
+      }
+    }
+    $2("pb-rack").addEventListener("click", () => api.rerack());
+    $2("pb-exit").addEventListener("click", () => {
+      if (api.onExitRequest) api.onExitRequest();
+    });
+    const api = {
+      scene,
+      onExitRequest: null,
+      get mode() {
+        return mode;
+      },
+      get score() {
+        return score;
+      },
+      enter() {
+        player.pos.set(0, 0, RZ + 1.9);
+        player.vel.set(0, 0, 0);
+        player.y = 0;
+        player.vy = 0;
+        player.landDip = 0;
+        player.bounds = ROOM_BOUNDS2;
+        player.blockers = TABLE_BLOCKERS;
+        player.eyeHeight = CFG.player.eye;
+        player.speed = K2.walkSpeed;
+        player.mode = "free";
+        player.exitShotAim();
+        player.freeYaw = 0;
+        player.freePitch = -0.1;
+        aimT = 0;
+        mode = "walk";
+        setInfo();
+        bar.classList.remove("hidden");
+        canvasLock();
+        setHint("<b>\u8D70\u8FD1\u7403\u684C</b> <b>\u5DE6\u952E</b> \u4E0A\u624B\u7784\u51C6 \xB7 \u56DE\u7403\u573A\u70B9 <b>\u{1F6AA} \u9000\u51FA\u7403\u5BA4</b>");
+      },
+      exit() {
+        releaseCue();
+        player.bounds = GYM_BOUNDS;
+        player.blockers = GYM_BLOCKERS;
+        player.eyeHeight = CFG.player.eye;
+        player.speed = CFG.player.speedIdle;
+        setHint("");
+        bar.classList.add("hidden");
+      },
+      /** 每帧（main 在 playing 且 loc==='pool' 时调用，必须在 player.update 之后） */
+      update(dt) {
+        if (mode === "roll") {
+          rollT += dt;
+          let maxSp = 0;
+          for (const b2 of balls) if (!b2.potted) maxSp = Math.max(maxSp, Math.hypot(b2.vx, b2.vz));
+          let n = PH.sub;
+          while (maxSp * (dt / n) > R2 * 0.7 && n < 64) n++;
+          for (let i = 0; i < n; i++) substep(dt / n);
+          if (!rolling() || rollT > PH.maxTime) {
+            for (const b2 of balls) {
+              b2.vx = 0;
+              b2.vz = 0;
+            }
+            if (cue.potted) respotCue();
+            if (needRack) {
+              needRack = false;
+              rack();
+              pottedNum = 0;
+            }
+            mode = "aim";
+            power = 0;
+            cueStick.visible = true;
+            sfx.play("ui", { volume: 0.25, rate: 1.35 });
+          }
+        } else if (mode === "aim" && charging) {
+          power = Math.min(1, power + dt / K2.chargeTime);
+        }
+        syncMeshes(dt);
+        setBest();
+        if (cueStick.visible) {
+          const pull = 0.035 + power * 0.17;
+          cueStick.position.set(cue.x - dir.x * (R2 + pull), YC, cue.z - dir.y * (R2 + pull));
+          cueStick.rotation.set(0, Math.PI / 2 - aimA, 0);
+        }
+        if (mode === "aim") drawGuide();
+        aimT += ((mode === "walk" ? 0 : 1) - aimT) * (1 - Math.exp(-K2.aim.blend * dt));
+        if (aimT > 2e-3) {
+          if (mode === "roll") {
+            _eye.copy(holdEye);
+            _q.copy(holdQuat);
+          } else aimPose();
+          camera.position.lerp(_eye, aimT);
+          camera.quaternion.slerp(_q, aimT);
+        }
+        setPower(mode === "aim" && charging ? power : 0);
+        if (mode === "walk") {
+          setHint(nearTable() ? "<b>\u5DE6\u952E</b> \u4E0A\u624B\u7784\u51C6 \xB7 <b>\u53F3\u952E</b> \u7EE7\u7EED\u8D70\u52A8" : "");
+        } else if (mode === "aim") {
+          setHint("<b>\u79FB\u52A8\u9F20\u6807</b> \u8F6C\u5BFC\u5411\u7EBF \xB7 <b>\u6309\u4F4F\u5DE6\u952E</b> \u84C4\u529B\u3001\u677E\u624B\u51FA\u6746 \xB7 <b>\u53F3\u952E</b> \u6536\u6746 \xB7 <b>E</b> \u91CD\u6446 \xB7 WASD \u8D70\u52A8");
+        } else {
+          setHint("\u7403\u8FD8\u5728\u6EDA\u2026");
+        }
+      },
+      /** 瞄准：鼠标横向增量转导向线 */
+      onLook(dx) {
+        if (mode !== "aim") return;
+        aimA += dx * K2.aim.sens;
+        dir.set(Math.cos(aimA), Math.sin(aimA));
+      },
+      onLeftDown() {
+        if (mode === "roll") return;
+        if (mode === "walk") {
+          if (nearTable()) takeOver();
+          return;
+        }
+        charging = true;
+        power = 0;
+      },
+      onLeftUp() {
+        if (mode !== "aim" || !charging) return;
+        charging = false;
+        if (power < K2.cancelCharge) {
+          power = 0;
+          setPower(0);
+          return;
+        }
+        strike();
+      },
+      onRightDown() {
+        if (mode === "aim") releaseCue();
+      },
+      /** 瞄准时按方向键 = 收杆回走动（与影院"按 WASD 起身"同一套语言） */
+      onMoveKey() {
+        if (mode === "aim") releaseCue();
+      },
+      /** E / 按钮：整桌重摆 */
+      rerack() {
+        rack();
+        pottedNum = 0;
+        needRack = false;
+        setInfo();
+        sfx.play("ui", { volume: 0.5, rate: 1.2 });
+      },
+      /** 暂停/失焦：力度作废（松手的 mouseup 可能永远收不到） */
+      cancelCharge() {
+        charging = false;
+        power = 0;
+        setPower(0);
+      },
+      /* ---- 测试探针 ---- */
+      debugPool() {
+        return {
+          mode,
+          live: balls.filter((b2) => !b2.potted).length,
+          potted: pottedNum,
+          score,
+          strokes,
+          fouls,
+          cue: [+cue.x.toFixed(3), +cue.z.toFixed(3)],
+          aimT: +aimT.toFixed(3),
+          power: +power.toFixed(2)
+        };
+      },
+      debugGuide() {
+        const g = mode === "aim" ? drawGuide() : predict();
+        return { kind: g.kind, ball: g.ball, t: +g.t.toFixed(3), gx: +g.gx.toFixed(3), gz: +g.gz.toFixed(3), ox: +g.ox.toFixed(3), oz: +g.oz.toFixed(3) };
+      },
+      /** 导向线是否真的落成了顶点（取错字段 → NaN → 整条线静默消失） */
+      debugGuideLine() {
+        drawGuide();
+        return { n: gMain.count(), len: +gMain.length().toFixed(2), obj: +gObj.length().toFixed(2), cush: +gCush.length().toFixed(2) };
+      },
+      debugBall(num) {
+        const b2 = balls.find((x) => x.num === num);
+        return b2 ? { x: +b2.x.toFixed(4), z: +b2.z.toFixed(4), vx: +b2.vx.toFixed(3), vz: +b2.vz.toFixed(3), potted: b2.potted } : null;
+      },
+      /** 测试用：把某号球挪到指定位置（摆一颗孤球，才能干净地验「预测==实际」） */
+      debugPlace(num, x, z) {
+        const b2 = balls.find((y) => y.num === num);
+        if (!b2 || b2.potted) return false;
+        b2.x = x;
+        b2.z = z;
+        b2.vx = 0;
+        b2.vz = 0;
+        b2.mesh.position.set(x, YC, z);
+        return true;
+      },
+      /** 把导向线正对台面某个点（测试用：可稳定造出直线进袋 / 撞库等场景） */
+      debugAimTo(x, z) {
+        if (cue.potted) return false;
+        aimA = Math.atan2(z - cue.z, x - cue.x);
+        dir.set(Math.cos(aimA), Math.sin(aimA));
+        return true;
+      },
+      /** 把导向线正对某号球：测试用来验证"预测==实际" */
+      debugAimAt(num) {
+        const b2 = balls.find((x) => x.num === num);
+        if (!b2) return false;
+        aimA = Math.atan2(b2.z - cue.z, b2.x - cue.x);
+        dir.set(Math.cos(aimA), Math.sin(aimA));
+        return true;
+      },
+      /** 测试用：直接把蓄力进度设定到某值（无头 rAF 被限流，靠帧累加不可靠） */
+      debugPower(v) {
+        if (mode !== "aim" || cue.potted) return false;
+        charging = true;
+        power = Math.max(0, Math.min(1, v));
+        return true;
+      },
+      debugSettle(seconds, h = 1 / 60) {
+        const n = Math.max(1, Math.round(seconds / h));
+        for (let i = 0; i < n; i++) this.update(h);
+        return this.debugPool();
+      }
+    };
+    return api;
+  }
+  var K2, T, PH, GD, R2, TH, BX, BZ, YC, RX, RZ, CM, SM, POCKETS, RAILS, RAILS_Z, RAILS_X, HUE, RACK_ORDER;
+  var init_pool = __esm({
+    "src/pool.js"() {
+      init_three_module();
+      init_config();
+      init_textures();
+      K2 = CFG.pool;
+      T = K2.table;
+      PH = K2.phys;
+      GD = K2.guide;
+      R2 = K2.ball.r;
+      TH = T.h;
+      BX = T.halfL;
+      BZ = T.halfW;
+      YC = TH + R2;
+      RX = BX + T.railW;
+      RZ = BZ + T.railW;
+      CM = K2.pocket.cornerMouth;
+      SM = K2.pocket.sideMouth;
+      POCKETS = [
+        { x: BX + 0.015, z: BZ + 0.015, r: K2.pocket.r },
+        { x: -BX - 0.015, z: BZ + 0.015, r: K2.pocket.r },
+        { x: BX + 0.015, z: -BZ - 0.015, r: K2.pocket.r },
+        { x: -BX - 0.015, z: -BZ - 0.015, r: K2.pocket.r },
+        { x: 0, z: BZ + 0.02, r: K2.pocket.r * 0.94 },
+        { x: 0, z: -BZ - 0.02, r: K2.pocket.r * 0.94 }
+      ];
+      RAILS = [
+        { n: "z", s: 1, lo: -BX + CM, hi: -SM },
+        { n: "z", s: 1, lo: SM, hi: BX - CM },
+        { n: "z", s: -1, lo: -BX + CM, hi: -SM },
+        { n: "z", s: -1, lo: SM, hi: BX - CM },
+        { n: "x", s: 1, lo: -BZ + CM, hi: BZ - CM },
+        { n: "x", s: -1, lo: -BZ + CM, hi: BZ - CM }
+      ];
+      RAILS_Z = RAILS.filter((r) => r.n === "z");
+      RAILS_X = RAILS.filter((r) => r.n === "x");
+      HUE = [16249831, 16765470, 2054095, 14164012, 8073656, 16747038, 1541706, 9056034, 1315860];
+      RACK_ORDER = [1, 2, 3, 4, 8, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15];
+    }
+  });
+
   // src/ball.js
   var GameBall;
   var init_ball = __esm({
@@ -31714,10 +32937,10 @@
           if (!spot) return;
           const dx = player.pos.x - spot.x, dz = player.pos.z - spot.z;
           const d = Math.hypot(dx, dz);
-          const R2 = CFG.shot.spotRadius;
-          if (d > R2) {
-            player.pos.x = spot.x + dx / d * R2;
-            player.pos.z = spot.z + dz / d * R2;
+          const R3 = CFG.shot.spotRadius;
+          if (d > R3) {
+            player.pos.x = spot.x + dx / d * R3;
+            player.pos.z = spot.z + dz / d * R3;
           }
         }
         update(dt) {
@@ -32296,6 +33519,7 @@
       init_physics();
       init_court();
       init_cinema();
+      init_pool();
       init_ball();
       init_player();
       init_effects();
@@ -32390,9 +33614,37 @@
         });
       }
       cinema.onExitRequest = exitCinemaToGym;
+      var pool = createPool({ camera, player, sfx });
+      pool.scene.environment = scene.environment;
+      function enterPool() {
+        fadeTo(() => {
+          playerLoc = "pool";
+          renderPass.scene = pool.scene;
+          hudEl.classList.add("hidden");
+          ui.el.cross.classList.add("hidden");
+          pool.enter();
+          sfx.play("ui");
+        });
+      }
+      function exitPoolToGym() {
+        fadeTo(() => {
+          pool.exit();
+          playerLoc = "gym";
+          renderPass.scene = scene;
+          const D = CFG.pool.gymDoor;
+          player.pos.set(D.x, 0, D.z - 2.4);
+          player.vel.set(0, 0, 0);
+          player.freeYaw = Math.atan2(D.x, player.pos.z);
+          player.freePitch = 0;
+          ui.el.cross.classList.remove("hidden");
+          ui.showHud(G.modeDef.name, G.modeDef.timed);
+        });
+      }
+      pool.onExitRequest = exitPoolToGym;
       function forceGym() {
-        if (playerLoc === "gym") return;
-        cinema.exit();
+        if (playerLoc === "cinema") cinema.exit();
+        else if (playerLoc === "pool") pool.exit();
+        else return;
         playerLoc = "gym";
         renderPass.scene = scene;
         fadeEl.classList.remove("on");
@@ -32473,6 +33725,7 @@
         gameState = "paused";
         player.inputEnabled = false;
         machine.dispatch("onLeftUp");
+        if (playerLoc === "pool") pool.cancelCharge();
         ui.showPause(true);
       }
       function resumeGame() {
@@ -32557,6 +33810,15 @@
           else pauseGame();
           return;
         }
+        if (k === "escape" && gameState === "playing" && playerLoc === "pool") {
+          if (pool.mode === "aim") pool.onRightDown();
+          else pauseGame();
+          return;
+        }
+        if (gameState === "playing" && playerLoc === "pool" && k === "e") {
+          pool.rerack();
+          return;
+        }
         if (gameState === "playing" && playerLoc === "gym") {
           if (e.code === "Space") {
             e.preventDefault();
@@ -32572,6 +33834,7 @@
         if (k in keys) {
           keys[k] = true;
           if (playerLoc === "cinema") cinema.onMoveKey();
+          else if (playerLoc === "pool") pool.onMoveKey();
         }
       });
       addEventListener("keyup", (e) => {
@@ -32587,7 +33850,8 @@
       document.addEventListener("mousemove", (e) => {
         if (gameState !== "playing") return;
         if (document.pointerLockElement === canvas) {
-          player.look(e.movementX, e.movementY);
+          if (playerLoc === "pool" && pool.mode !== "walk") pool.onLook(e.movementX);
+          else player.look(e.movementX, e.movementY);
         } else if (playerLoc === "cinema" && cinema.seated && e.buttons & 1 && e.target === canvas) {
           player.look(e.movementX, e.movementY);
           if (seatAim.t) seatAim.moved += Math.abs(e.movementX) + Math.abs(e.movementY);
@@ -32614,11 +33878,20 @@
           if (e.button === 2) cinema.onRightDown();
           return;
         }
+        if (playerLoc === "pool") {
+          if (e.button === 0) pool.onLeftDown();
+          if (e.button === 2) pool.onRightDown();
+          return;
+        }
         if (e.button === 0) machine.dispatch("onLeftDown");
         if (e.button === 2) machine.dispatch("onRightDown");
       });
       addEventListener("mouseup", (e) => {
         if (gameState !== "playing") return;
+        if (e.button === 0 && playerLoc === "pool") {
+          pool.onLeftUp();
+          return;
+        }
         if (e.button === 0 && playerLoc === "gym") machine.dispatch("onLeftUp");
         if (e.button === 0 && playerLoc === "cinema" && cinema.seated && seatAim.t) {
           if (seatAim.moved < 6) cinema.onClick(e.clientX, e.clientY);
@@ -32627,7 +33900,7 @@
       });
       document.addEventListener("contextmenu", (e) => e.preventDefault());
       document.addEventListener("pointerlockchange", () => {
-        if (document.pointerLockElement !== canvas && gameState === "playing" && playerLoc === "gym") pauseGame();
+        if (document.pointerLockElement !== canvas && gameState === "playing" && (playerLoc === "gym" || playerLoc === "pool")) pauseGame();
       });
       ballBody.addEventListener("collide", (e) => {
         const impact = Math.abs(e.contact.getImpactVelocityAlongNormal());
@@ -32671,6 +33944,9 @@
           if (playerLoc === "cinema") {
             player.update(dt);
             cinema.update(dt);
+          } else if (playerLoc === "pool") {
+            player.update(dt);
+            pool.update(dt);
           } else {
             acc += dt;
             let guard = 6;
@@ -32681,10 +33957,13 @@
             machine.update(dt);
             player.update(dt);
             if (gameState === "playing") {
-              const D = CFG.cinema.gymDoor;
+              const D = CFG.cinema.gymDoor, P = CFG.pool.gymDoor;
               const dDoor = Math.hypot(player.pos.x - D.x, player.pos.z - D.z);
+              const dPool = Math.hypot(player.pos.x - P.x, player.pos.z - P.z);
               if (dDoor < D.r) enterCinema();
+              else if (dPool < P.r) enterPool();
               else if (dDoor < 3.6) ui.setPrompt("\u{1F3AC} <b>\u8D70\u8FDB\u7EA2\u95E8</b> \u53BB\u7535\u5F71\u9662\u770B\u573A\u7535\u5F71");
+              else if (dPool < 3.6) ui.setPrompt("\u{1F3B1} <b>\u8D70\u8FDB\u7EFF\u95E8</b> \u53BB\u53F0\u7403\u5BA4\u5F00\u4E00\u6746");
             }
             if (scoring.mode.timed && !scoring.ended) {
               const justEnd = scoring.tickTimer(dt);
@@ -32753,6 +34032,9 @@
           enterCinema,
           exitCinemaToGym,
           cinema,
+          enterPool,
+          exitPoolToGym,
+          pool,
           get state() {
             return gameState;
           },
@@ -32768,6 +34050,7 @@
         const demo = params.get("demo");
         if (m && CFG.MODES[m]) setTimeout(() => startMode(m), 400);
         if (params.get("loc") === "cinema") setTimeout(() => enterCinema(), 1100);
+        if (params.get("loc") === "pool") setTimeout(() => enterPool(), 1100);
         const tp = params.get("tp");
         if (tp) setTimeout(() => {
           const [x, z, y, p] = tp.split(",").map(Number);
@@ -33096,6 +34379,105 @@
             document.getElementById("cb-exit").click();
           }, 6400);
           setTimeout(() => mark(`done loc=${GAME.location} pos=${player.pos.x.toFixed(1)},${player.pos.z.toFixed(1)}`), 7800);
+        }
+        if (demo === "poolaim") {
+          setTimeout(() => {
+            player.pos.set(0, 0, 1.5);
+            player.yaw = -Math.PI / 2;
+            player.freeYaw = -Math.PI / 2;
+            pool.onLeftDown();
+            pool.debugAimAt(1);
+          }, 2600);
+        }
+        if (demo === "pool") {
+          const P = () => pool.debugPool();
+          setTimeout(() => mark(`RACK live=${P().live} cue=${P().cue} mode=${P().mode} loc=${GAME.location}`), 2200);
+          setTimeout(() => {
+            player.pos.set(0, 0, 1.5);
+            player.yaw = -Math.PI / 2;
+            player.freeYaw = -Math.PI / 2;
+            pool.onLeftDown();
+          }, 2600);
+          setTimeout(() => {
+            pool.debugAimAt(1);
+            const g = pool.debugGuide();
+            const rc = new Raycaster();
+            rc.setFromCamera({ x: 0, y: 0 }, camera);
+            const h0 = rc.intersectObjects(pool.scene.children, true)[0];
+            const L = pool.debugGuideLine();
+            mark(`AIM mode=${P().mode} aimT=${P().aimT} kind=${g.kind} b=${g.ball} t=${g.t} ghost=${g.gx},${g.gz} obj=${g.ox},${g.oz} \u4E3B\u7EBF=${L.n}/${L.len} \u76EE\u6807\u7EBF=${L.obj} cam=${camera.position.toArray().map((v) => +v.toFixed(2)).join(",")} \u6B63\u4E2D=${h0 ? `${h0.object.type}:${h0.distance.toFixed(2)}@${h0.point.toArray().map((v) => +v.toFixed(2)).join(",")}` : "\u7A7A"}`);
+          }, 3e3);
+          setTimeout(() => {
+            pool.onLook(1400);
+            const g = pool.debugGuide();
+            const L = pool.debugGuideLine();
+            mark(`TURN kind=${g.kind} t=${g.t} at=${g.gx},${g.gz} \u4E3B\u7EBF=${L.n}/${L.len} \u53CD\u5C04\u7EBF=${L.cush}`);
+          }, 3400);
+          let pred = null;
+          setTimeout(() => {
+            pool.debugPlace(1, 0.3, 0.16);
+            pool.debugAimAt(1);
+            pred = { g: pool.debugGuide(), b0: pool.debugBall(1) };
+            pool.onLeftDown();
+            pool.debugPower(0.55);
+            pool.onLeftUp();
+            let before = null, dep = null;
+            for (let i = 0; i < 600 && !dep; i++) {
+              before = pool.debugBall(0);
+              pool.debugSettle(1 / 960, 1 / 960);
+              const b2 = pool.debugBall(1);
+              if (Math.hypot(b2.x - pred.b0.x, b2.z - pred.b0.z) > 4e-3) dep = { c: before, b: b2 };
+            }
+            const r = P();
+            const dx = dep ? dep.b.x - pred.b0.x : 0, dz = dep ? dep.b.z - pred.b0.z : 0;
+            const raw = Math.hypot(dx, dz);
+            const dot = raw > 4e-3 ? (dx / raw * pred.g.ox + dz / raw * pred.g.oz).toFixed(3) : "NA";
+            const err = dep ? Math.hypot(dep.c.x - pred.g.gx, dep.c.z - pred.g.gz).toFixed(4) : "none";
+            mark(`SHOT ghostErr=${err} dir\xB7pred=${dot} cue\u505C=${JSON.stringify([before.vx, before.vz])} live=${r.live} potted=${r.potted} strokes=${r.strokes}`);
+            pool.debugSettle(6);
+            mark(`REST live=${P().live} mode=${P().mode}`);
+          }, 3800);
+          setTimeout(() => {
+            pool.rerack();
+            pool.debugPlace(2, -0.9885, 0.3535);
+            pool.debugAimTo(-1.285, 0.65);
+            const g = pool.debugGuide();
+            pool.onLeftDown();
+            pool.debugPower(0.5);
+            pool.onLeftUp();
+            pool.debugSettle(4);
+            const r = P();
+            mark(`POT kind=${g.kind} b=${g.ball} live=${r.live} potted=${r.potted} score=${r.score} fouls=${r.fouls}`);
+          }, 4400);
+          setTimeout(() => {
+            pool.rerack();
+            pool.debugAimTo(-1.285, 0.65);
+            const g = pool.debugGuide();
+            pool.onLeftDown();
+            pool.debugPower(0.42);
+            pool.onLeftUp();
+            mark(`SCRATCH kind=${g.kind} t=${g.t} cue0=${P().cue}`);
+            pool.debugSettle(4);
+            const r = P(), c2 = pool.debugBall(0);
+            mark(`POTCUE mode=${r.mode} live=${r.live} fouls=${r.fouls} score=${r.score} cue=${c2.x},${c2.z} sunk=${c2.potted ? 1 : 0}`);
+          }, 5e3);
+          setTimeout(() => {
+            pool.onRightDown();
+            pool.debugSettle(0.6);
+            const r = P();
+            mark(`WALK mode=${r.mode} aimT=${r.aimT} bar=${document.getElementById("pool-bar").classList.contains("hidden") ? 0 : 1} bounds=${player.bounds.maxX.toFixed(1)}`);
+          }, 5600);
+          setTimeout(() => {
+            const orig = pool.onExitRequest;
+            let fired = 0;
+            pool.onExitRequest = () => {
+              fired++;
+              if (orig) orig();
+            };
+            document.getElementById("pb-exit").click();
+            pool.onExitRequest = orig;
+            mark(`EXIT fired=${fired} rack=${document.getElementById("pb-rack") ? 1 : 0}`);
+          }, 9800);
         }
         if (demo === "pause") {
           setTimeout(() => {

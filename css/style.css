@@ -384,3 +384,28 @@ body.big-screen #cinema-bar { z-index: 62; }
 }
 .cb-vol { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--dim); }
 .cb-vol input { width: 90px; }
+
+/* ================= 台球室：球室条 + 力度槽 + 提示 ================= */
+#pool-bar {
+  position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 12px; z-index: 61;
+  padding: 10px 16px;
+  background: rgba(10, 16, 13, 0.86); border: 1px solid var(--glass-line);
+  border-radius: 14px; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+}
+#pool-bar .btn { padding: 6px 12px; font-size: 14px; white-space: nowrap; }
+#pb-info { font-size: 13px; color: var(--dim); white-space: nowrap; }
+#pb-power {
+  position: relative; width: 132px; height: 10px; border-radius: 6px; overflow: hidden;
+  background: rgba(255, 255, 255, 0.09); border: 1px solid var(--glass-line);
+}
+#pb-fill {
+  position: absolute; left: 0; top: 0; bottom: 0; width: 0;
+  background: linear-gradient(90deg, #4fd08a, #ffd166 62%, #ff6b57);
+  transition: width 0.04s linear;
+}
+#pool-hint {
+  position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%);
+  padding: 8px 18px; font-size: 15px; color: var(--dim); z-index: 6;
+}
+#pool-hint b { color: var(--text); }

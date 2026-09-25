@@ -14,6 +14,7 @@ import { CFG } from './config.js';
 import { createPhysics } from './physics.js';
 import { buildCourt, setupLights, applyBackground, addWallArt, RIM_POS } from './court.js';
 import { createCinema } from './cinema.js';
+import { createPool } from './pool.js';
 import { GameBall } from './ball.js';
 import { Player } from './player.js';
 import { Effects } from './effects.js';
@@ -119,10 +120,40 @@ function exitCinemaToGym() {
   });
 }
 cinema.onExitRequest = exitCinemaToGym;
+
+/* ================= 台球室（同样独立场景，球馆左侧绿门进入） ================= */
+const pool = createPool({ camera, player, sfx });
+pool.scene.environment = scene.environment;
+function enterPool() {
+  fadeTo(() => {
+    playerLoc = 'pool';
+    renderPass.scene = pool.scene;
+    hudEl.classList.add('hidden');
+    ui.el.cross.classList.add('hidden');     // 台球室里不用准星（导向线就是瞄准器）
+    pool.enter();
+    sfx.play('ui');
+  });
+}
+function exitPoolToGym() {
+  fadeTo(() => {
+    pool.exit();
+    playerLoc = 'gym';
+    renderPass.scene = scene;
+    const D = CFG.pool.gymDoor;
+    player.pos.set(D.x, 0, D.z - 2.4);
+    player.vel.set(0, 0, 0);
+    player.freeYaw = Math.atan2(D.x, player.pos.z); // 面向场地中心（与影院出口同一套算法）
+    player.freePitch = 0;
+    ui.el.cross.classList.remove('hidden');
+    ui.showHud(G.modeDef.name, G.modeDef.timed);
+  });
+}
+pool.onExitRequest = exitPoolToGym;
 /** 任何"回球馆玩法"的入口前调用：硬切回球馆场景 */
 function forceGym() {
-  if (playerLoc === 'gym') return;
-  cinema.exit();
+  if (playerLoc === 'cinema') cinema.exit();
+  else if (playerLoc === 'pool') pool.exit();
+  else return;
   playerLoc = 'gym';
   renderPass.scene = scene;
   fadeEl.classList.remove('on');
@@ -198,6 +229,7 @@ function pauseGame() {
   gameState = 'paused';
   player.inputEnabled = false;
   machine.dispatch('onLeftUp');  // 防蓄力卡在按住状态
+  if (playerLoc === 'pool') pool.cancelCharge();
   ui.showPause(true);
 }
 
@@ -278,6 +310,14 @@ addEventListener('keydown', (e) => {
     if (cinema.seated) cinema.onRightDown(); else pauseGame();
     return;
   }
+  if (k === 'escape' && gameState === 'playing' && playerLoc === 'pool') {
+    if (pool.mode === 'aim') pool.onRightDown(); else pauseGame();  // 瞄准中先收杆
+    return;
+  }
+  if (gameState === 'playing' && playerLoc === 'pool' && k === 'e') {
+    pool.rerack();
+    return;
+  }
   if (gameState === 'playing' && playerLoc === 'gym') {
     // 空格=跳跃（拍球已改成持球自动，不再占键）。空格会滚动页面、也会「按下」刚点过的按钮，两样都要挡掉
     if (e.code === 'Space') {
@@ -291,6 +331,7 @@ addEventListener('keydown', (e) => {
   if (k in keys) {
     keys[k] = true;
     if (playerLoc === 'cinema') cinema.onMoveKey(); // 坐着按移动键 -> 起身
+    else if (playerLoc === 'pool') pool.onMoveKey(); // 瞄准按移动键 -> 收杆回走动
   }
 });
 addEventListener('keyup', (e) => {
@@ -302,7 +343,9 @@ const seatAim = { x: 0, y: 0, t: 0, moved: 0, set(x, y) { this.x = x; this.y = y
 document.addEventListener('mousemove', (e) => {
   if (gameState !== 'playing') return;
   if (document.pointerLockElement === canvas) {
-    player.look(e.movementX, e.movementY);
+    // 台球室上手：横向鼠标转的是导向线（镜头定在母球后），不是人头
+    if (playerLoc === 'pool' && pool.mode !== 'walk') pool.onLook(e.movementX);
+    else player.look(e.movementX, e.movementY);
   } else if (playerLoc === 'cinema' && cinema.seated && (e.buttons & 1) && e.target === canvas) {
     // 沙发上未锁指针：按住左键拖拽转向（任意角度环视环墙银幕）
     player.look(e.movementX, e.movementY);
@@ -331,11 +374,17 @@ canvas.addEventListener('mousedown', (e) => {
     if (e.button === 2) cinema.onRightDown();
     return;
   }
+  if (playerLoc === 'pool') {
+    if (e.button === 0) pool.onLeftDown();
+    if (e.button === 2) pool.onRightDown();
+    return;
+  }
   if (e.button === 0) machine.dispatch('onLeftDown');
   if (e.button === 2) machine.dispatch('onRightDown');
 });
 addEventListener('mouseup', (e) => {
   if (gameState !== 'playing') return;
+  if (e.button === 0 && playerLoc === 'pool') { pool.onLeftUp(); return; }
   if (e.button === 0 && playerLoc === 'gym') machine.dispatch('onLeftUp');
   if (e.button === 0 && playerLoc === 'cinema' && cinema.seated && seatAim.t) {
     if (seatAim.moved < 6) cinema.onClick(e.clientX, e.clientY); // 没拖动 = 点击那块银幕（切出声/暂停）
@@ -345,7 +394,8 @@ addEventListener('mouseup', (e) => {
 document.addEventListener('contextmenu', (e) => e.preventDefault());
 document.addEventListener('pointerlockchange', () => {
   // 玩家按 ESC 或点击外部导致解锁 -> 自动暂停（影院入座本来就不锁，跳过）
-  if (document.pointerLockElement !== canvas && gameState === 'playing' && playerLoc === 'gym') pauseGame();
+  if (document.pointerLockElement !== canvas && gameState === 'playing'
+    && (playerLoc === 'gym' || playerLoc === 'pool')) pauseGame();
 });
 
 /* ================= 物理碰撞音效 ================= */
@@ -396,6 +446,10 @@ function tick() {
       /* ---- 影院：只有走动/入座/放映逻辑，球馆物理与状态机挂起 ---- */
       player.update(dt);
       cinema.update(dt);
+    } else if (playerLoc === 'pool') {
+      /* ---- 台球室：台面物理是自研 2D 解算，跟球馆 cannon 世界互不相干 ---- */
+      player.update(dt);
+      pool.update(dt);   // 必须在 player.update 之后：出杆视角要覆盖玩家相机
     } else {
     /* ---- 物理固定步长（1/120s，最多 6 子步防穿模） ---- */
     acc += dt;
@@ -409,12 +463,15 @@ function tick() {
     machine.update(dt);
     player.update(dt);
 
-    /* ---- 电影院入口触发 + 提示 ---- */
+    /* ---- 两扇侧门入口触发 + 提示 ---- */
     if (gameState === 'playing') {
-      const D = CFG.cinema.gymDoor;
+      const D = CFG.cinema.gymDoor, P = CFG.pool.gymDoor;
       const dDoor = Math.hypot(player.pos.x - D.x, player.pos.z - D.z);
+      const dPool = Math.hypot(player.pos.x - P.x, player.pos.z - P.z);
       if (dDoor < D.r) enterCinema();
+      else if (dPool < P.r) enterPool();
       else if (dDoor < 3.6) ui.setPrompt('🎬 <b>走进红门</b> 去电影院看场电影');
+      else if (dPool < 3.6) ui.setPrompt('🎱 <b>走进绿门</b> 去台球室开一杆');
     }
 
     /* ---- 挑战倒计时 ---- */
@@ -494,6 +551,7 @@ try {
   window.GAME = {
     startMode, finishSession, machine, scoring, ui, player, ball, fx,
     enterCinema, exitCinemaToGym, cinema,
+    enterPool, exitPoolToGym, pool,
     get state() { return gameState; },
     get location() { return playerLoc; },
     teleport: (x, z) => { player.pos.set(x, 0, z); },
@@ -503,6 +561,7 @@ try {
   const demo = params.get('demo'); // shot|result：自动演示（截图验证用）
   if (m && CFG.MODES[m]) setTimeout(() => startMode(m), 400);
   if (params.get('loc') === 'cinema') setTimeout(() => enterCinema(), 1100);
+  if (params.get('loc') === 'pool') setTimeout(() => enterPool(), 1100);
   const tp = params.get('tp'); // tp=x,z,yaw[,pitch]：调试传送
   if (tp) setTimeout(() => {
     const [x, z, y, p] = tp.split(',').map(Number);
@@ -830,6 +889,113 @@ try {
     setTimeout(() => mark(`nowalk loc=${GAME.location}`), 5800);
     setTimeout(() => { mark(`pre=${GAME.location}`); document.getElementById('cb-exit').click(); }, 6400);
     setTimeout(() => mark(`done loc=${GAME.location} pos=${player.pos.x.toFixed(1)},${player.pos.z.toFixed(1)}`), 7800);
+  }
+  if (demo === 'poolaim') {
+    // 定住不出杆，专门给截图看虚线导向：站在球桌长边中段上手，正对 1 号球
+    setTimeout(() => {
+      player.pos.set(0, 0, 1.5); player.yaw = -Math.PI / 2; player.freeYaw = -Math.PI / 2;
+      pool.onLeftDown();
+      pool.debugAimAt(1);
+    }, 2600);
+  }
+  if (demo === 'pool') {
+    // 台球室回归：摆球 -> 上手 -> 虚线导向预测 -> 一杆实证「预测==实际」-> 撞库/洗袋/收杆
+    // 无头下 rAF 被限流，球的推进一律用 pool.debugSettle() 手工步进，断言才是确定的
+    const P = () => pool.debugPool();
+    setTimeout(() => mark(`RACK live=${P().live} cue=${P().cue} mode=${P().mode} loc=${GAME.location}`), 2200);
+    // 走到球桌长边中段，左键上手
+    setTimeout(() => {
+      player.pos.set(0, 0, 1.5); player.yaw = -Math.PI / 2; player.freeYaw = -Math.PI / 2;
+      pool.onLeftDown();
+    }, 2600);
+    setTimeout(() => {
+      pool.debugAimAt(1);
+      const g = pool.debugGuide();
+      // 视线探针：屏幕正中央必须真的落在台呢上（历史上台身盒顶面高过呢绒，整块台面被木头盖掉）
+      const rc = new THREE.Raycaster();
+      rc.setFromCamera({ x: 0, y: 0 }, camera);
+      const h0 = rc.intersectObjects(pool.scene.children, true)[0];
+      const L = pool.debugGuideLine();
+      mark(`AIM mode=${P().mode} aimT=${P().aimT} kind=${g.kind} b=${g.ball} t=${g.t} ghost=${g.gx},${g.gz} obj=${g.ox},${g.oz} 主线=${L.n}/${L.len} 目标线=${L.obj} cam=${camera.position.toArray().map((v) => +v.toFixed(2)).join(',')} 正中=${h0 ? `${h0.object.type}:${h0.distance.toFixed(2)}@${h0.point.toArray().map((v) => +v.toFixed(2)).join(',')}` : '空'}`);
+    }, 3000);
+    // 原地转 90°：线上没球了，应改判为撞库（导向线要跟着换算法）
+    setTimeout(() => {
+      pool.onLook(1400);
+      const g = pool.debugGuide();
+      const L = pool.debugGuideLine();
+      mark(`TURN kind=${g.kind} t=${g.t} at=${g.gx},${g.gz} 主线=${L.n}/${L.len} 反射线=${L.cush}`);
+    }, 3400);
+    // 正对 1 号球：母球走直线，实际接触点必须落在导向线画出的幽灵球心上。
+    // 先把 1 号球挪到空旷处 —— 贴着球堆测方向会被连锁碰撞搅乱，量不出导向线的准确度。
+    // 蓄力/出杆放在同一次任务里做完：无头 rAF 节奏不可控，靠帧累加会把力度漂掉。
+    let pred = null;
+    setTimeout(() => {
+      pool.debugPlace(1, 0.30, 0.16);
+      pool.debugAimAt(1);
+      pred = { g: pool.debugGuide(), b0: pool.debugBall(1) };
+      pool.onLeftDown();
+      pool.debugPower(0.55);
+      pool.onLeftUp();
+      // 1/960 细步（步长=采样间隔，都是 1/960）：母球每步只走 4mm，
+      // 「目标球刚起步」那一帧的母球位置才是真实接触点
+      let before = null, dep = null;
+      for (let i = 0; i < 600 && !dep; i++) {
+        before = pool.debugBall(0);
+        pool.debugSettle(1 / 960, 1 / 960);
+        const b = pool.debugBall(1);
+        if (Math.hypot(b.x - pred.b0.x, b.z - pred.b0.z) > 0.004) dep = { c: before, b };
+      }
+      const r = P();
+      const dx = dep ? dep.b.x - pred.b0.x : 0, dz = dep ? dep.b.z - pred.b0.z : 0;
+      const raw = Math.hypot(dx, dz);
+      const dot = raw > 0.004 ? ((dx / raw) * pred.g.ox + (dz / raw) * pred.g.oz).toFixed(3) : 'NA';
+      const err = dep ? Math.hypot(dep.c.x - pred.g.gx, dep.c.z - pred.g.gz).toFixed(4) : 'none';
+      mark(`SHOT ghostErr=${err} dir·pred=${dot} cue停=${JSON.stringify([before.vx, before.vz])} live=${r.live} potted=${r.potted} strokes=${r.strokes}`);
+      pool.debugSettle(6);   // 再把整桌滚停，验没有球逃出台面
+      mark(`REST live=${P().live} mode=${P().mode}`);
+    }, 3800);
+    // 定点直入袋：把 2 号球摆到「母球 → 左前角袋」那条线上正打，验真进袋 + 计分
+    setTimeout(() => {
+      pool.rerack();
+      pool.debugPlace(2, -0.9885, 0.3535);
+      pool.debugAimTo(-1.285, 0.65);
+      const g = pool.debugGuide();
+      pool.onLeftDown();
+      pool.debugPower(0.5);
+      pool.onLeftUp();
+      pool.debugSettle(4);
+      const r = P();
+      mark(`POT kind=${g.kind} b=${g.ball} live=${r.live} potted=${r.potted} score=${r.score} fouls=${r.fouls}`);
+    }, 4400);
+    // 洗袋：先重摆（母球回开球点、球堆归位），再正对左前角袋打母球 → 罚分 + 自动摆回
+    setTimeout(() => {
+      pool.rerack();
+      pool.debugAimTo(-1.285, 0.65);
+      const g = pool.debugGuide();
+      pool.onLeftDown();
+      pool.debugPower(0.42);
+      pool.onLeftUp();
+      mark(`SCRATCH kind=${g.kind} t=${g.t} cue0=${P().cue}`);
+      pool.debugSettle(4);
+      const r = P(), c = pool.debugBall(0);
+      mark(`POTCUE mode=${r.mode} live=${r.live} fouls=${r.fouls} score=${r.score} cue=${c.x},${c.z} sunk=${c.potted ? 1 : 0}`);
+    }, 5000);
+    // 收杆回走动 + 球室条常驻
+    setTimeout(() => {
+      pool.onRightDown();
+      pool.debugSettle(0.6);   // 让出杆视角平滑交还第一人称
+      const r = P();
+      mark(`WALK mode=${r.mode} aimT=${r.aimT} bar=${document.getElementById('pool-bar').classList.contains('hidden') ? 0 : 1} bounds=${player.bounds.maxX.toFixed(1)}`);
+    }, 5600);
+    // 退出接线：球室条那颗按钮唯一出口
+    setTimeout(() => {
+      const orig = pool.onExitRequest;
+      let fired = 0;
+      pool.onExitRequest = () => { fired++; if (orig) orig(); };
+      document.getElementById('pb-exit').click();
+      pool.onExitRequest = orig;
+      mark(`EXIT fired=${fired} rack=${document.getElementById('pb-rack') ? 1 : 0}`);
+    }, 9800);
   }
   if (demo === 'pause') {
     // 断言：解锁回调的守卫条件（历史上误用过 window.location，恒 false）。

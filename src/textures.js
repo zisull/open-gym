@@ -502,14 +502,14 @@ export function makeBallBumpTexture() {
   return tex;
 }
 
-/** 影院门牌贴图：暗红底 + 金色字，Bloom 提亮 */
-export function makeDoorSignTexture(text, sub) {
+/** 门牌贴图：暗底 + 金色字，Bloom 提亮。bg 可换底色（默认影院暗红，台球室用墨绿） */
+export function makeDoorSignTexture(text, sub, bg) {
   const cv = document.createElement('canvas');
   cv.width = 512; cv.height = 128;
   const ctx = cv.getContext('2d');
   const g = ctx.createLinearGradient(0, 0, 0, 128);
-  g.addColorStop(0, '#3d0f14');
-  g.addColorStop(1, '#1e0a0d');
+  g.addColorStop(0, bg ? bg[0] : '#3d0f14');
+  g.addColorStop(1, bg ? bg[1] : '#1e0a0d');
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, 512, 128);
   ctx.strokeStyle = 'rgba(255,190,90,0.85)';
@@ -553,6 +553,118 @@ export function makeScreenPlaceholderTexture() {
   ctx.font = `24px 'Microsoft YaHei', system-ui`;
   ctx.fillText('「控制台」里可指定哪几部出声（多部一起响）、加片删片', 512, 448);
   ctx.fillText('MP4 · WebM · MOV · M4V · Ogg（以浏览器可解码为准）', 512, 486);
+  const tex = new THREE.CanvasTexture(cv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+/**
+ * 台球桌呢绒：**整张台面（含库边下方）一张贴图，不重复**。
+ * 开球线、袋口、库边投影全部画进图里 —— 台面上只有一个不透明 Mesh，
+ * 不再叠任何第二个共面对象，从根上没有 z-fighting。
+ * len/wid 为台面总尺寸（库外沿），pad 为库宽，pockets 为六个袋心（台面坐标，长轴 x）。
+ */
+export function makeFeltTexture(len, wid, pad, pockets) {
+  const PPM = 400;
+  const W = Math.round(len * PPM), H = Math.round(wid * PPM);
+  const cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  const ctx = cv.getContext('2d');
+  const rnd = mulberry32(20260925);
+  // 台面坐标 -> 画布像素（画布 +x/+y 与台面的 +x/+z 同向，见 pool.js 里的 UV 推导）
+  const X = (x) => (x / len + 0.5) * W;
+  const Z = (z) => (z / wid + 0.5) * H;
+  const S = (m) => m * PPM;
+
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, '#17573c');
+  g.addColorStop(0.5, '#1d6b49');
+  g.addColorStop(1, '#17573c');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+  // 绒毛斜纹：顺毛/逆毛方向的反光差是台呢最好认的特征
+  for (let i = 0; i < 26000; i++) {
+    const x = rnd() * W, y = rnd() * H;
+    ctx.strokeStyle = rnd() > 0.5 ? 'rgba(255,255,255,0.020)' : 'rgba(0,0,0,0.050)';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + 3.2, y + 2.2); ctx.stroke();
+  }
+  // 库边压在呢绒上的投影：沿打区四边一圈内阴影（比再叠一个面片干净得多）
+  const pl = X(-len / 2 + pad), pr = X(len / 2 - pad);
+  const pt = Z(-wid / 2 + pad), pb = Z(wid / 2 - pad);
+  for (let i = 8; i > 0; i--) {
+    ctx.strokeStyle = `rgba(0,0,0,${0.035 * (9 - i)})`;
+    ctx.lineWidth = S(0.012);
+    ctx.strokeRect(pl + (i * S(0.012)) / 2, pt + (i * S(0.012)) / 2,
+      pr - pl - i * S(0.012), pb - pt - i * S(0.012));
+  }
+  // 中央吊灯照出来的一圈亮带
+  const lamp = ctx.createRadialGradient(W / 2, H / 2, H * 0.1, W / 2, H / 2, W * 0.5);
+  lamp.addColorStop(0, 'rgba(255,246,214,0.12)');
+  lamp.addColorStop(1, 'rgba(255,246,214,0)');
+  ctx.fillStyle = lamp;
+  ctx.fillRect(0, 0, W, H);
+  // 开球线（head string）+ 开球点 / 摆球点：都在打区长度的 1/4 处
+  const hx = (len / 2 - pad) / 2;
+  ctx.strokeStyle = 'rgba(235,245,240,0.20)';
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(X(-hx), pt); ctx.lineTo(X(-hx), pb); ctx.stroke();
+  for (const fx of [-hx, hx]) {
+    ctx.fillStyle = 'rgba(240,248,244,0.5)';
+    ctx.beginPath(); ctx.arc(X(fx), H / 2, 4, 0, Math.PI * 2); ctx.fill();
+  }
+  // 袋口：直接画成黑洞 + 一点皮口高光，省掉六个悬浮圆片
+  for (const p of pockets) {
+    const r = S(p.r);
+    const gg = ctx.createRadialGradient(X(p.x), Z(p.z), r * 0.35, X(p.x), Z(p.z), r);
+    gg.addColorStop(0, '#000000');
+    gg.addColorStop(0.72, '#04070a');
+    gg.addColorStop(1, 'rgba(2,4,6,0.35)');
+    ctx.fillStyle = gg;
+    ctx.beginPath(); ctx.arc(X(p.x), Z(p.z), r, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = 'rgba(190,160,95,0.35)';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.arc(X(p.x), Z(p.z), r * 0.97, 0, Math.PI * 2); ctx.stroke();
+  }
+  const tex = new THREE.CanvasTexture(cv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 8;
+  return tex;
+}
+
+/**
+ * 台球球面贴图（等距柱状展开）：0=母球（象牙白），1~7 全色，9~15 花色（白底彩带），8 黑。
+ * 号码牌画在赤道两个对称点上，转台时总有一面能看见。
+ */
+export function makePoolBallTexture(num, color, striped) {
+  const W = 256, H = 128;
+  const cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  const ctx = cv.getContext('2d');
+  const rnd = mulberry32(9000 + num);
+  const hex = `#${color.toString(16).padStart(6, '0')}`;
+
+  ctx.fillStyle = striped || num === 0 ? '#f7f3e7' : hex;
+  ctx.fillRect(0, 0, W, H);
+  if (striped) {
+    ctx.fillStyle = hex;
+    ctx.fillRect(0, H * 0.3, W, H * 0.4);
+  }
+  for (let i = 0; i < 1200; i++) {
+    ctx.fillStyle = `rgba(0,0,0,${rnd() * 0.05})`;
+    ctx.fillRect(rnd() * W, rnd() * H, 1.6, 1.6);
+  }
+  if (num > 0) {
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    for (const u of [0.25, 0.75]) {
+      ctx.fillStyle = '#faf7ef';
+      ctx.beginPath(); ctx.arc(W * u, H * 0.5, 21, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#1a1a1a';
+      ctx.font = `bold ${num > 9 ? 23 : 27}px system-ui`;
+      ctx.fillText(String(num), W * u, H * 0.5 + 1);
+    }
+  }
   const tex = new THREE.CanvasTexture(cv);
   tex.colorSpace = THREE.SRGBColorSpace;
   return tex;

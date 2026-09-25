@@ -126,4 +126,26 @@ export const CFG = {
     bed: { x: 0, z: 0, r: 2.5, sitR: 1.8, eyeSit: 1.15, lookUp: 0.27 },
     walkSpeed: 3.0,
   },
+  /* ---------- 台球室（球馆 +Z 端墙左侧的绿门进入；独立场景 + 台面 2D 物理） ---------- */
+  pool: {
+    gymDoor: { x: -6.0, z: 16.35, r: 1.25 }, // 球馆侧入口（与电影院红门左右对称）
+    room: { halfW: 4.9, halfL: 6.4, height: 3.1 },
+    // 台面：库内沿半长/半宽按标准 9 尺台比例（2.54 x 1.27）；h 为呢绒上表面离地高度
+    table: { h: 0.82, halfL: 1.27, halfW: 0.635, railW: 0.13, frame: 0.62 },
+    ball: { r: 0.03 },
+    // 袋口：r = 球心进入判定的半径（比标准略宽，休闲好进袋）；两个 mouth 是库边在袋口处留的缺口
+    pocket: { r: 0.078, cornerMouth: 0.105, sideMouth: 0.088 },
+    // 台面物理（2D）：滚阻 = decel + drag*速度（慢球靠常数项刹住、快球多耗在空气/呢绒上），
+    // 库边恢复/切向摩擦、球-球恢复、静止阈值、子步数、单杆最长解算时间
+    phys: { decel: 0.95, drag: 0.35, cushionRest: 0.72, cushionFric: 0.965, ballRest: 0.96, stop: 0.02, sub: 8, maxTime: 9 },
+    speed: [0.6, 6.6],    // 出杆初速区间（力度 0 → 1）
+    chargeTime: 1.0,      // 蓄力 0→1 用时（秒）
+    cancelCharge: 0.05,   // 低于此力度视为收杆，不出手
+    // 上手视角：眼睛在母球正后方 dist、高于球心 drop，看向前方 look 米处的球心
+    aim: { sens: 0.0026, dist: 0.52, drop: 0.34, look: 1.0, blend: 11 },
+    reach: 1.15,          // 距台边多近可以「上手」（矩形判定，四边都好使）
+    walkSpeed: 3.0,
+    guide: { dash: 0.045, gap: 0.03, objLen: 0.46, cueLen: 0.3, cushLen: 0.52 },
+    score: { ball: 20, clear: 100, foul: 30 },
+  },
 };

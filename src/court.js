@@ -237,8 +237,8 @@ export function buildCourt(scene) {
     scene.add(g);
   };
   mkRail(20, -CFG.court.halfW - 1.2, 0, Math.PI / 2);
-  // +z 侧围栏拆成两段，在电影院红门（x≈6）前留出通道缺口
-  mkRail(9.5, -2.75, CFG.court.halfL + 1.2, 0);
+  // +z 侧围栏拆两段：中间留通道给电影院红门（x≈6），左侧缺口给台球室绿门（x≈-6）
+  mkRail(7.1, -1.55, CFG.court.halfL + 1.2, 0);
   mkRail(1.5, 9.75, CFG.court.halfL + 1.2, 0);
   // 场边 LED 广告板（暗光发光，Bloom 轻微溢出）
   const ad1 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.8, 19.5), new THREE.MeshStandardMaterial({ color: 0x0b1220, emissive: 0x2255ff, emissiveIntensity: 0.55, roughness: 0.4 }));
@@ -263,46 +263,55 @@ export function buildCourt(scene) {
     scene.add(door);
   }
 
-  /* ================= 电影院入口（+z 墙红门 + 发光门牌，走进去转场） ================= */
-  {
-    const D = CFG.cinema.gymDoor;
+  /* ================= +z 墙两扇侧门：右红=电影院，左绿=台球室（走进去转场） ================= */
+  const mkEntryDoor = (dx, opt) => {
     const g = new THREE.Group();
-    g.position.set(D.x, 0, CFG.gym.halfL - 0.06);
+    g.position.set(dx, 0, CFG.gym.halfL - 0.06);
     g.rotation.y = Math.PI; // 面朝场内（-z 方向）
-    const frameMat = new THREE.MeshStandardMaterial({ color: 0x6e1620, roughness: 0.5, metalness: 0.3 });
-    const frame = new THREE.Mesh(new THREE.BoxGeometry(2.05, 3.15, 0.1), frameMat);
+    const frame = new THREE.Mesh(
+      new THREE.BoxGeometry(2.05, 3.15, 0.1),
+      new THREE.MeshStandardMaterial({ color: opt.frame, roughness: 0.5, metalness: 0.3 })
+    );
     frame.position.y = 1.57;
     g.add(frame);
-    const slab = new THREE.Mesh(new THREE.BoxGeometry(1.7, 2.8, 0.12), paintedWood(0x2b1a12, 0.7));
+    const slab = new THREE.Mesh(new THREE.BoxGeometry(1.7, 2.8, 0.12), paintedWood(opt.slab, 0.7));
     slab.position.set(0, 1.4, 0.04);
     g.add(slab);
     const handle = new THREE.Mesh(new THREE.SphereGeometry(0.05, 10, 8), railMat);
     handle.position.set(-0.62, 1.35, 0.14);
     g.add(handle);
-    // 门缝暖光：模拟影院里透出来的放映光，让黑门板在暗墙上可辨
+    // 门缝光：模拟门后透出来的灯，让黑门板在暗墙上可辨
     const crack = new THREE.Mesh(
       new THREE.PlaneGeometry(1.56, 0.05),
-      new THREE.MeshBasicMaterial({ color: 0xffb066 })
+      new THREE.MeshBasicMaterial({ color: opt.crack })
     );
     crack.position.set(0, 2.72, 0.115);
     g.add(crack);
-    const signTex = makeDoorSignTexture('电 影 院', '🎬 走进门即可观影');
+    const signTex = makeDoorSignTexture(opt.title, opt.sub, opt.signBg);
     const sign = new THREE.Mesh(
       new THREE.PlaneGeometry(2.3, 0.58),
       new THREE.MeshStandardMaterial({ map: signTex, emissiveMap: signTex, emissive: 0xffffff, emissiveIntensity: 0.9, roughness: 0.6 })
     );
     sign.position.set(0, 3.5, 0.1);
     g.add(sign);
-    // 门口导视地垫（暗红发光圈，提示可进入）
+    // 门口导视地垫（发光圈，提示可进入）
     const mat2 = new THREE.Mesh(
       new THREE.CircleGeometry(0.95, 28),
-      new THREE.MeshStandardMaterial({ color: 0x5a1420, emissive: 0x7a1f2a, emissiveIntensity: 0.5, roughness: 0.9 })
+      new THREE.MeshStandardMaterial({ color: opt.mat, emissive: opt.matGlow, emissiveIntensity: 0.5, roughness: 0.9 })
     );
     mat2.rotation.x = -Math.PI / 2;
     mat2.position.set(0, 0.012, 1.1); // 局部 +z 经组旋转后指向场内
     g.add(mat2);
     scene.add(g);
-  }
+  };
+  mkEntryDoor(CFG.cinema.gymDoor.x, {
+    frame: 0x6e1620, slab: 0x2b1a12, crack: 0xffb066, mat: 0x5a1420, matGlow: 0x7a1f2a,
+    title: '电 影 院', sub: '🎬 走进门即可观影',
+  });
+  mkEntryDoor(CFG.pool.gymDoor.x, {
+    frame: 0x145a35, slab: 0x221a12, crack: 0xffd98a, mat: 0x11402a, matGlow: 0x1c6b45,
+    title: '台 球 室', sub: '🎱 走进门即可开杆', signBg: ['#0f2c22', '#061310'],
+  });
 
   return { netGroup, rim, adTex, floor };
 }
