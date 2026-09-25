@@ -704,7 +704,7 @@ try {
       let fired = 0;
       cinema.onExitRequest = () => { fired++; if (orig) orig(); };
       document.getElementById('cb-exit').click();
-      mark(`EXIT fired=${fired} door=${document.getElementById('cb-door') ? 1 : 0}`);
+      mark(`EXIT fired=${fired} door=${document.getElementById('cb-door') ? 1 : 0} share=${document.getElementById('cb-share') ? 1 : 0}`);
       cinema.onExitRequest = orig;
     }, 13200);
   }

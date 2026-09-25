@@ -30240,7 +30240,8 @@
         if (src && src.ar) applyCover(s.tex, arcW(na) / SH, ar, !isPoly());
       }
       if (src) {
-        videoEl.src = src.url;
+        if (src.stream) videoEl.srcObject = src.stream;
+        else videoEl.src = src.url;
         videoEl.addEventListener("loadedmetadata", () => {
           src.ar = (videoEl.videoWidth || 16) / (videoEl.videoHeight || 9);
           mat.map = tex;
@@ -30379,6 +30380,7 @@
             rec.push(null);
             continue;
           }
+          if (s.shared) continue;
           rec.push({ n: s.name, k: s.local ? 1 : 0, a: s.ar ? +s.ar.toFixed(3) : void 0 });
         }
         localStorage.setItem(STORE_KEY, JSON.stringify(rec));
@@ -30391,6 +30393,12 @@
       if (src.local) {
         try {
           URL.revokeObjectURL(src.url);
+        } catch (e) {
+        }
+      }
+      if (src.shared) {
+        try {
+          src.stream.getTracks().forEach((t) => t.stop());
         } catch (e) {
         }
       }
@@ -30711,6 +30719,45 @@
       rebuild();
       playAll();
       setStatus(take.length ? `\u2795 \u8FFD\u52A0 ${take.length} \u90E8\uFF0C\u73AF\u4E0A\u5171 ${sources.filter(Boolean).length} \u90E8\u5DE8\u5E55\uFF08\u65B0\u52A0\u7684\u5728\u63A7\u5236\u53F0\u52FE \u{1F50A} \u624D\u51FA\u58F0\uFF09` + (files.length - take.length ? `\uFF08\u5DF2\u5230 ${K.maxScreens} \u5757\u5C4F\u4E0A\u9650\uFF0C${files.length - take.length} \u90E8\u672A\u5BFC\u5165\uFF09` : "") : `\u73AF\u4E0A\u5DF2\u6EE1 ${K.maxScreens} \u5757\u5C4F\uFF0C\u5148\u5728\u63A7\u5236\u53F0\u91CC\u79FB\u8D70\u51E0\u90E8\u518D\u52A0`);
+    });
+    async function addShare() {
+      const md = navigator.mediaDevices;
+      if (!md || !md.getDisplayMedia) {
+        setStatus("\u{1F4E1} \u8FD9\u4E2A\u6D4F\u89C8\u5668\u4E0D\u652F\u6301\u5C4F\u5E55\u5171\u4EAB\uFF08\u7528\u8F83\u65B0\u7684 Chrome / Edge\uFF09");
+        return;
+      }
+      if (sources.length >= K.maxScreens) {
+        setStatus(`\u73AF\u4E0A\u5DF2\u6EE1 ${K.maxScreens} \u5757\u5C4F\uFF0C\u5148\u5728\u63A7\u5236\u53F0\u91CC \u2715 \u6389\u4E00\u5757\u518D\u5171\u4EAB`);
+        return;
+      }
+      let stream;
+      try {
+        stream = await md.getDisplayMedia({ video: { frameRate: 30 }, audio: true });
+      } catch (e1) {
+        if (e1 && e1.name === "NotAllowedError") {
+          setStatus("\u{1F4E1} \u5DF2\u53D6\u6D88\uFF1A\u5728\u6D4F\u89C8\u5668\u5F39\u7A97\u91CC\u9009\u4E00\u4E2A\u7A97\u53E3\u6216\u6807\u7B7E\u9875\u5373\u53EF\u6302\u4E0A\u5E55");
+          return;
+        }
+        try {
+          stream = await md.getDisplayMedia({ video: true });
+        } catch (e2) {
+          setStatus(`\u{1F4E1} \u5171\u4EAB\u5931\u8D25\uFF1A${e2 && e2.name || e2}`);
+          return;
+        }
+      }
+      const src = { name: `\u{1F4E1} ${(stream.getVideoTracks()[0] || {}).label || "\u5171\u4EAB\u7A97\u53E3"}`.trim(), stream, shared: true };
+      stream.getVideoTracks().forEach((t) => t.addEventListener("ended", () => {
+        const at = sources.indexOf(src);
+        if (at >= 0) removeSource(at);
+      }));
+      sources.push(src);
+      voiceNames = curVoices().concat(src.name);
+      rebuild();
+      playAll();
+      setStatus(`\u{1F4E1} \u5DF2\u6302\u4E0A\u76F4\u64AD\u5E55\uFF1A${src.name}` + (stream.getAudioTracks().length ? " \xB7 \u542B\u8BE5\u7A97\u53E3\u7684\u58F0\u97F3" : " \xB7 \u8BE5\u7A97\u53E3\u672A\u5171\u4EAB\u58F0\u97F3\uFF0C\u53EA\u6709\u753B\u9762"));
+    }
+    $2("cb-share").addEventListener("click", () => {
+      addShare();
     });
     $2("cb-hide").addEventListener("click", () => {
       bar.classList.add("hidden");
@@ -32813,7 +32860,7 @@
               if (orig) orig();
             };
             document.getElementById("cb-exit").click();
-            mark(`EXIT fired=${fired} door=${document.getElementById("cb-door") ? 1 : 0}`);
+            mark(`EXIT fired=${fired} door=${document.getElementById("cb-door") ? 1 : 0} share=${document.getElementById("cb-share") ? 1 : 0}`);
             cinema.onExitRequest = orig;
           }, 13200);
         }

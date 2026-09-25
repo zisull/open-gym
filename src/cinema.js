@@ -253,7 +253,8 @@ export function createCinema({ camera, player, sfx }) {
       if (src && src.ar) applyCover(s.tex, arcW(na) / SH, ar, !isPoly());
     }
     if (src) {
-      videoEl.src = src.url;
+      if (src.stream) videoEl.srcObject = src.stream; // 屏幕共享：MediaStream 直进同一条 VideoTexture 流水线
+      else videoEl.src = src.url;
       // 元数据到位 -> 记下真实宽高比，把幕面吃满槽位（上限 maxWide 倍）并按 cover 裁剪画面
       videoEl.addEventListener('loadedmetadata', () => {
         src.ar = (videoEl.videoWidth || 16) / (videoEl.videoHeight || 9);
@@ -404,6 +405,7 @@ export function createCinema({ camera, player, sfx }) {
       const rec = [];
       for (const s of sources) {
         if (!s) { rec.push(null); continue; } // 空洞要留位（环上排布才复现得出来）
+        if (s.shared) continue; // 屏幕共享是一次性的：重开拿不到流，连位置都不留
         rec.push({ n: s.name, k: s.local ? 1 : 0, a: s.ar ? +s.ar.toFixed(3) : undefined });
       }
       localStorage.setItem(STORE_KEY, JSON.stringify(rec));
@@ -412,10 +414,11 @@ export function createCinema({ camera, player, sfx }) {
 
   const defaultSources = () => LIB.slice(0, K.maxScreens).map((it) => ({ name: it.name, url: it.url }));
 
-  /** 释放一次性片源：本地文件要收回 blob URL */
+  /** 释放一次性片源：本地文件要收回 blob URL，屏幕共享要把轨道停掉 */
   function disposeSource(src) {
     if (!src) return;
     if (src.local) { try { URL.revokeObjectURL(src.url); } catch (e) { /* noop */ } }
+    if (src.shared) { try { src.stream.getTracks().forEach((t) => t.stop()); } catch (e) { /* noop */ } }
   }
 
   function loadSources() {
@@ -746,6 +749,38 @@ export function createCinema({ camera, player, sfx }) {
         + (files.length - take.length ? `（已到 ${K.maxScreens} 块屏上限，${files.length - take.length} 部未导入）` : '')
       : `环上已满 ${K.maxScreens} 块屏，先在控制台里移走几部再加`);
   });
+
+  /* ================= 📡 共享窗口：把屏幕上任意窗口/网页挂上一块幕 =================
+     B 站直播间这类外部网页内容在 file:// 下没有第二条路：iframe 被 X-Frame-Options/CSP 挡、
+     直链被 null origin 的 CORS 挡，而且跨域 <video> 必然污染 WebGL 贴图（SecurityError）。
+     getDisplayMedia 拿到的 MediaStream 是用户亲手授权的，不跨域、不 taint，所以让播放器
+     自己"看"那个窗口，画面照走 VideoTexture、声音照走 applyAudio 的多路出声。 */
+  async function addShare() {
+    const md = navigator.mediaDevices;
+    if (!md || !md.getDisplayMedia) { setStatus('📡 这个浏览器不支持屏幕共享（用较新的 Chrome / Edge）'); return; }
+    if (sources.length >= K.maxScreens) { setStatus(`环上已满 ${K.maxScreens} 块屏，先在控制台里 ✕ 掉一块再共享`); return; }
+    let stream;
+    try {
+      stream = await md.getDisplayMedia({ video: { frameRate: 30 }, audio: true });
+    } catch (e1) {
+      if (e1 && e1.name === 'NotAllowedError') { setStatus('📡 已取消：在浏览器弹窗里选一个窗口或标签页即可挂上幕'); return; }
+      try { stream = await md.getDisplayMedia({ video: true }); } // 有些平台不支持采声，退成纯画面
+      catch (e2) { setStatus(`📡 共享失败：${(e2 && e2.name) || e2}`); return; }
+    }
+    const src = { name: `📡 ${(stream.getVideoTracks()[0] || {}).label || '共享窗口'}`.trim(), stream, shared: true };
+    // 用户在浏览器工具栏点「停止共享」→ 视频轨道 ended → 这块幕自动撤下来
+    stream.getVideoTracks().forEach((t) => t.addEventListener('ended', () => {
+      const at = sources.indexOf(src);
+      if (at >= 0) removeSource(at);
+    }));
+    sources.push(src);
+    voiceNames = curVoices().concat(src.name); // 新挂的直播默认让它响，否则看着没反应
+    rebuild();
+    playAll();
+    setStatus(`📡 已挂上直播幕：${src.name}`
+      + (stream.getAudioTracks().length ? ' · 含该窗口的声音' : ' · 该窗口未共享声音，只有画面'));
+  }
+  $('cb-share').addEventListener('click', () => { addShare(); });
 
   /* 控制条收起/唤回：观影时不想被按钮挡住，左下角留一个小钮（控制台一起收） */
   $('cb-hide').addEventListener('click', () => {
