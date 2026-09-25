@@ -34940,12 +34940,11 @@
           setTimeout(() => {
             const inp = document.getElementById("cb-add-in");
             const mk = (n) => new File([new Blob(["x"], { type: "video/mp4" })], n, { type: "video/mp4" });
-            const one = (n) => {
-              Object.defineProperty(inp, "files", { value: [mk(n)], configurable: true });
-              inp.dispatchEvent(new Event("change"));
-            };
-            one("add-a.mp4");
-            setTimeout(() => one("add-b.mp4"), 400);
+            Object.defineProperty(inp, "files", {
+              value: ["a", "b", "c"].map((s) => mk(`cc-${s}.mp4`)),
+              configurable: true
+            });
+            inp.dispatchEvent(new Event("change"));
           }, 3400);
           setTimeout(() => mark(`P1 ${st2()} open=${document.getElementById("cinema-console").classList.contains("hidden") ? 0 : 1}`), 4200);
           setTimeout(() => {

@@ -877,7 +877,7 @@ try {
     }, 5800);
   }
   if (demo === 'wall') {
-    // 统一控制台 + 多路出声：入座→开控制台→追加 2 部→勾 3 路出声→删 1 部→整体静音/还原→收条唤回。
+    // 统一控制台 + 多路出声：入座→开控制台→整条换成 3 部→勾 3 路出声→删 1 部→整体静音/还原→收条唤回。
     // aud= 直接读每个 <video> 的真实放行状态（!muted && volume>0），这才是要验的东西：
     // 旧模型 rebuild 把非焦点屏 volume 写 0、tapScreen 又只改 muted，所以点了永远不出声。
     const spk = () => document.querySelectorAll('#cc-list .cc-spk');
@@ -892,15 +892,15 @@ try {
       document.getElementById('cb-console').click();
     }, 2600);
     setTimeout(() => {
-      // 单部添加：一次 change 只塞一个文件 → 语义是「追加一块幕」（选多部才叫整条替换）
+      // 一次 change 塞三部 = 「整条替换」，正好把幕数钉死成 3。
+      // 不能靠"在默认片单后面追加"：默认片单来自各机器的 video/manifest.js，
+      // 别人克隆下来一部影片都没有，行数就对不上、勾子按钮也点空。
       const inp = document.getElementById('cb-add-in');
       const mk = (n) => new File([new Blob(['x'], { type: 'video/mp4' })], n, { type: 'video/mp4' });
-      const one = (n) => {
-        Object.defineProperty(inp, 'files', { value: [mk(n)], configurable: true });
-        inp.dispatchEvent(new Event('change'));
-      };
-      one('add-a.mp4');
-      setTimeout(() => one('add-b.mp4'), 400);
+      Object.defineProperty(inp, 'files', {
+        value: ['a', 'b', 'c'].map((s) => mk(`cc-${s}.mp4`)), configurable: true,
+      });
+      inp.dispatchEvent(new Event('change'));
     }, 3400);
     setTimeout(() => mark(`P1 ${st()} open=${document.getElementById('cinema-console').classList.contains('hidden') ? 0 : 1}`), 4200);
     setTimeout(() => { const b = spk(); b[1].click(); b[2].click(); }, 5000); // 三部一起出声
