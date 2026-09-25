@@ -1,0 +1,10 @@
+# 批处理必须 CRLF：cmd 读 LF-only 的 .bat 时 goto / 标签会出问题
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# 打包产物与源码统一按文本处理（node_modules 已 ignore，不会进来）
+*.js text
+*.json text
+*.css text
+*.html text
+*.md text

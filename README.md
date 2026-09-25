@@ -12,6 +12,7 @@
 ```
 index.html            入口（含全部 UI 面板）
 启动游戏.bat          应用窗口启动器（Edge/Chrome --app，存档落在 .playdata/）
+安装环境.bat          一键装开发环境（装依赖 -> 打包 -> 生成素材清单）
 css/style.css         界面样式（暗色球馆 + 篮球橙主题）
 src/                  ES Module 源码（开发用）
   config.js           全部可调参数（场地/物理/难度/计分/模式定义）
@@ -35,7 +36,11 @@ video/                放映片源目录：把视频丢进来即可进电影院�
 tools/gen_audio.js    音效合成生成器（node tools/gen_audio.js 重新生成）
 tools/gen_walls.bat   墙贴画打包器（双击 或 npm run walls）
 tools/gen_video_manifest.js / gen_videos.bat  视频打包器（双击 或 npm run videos）
+tools/setup.js        一键装环境的实际逻辑（.bat 只是纯 ASCII 外壳，见下）
+tools/pw.js           解析 playwright-core 位置，供无头脚本共用
+tools/regress.js      全量回归：19 个 demo 一次跑完
 tools/shot.js         无头 Edge 验证：截图 + 回读页面状态（node tools/shot.js "<url>" 宽 高 等待ms 输出名）
+tools/audit_cfg.js / audit_exports.js  两条收口审计
 ```
 
 ## 玩法
@@ -374,8 +379,25 @@ SAVE  落盘=0.600,-0.350 名称=低杆右塞
 
 ## 开发构建
 
+仓库刻意保持轻量：**`node_modules/`（45MB）不入库**，克隆下来只有 5.2MB / 49 个文件，
+其中最大的是示例墙贴画 2.5MB 和打包产物 `dist/game.js` 1.5MB。
+所以拿到仓库不需要装任何东西就能玩；要改代码才需要下面这一步。
+
+**双击根目录的 `安装环境.bat`** 就够：装依赖（官方源不通自动切 npmmirror 镜像）
+→ 打包 `dist/game.js` → 生成 `imgs/wall/manifest.js`、`video/manifest.js`
+（这两个含 base64 素材，不入库，每台机器各自扫盘生成）。
+之后改完 `src/` 再跑一次它就行。
+
+> 为什么逻辑在 `tools/setup.js` 而不是写在 .bat 里：cmd 在 `chcp 65001` 下按**字节**
+> 推进批处理文件的读取位置，中文行会把下一行行首的 `echo` 吃掉、剩下的半句当成命令
+> 真跑一遍（实测把 `npm install ... 然后 npm run regress` 执行了）。所以 .bat 只留
+> 纯 ASCII 外壳，中文提示全部交给 Node。
+
+手动等价命令：
+
 ```bash
-npm install          # 依赖：three / cannon-es / esbuild
+npm install          # 依赖：three / cannon-es / esbuild / playwright-core
+npm run setup        # 与双击 安装环境.bat 等价
 npm run build        # src/*.js -> dist/game.js（普通脚本，file:// 可直接加载）
 npm run watch        # 监听源码自动打包
 npm run audio        # 重新合成 assets/audio 音效
