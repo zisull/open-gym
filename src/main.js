@@ -76,6 +76,7 @@ const fx = new Effects(scene, camera);
 const scoring = new ScoreManager();
 const sfx = new Sfx();
 const ui = new UI();
+player.onLand = () => sfx.play('bounce', { volume: 0.3, rate: 0.72 });
 
 /* ================= 电影院（独立场景 + 过场切换） ================= */
 const cinema = createCinema({ camera, player, sfx });
@@ -166,6 +167,7 @@ function startMode(id) {
   bestCache = loadRecord(id);
   scoring.reset(G.modeDef);
   player.vel.set(0, 0, 0);
+  player.y = 0; player.vy = 0; player.landDip = 0; // 上一局悬空的状态不带进新局
   player.freeYaw = 0; player.freePitch = 0;
   player.yaw = 0; player.pitch = 0;
   player.exitShotAim();
@@ -277,11 +279,11 @@ addEventListener('keydown', (e) => {
     return;
   }
   if (gameState === 'playing' && playerLoc === 'gym') {
-    // 空格=拍球、E=捡球/弃球。空格会滚动页面、也会「按下」刚点过的按钮，两样都要挡掉
+    // 空格=跳跃（拍球已改成持球自动，不再占键）。空格会滚动页面、也会「按下」刚点过的按钮，两样都要挡掉
     if (e.code === 'Space') {
       e.preventDefault();
       document.activeElement?.blur?.();
-      machine.dispatch('onTap');
+      if (player.jump()) sfx.play('bounce', { volume: 0.2, rate: 1.62 });
       return;
     }
     if (k === 'e') { machine.dispatch('onGrab'); return; }
@@ -552,27 +554,74 @@ try {
     }, 2000);
   }
   if (demo === 'tap') {
-    // 自动化（新键位）：E 捡球 → 空格拍球 ×2 → E 弃球（球应落在场地中央）→ E 再捡 →
-    // 左键蓄力 → 右键取消 → 再蓄力 → 松手出手。断言状态机与计分链路。
-    // 无头 rAF 被限流，靠近判定 _near 与拍球动画都要靠 update() 推进，所以手动补帧。
+    // 自动化（新键位）：E 拾球 → 持球**自动**拍球（不按键，节拍随 update 累加）→
+    // E 弃球（回中圈）→ E 再捡 → 空格跳跃（升→落→落地缓冲）→ 空中蓄力松手（跳投）。
+    // 无头 rAF 被限流，靠近判定/拍球节拍/竖直积分这些"要 update 才推进"的量一律手动补帧。
     const toBall = () => {
       ball.syncFromPhysics(); // 先让网格跟刚体对齐，否则按旧位置传送会差一步
       player.pos.set(ball.position.x, 0, ball.position.z + 1.2);
       machine.update(0.016);
     };
+    const drive = (n) => { for (let i = 0; i < n; i++) { machine.update(0.016); player.update(0.016); } };
     setTimeout(() => { toBall(); machine.dispatch('onGrab'); mark('pickup'); }, 1200);
-    setTimeout(() => { machine.dispatch('onTap'); mark('tap1'); }, 1800);
-    setTimeout(() => { machine.update(0.5); machine.dispatch('onTap'); mark('tap2'); }, 2600);
-    setTimeout(() => { machine.dispatch('onGrab'); mark('discard'); }, 3000);
-    setTimeout(() => { ball.syncFromPhysics(); mark(`dropped ${ball.position.x.toFixed(1)},${ball.position.y.toFixed(1)},${ball.position.z.toFixed(1)}`); }, 3200);
-    setTimeout(() => { toBall(); machine.dispatch('onGrab'); mark('regrab'); }, 3600);
-    setTimeout(() => { machine.dispatch('onLeftDown'); mark('charge'); }, 4200);
-    setTimeout(() => { machine.dispatch('onRightDown'); mark('cancel'); }, 4500);
-    setTimeout(() => { machine.dispatch('onLeftDown'); mark('charge2'); }, 4800);
-    // 逐帧累加的 charge 在无头下近似为 0，手动置 0.8 以验证「松手出手」（真机按住 0.8s 即为此值）
-    setTimeout(() => { if (machine.current) machine.current.charge = 0.8; mark('setcharge'); }, 5400);
-    setTimeout(() => { machine.dispatch('onLeftUp'); mark('release'); }, 5600);
-    setTimeout(() => { mark('final'); console.log('DEMO_TAP', marks.join(' | ')); }, 7000);
+    setTimeout(() => { drive(125); mark(`AUTO taps=${scoring.taps}`); }, 1900);
+    setTimeout(() => { machine.dispatch('onGrab'); mark('discard'); }, 2500);
+    setTimeout(() => { ball.syncFromPhysics(); mark(`dropped ${ball.position.x.toFixed(1)},${ball.position.y.toFixed(1)},${ball.position.z.toFixed(1)}`); }, 2900);
+    setTimeout(() => { toBall(); machine.dispatch('onGrab'); mark('regrab'); }, 3300);
+    setTimeout(() => {
+      const ok = player.jump();
+      drive(20);
+      const up = player.y;
+      drive(45);
+      mark(`JUMP ok=${ok ? 1 : 0} up=${up.toFixed(2)} land=${player.y.toFixed(2)} dip=${player.landDip.toFixed(3)}`);
+    }, 3900);
+    setTimeout(() => {
+      machine.dispatch('onLeftDown'); // 先验「右键取消」这条老路没被跳投挤掉
+      const from = machine.name;
+      machine.dispatch('onRightDown');
+      mark(`CANCEL ${from}>${machine.name} ch=${(machine.current?.charge ?? -1).toFixed(2)}`);
+    }, 4600);
+    setTimeout(() => {
+      player.jump();
+      drive(14); // 升到 ~0.7m 才出手（真机上就是按住左键起跳再松手）
+      const airY = player.y;
+      machine.dispatch('onLeftDown');
+      if (machine.current) machine.current.charge = 0.8; // 无头下逐帧累加的 charge 近似 0
+      drive(4);
+      const rel = ball.position.y;
+      machine.dispatch('onLeftUp');
+      mark(`JUMPSHOT air=${airY.toFixed(2)} rel=${rel.toFixed(2)} fly=${machine.current?.flying ? 1 : 0} taken=${scoring.shotTaken}`);
+    }, 5200);
+    setTimeout(() => { mark(`final taps=${scoring.taps}`); console.log('DEMO_TAP', marks.join(' | ')); }, 6400);
+  }
+  if (demo === 'move') {
+    // 移动手感断言：起速应在 ~0.2s 内吃到顶速（旧的 accel/speed 写法随帧率漂移）、
+    // 松手平滑滑行、反向刹车更快；跳跃 apex/滞空与配置吻合，落地有缓冲且回到地面。
+    const drive = (n) => { for (let i = 0; i < n; i++) player.update(0.016); };
+    const sp = () => Math.hypot(player.vel.x, player.vel.z);
+    setTimeout(() => {
+      player.pos.set(0, 0, 6);
+      player.vel.set(0, 0, 0);
+      player.keys.w = true;
+      drive(6); const s10 = sp();
+      drive(6); const s20 = sp();
+      drive(12); const s40 = sp();
+      const walk = 6 - player.pos.z; // 0.4s 内前进的米数（速度积分，验手感用的硬指标）
+      player.keys.w = false;
+      drive(6); const glide = sp();
+      player.keys.s = true;
+      drive(12); const braking = sp();
+      player.keys.s = false;
+      const top = player.speed;
+      const ok = player.jump();
+      let peak = 0, t = 0;
+      while (t < 2 && (player.y > 1e-4 || player.vy > 0)) { drive(1); t += 0.016; peak = Math.max(peak, player.y); }
+      drive(30);
+      mark(`MOVE top=${top.toFixed(2)} s10=${s10.toFixed(2)} s20=${s20.toFixed(2)} s40=${s40.toFixed(2)}`
+        + ` walk=${walk.toFixed(2)}m glide=${glide.toFixed(2)} brake=${braking.toFixed(2)}`
+        + ` jump=${ok ? 1 : 0} apex=${peak.toFixed(2)}/${(CFG.player.jumpSpeed ** 2 / (2 * CFG.player.gravity)).toFixed(2)} air=${t.toFixed(2)}`
+        + ` back=${player.y.toFixed(2)} dip=${player.landDip.toFixed(3)} pos=${player.pos.x.toFixed(1)},${player.pos.z.toFixed(1)}`);
+    }, 2000);
   }
   if (demo === 'sit' || demo === 'grid') {
     // 公共：走到圆床边 + 左键入座（可选再开大屏墙），供两种演示复用

@@ -21969,8 +21969,15 @@
           // 持球移动
           speedShot: 0.9,
           // 投篮站位微调
-          accel: 14,
-          // 速度平滑加速度
+          accel: 13,
+          // 起速速率（1/s，指数逼近，帧率无关）：0.2s 吃到 93% 顶速
+          brake: 8.5,
+          // 松开方向键后的滑行减速速率（比旧写法多一小段缓冲）
+          airControl: 0.45,
+          // 空中操控权重：跳起后保留动量，又能微调落点
+          jumpSpeed: 4.4,
+          // 起跳初速（apex≈0.99m，滞空≈0.9s）
+          gravity: 9.82,
           sens: 23e-4,
           // 鼠标灵敏度（弧度/像素）
           lookDamping: 16,
@@ -22022,12 +22029,14 @@
           adjustSpeed: 2.4
           // 挑战模式站位微调移速
         },
-        /* ---------- 拍球（无门槛装饰动作） ---------- */
+        /* ---------- 拍球（自动跟手的装饰动作） ---------- */
         tap: {
           points: 2,
           // 自由模式每次拍球得分
-          dur: 0.42
-          // 拍球动画时长（秒）
+          dur: 0.42,
+          // 单次拍球动画时长（秒）
+          every: [0.62, 0.4]
+          // 自动拍球间隔：站着慢拍 → 全速快拍
         },
         /* ---------- 挑战模式 ---------- */
         challenge: {
@@ -31228,6 +31237,10 @@
           this.camera = camera;
           this.pos = new Vector3(0, 0, 2.2);
           this.vel = new Vector3();
+          this.y = 0;
+          this.vy = 0;
+          this.landDip = 0;
+          this.onLand = null;
           this.freeYaw = 0;
           this.freePitch = 0;
           this.yaw = this.freeYaw;
@@ -31264,6 +31277,16 @@
             this.shotOffsetYaw = MathUtils.clamp(this.shotOffsetYaw - dx * sens, -0.22, 0.22);
             this.shotOffsetPitch = MathUtils.clamp(this.shotOffsetPitch - dy * sens * 0.8, -0.25, 0.25);
           }
+        }
+        /**
+         * 起跳（空格）：只在落地状态下有效，空中再按不接力。
+         * @returns {boolean} 是否真的跳起来了
+         */
+        jump() {
+          if (!this.inputEnabled || this.y > 1e-4 || this.vy > 0) return false;
+          this.vy = CFG.player.jumpSpeed;
+          this.y = 2e-3;
+          return true;
         }
         /** 切换到投篮瞄准模式（进入触发区时由状态机调用） */
         enterShotAim() {
@@ -31327,11 +31350,24 @@
           }
           const wishX = fx * iz + rx * ix;
           const wishZ = fz * iz + rz * ix;
-          const k = Math.min(1, P.accel * dt / Math.max(this.speed, 1e-3));
+          const inAir = this.y > 1e-4 || this.vy > 0;
+          const rate = (mag > 0 ? P.accel : P.brake) * (inAir ? P.airControl : 1);
+          const k = 1 - Math.exp(-rate * dt);
           this.vel.x += (wishX * this.speed - this.vel.x) * k;
           this.vel.z += (wishZ * this.speed - this.vel.z) * k;
           this.pos.x += this.vel.x * dt;
           this.pos.z += this.vel.z * dt;
+          if (inAir) {
+            this.vy -= P.gravity * dt;
+            this.y += this.vy * dt;
+            if (this.y <= 0) {
+              this.landDip = Math.min(0.16, -this.vy * 0.03);
+              this.y = 0;
+              this.vy = 0;
+              this.onLand?.();
+            }
+          }
+          this.landDip *= Math.exp(-13 * dt);
           const B = this.bounds;
           this.pos.x = MathUtils.clamp(this.pos.x, B.minX, B.maxX);
           this.pos.z = MathUtils.clamp(this.pos.z, B.minZ, B.maxZ);
@@ -31361,12 +31397,12 @@
           this.yaw += this.wrapDelta(this.targetYaw - this.yaw) * damp2;
           this.pitch += (this.targetPitch - this.pitch) * damp2;
           const speedH = Math.hypot(this.vel.x, this.vel.z);
-          if (P.headBob) {
-            this.bobPhase += dt * (4.5 + speedH * 1.4);
-          }
-          const bob = speedH > 0.4 ? Math.sin(this.bobPhase * 2) * 0.018 * Math.min(1, speedH / 3) : 0;
-          const roll = speedH > 0.4 ? Math.sin(this.bobPhase) * 4e-3 * Math.min(1, speedH / 3) : 0;
-          this.camera.position.set(this.pos.x, this.eyeHeight + bob, this.pos.z);
+          const bobOn = P.headBob && !inAir;
+          if (bobOn) this.bobPhase += dt * (4.5 + speedH * 1.4);
+          const ramp = Math.min(1, Math.max(0, (speedH - 0.15) / 0.9));
+          const bob = bobOn ? Math.sin(this.bobPhase * 2) * 0.018 * Math.min(1, speedH / 3) * ramp : 0;
+          const roll = bobOn ? Math.sin(this.bobPhase) * 4e-3 * Math.min(1, speedH / 3) * ramp : 0;
+          this.camera.position.set(this.pos.x, this.eyeHeight + this.y - this.landDip + bob, this.pos.z);
           this.camera.rotation.set(0, 0, 0);
           this.camera.rotateY(this.yaw);
           this.camera.rotateX(this.pitch);
@@ -31580,9 +31616,6 @@
         }
         onRightDown() {
         }
-        /** 空格：拍球 */
-        onTap() {
-        }
         /** E：手上没人就捡球，球在身上就弃球 */
         onGrab() {
         }
@@ -31598,7 +31631,7 @@
           const { player, ball, ui } = this.G;
           ball.syncFromPhysics();
           const near = ball.mode === "physics" && Math.hypot(player.pos.x - ball.position.x, player.pos.z - ball.position.z) < CFG.player.pickupRange && ball.position.y < 1.35;
-          ui.setPrompt(near ? "<b>E</b> \u62FE\u7403" : "WASD \u79FB\u52A8 \xB7 \u8D70\u8FD1\u7BEE\u7403\u540E\u6309 E \u62FE\u53D6");
+          ui.setPrompt(near ? "<b>E</b> \u62FE\u7403" : "WASD \u79FB\u52A8 \xB7 <b>\u7A7A\u683C</b> \u8DF3\u8DC3 \xB7 \u8D70\u8FD1\u7BEE\u7403\u540E\u6309 E \u62FE\u53D6");
           this._near = near;
         }
         onGrab() {
@@ -31613,29 +31646,40 @@
         enter() {
           const { player, ui, modeDef } = this.G;
           player.speed = CFG.player.speedHold;
-          ui.setPrompt(modeDef.id === "free" ? "<b>\u7A7A\u683C</b> \u62CD\u7403 \xB7 <b>\u5DE6\u952E</b> \u6295\u7BEE\uFF08\u6309\u4F4F\u84C4\u529B \u677E\u624B\u51FA\u624B\uFF09\xB7 <b>E</b> \u5F03\u7403 \xB7 \u5168\u573A\u4EFB\u610F\u4F4D\u7F6E" : "WASD \u8D70\u4F4D \xB7 <b>\u7A7A\u683C</b> \u62CD\u7403 \xB7 <b>\u5DE6\u952E</b> \u6309\u4F4F\u84C4\u529B\u6295\u7BEE \xB7 <b>E</b> \u5F03\u7403");
+          this.tapT = 0;
+          ui.setPrompt(modeDef.id === "free" ? "\u7403<b>\u81EA\u52A8\u62CD</b>\uFF08\u8DDF\u7740\u8D70\u4F4D\u5C31\u53D8\u901F\uFF09\xB7 <b>\u5DE6\u952E</b> \u6295\u7BEE\uFF08\u6309\u4F4F\u84C4\u529B \u677E\u624B\u51FA\u624B\uFF09\xB7 <b>\u7A7A\u683C</b> \u8DF3\u8DC3\uFF08\u53EF\u8DF3\u6295\uFF09\xB7 <b>E</b> \u5F03\u7403" : "WASD \u8D70\u4F4D \xB7 \u7403\u81EA\u52A8\u62CD \xB7 <b>\u5DE6\u952E</b> \u6309\u4F4F\u84C4\u529B\u6295\u7BEE \xB7 <b>\u7A7A\u683C</b> \u8DF3\u6295 \xB7 <b>E</b> \u5F03\u7403");
         }
         update(dt) {
           const { player, ball, camera, scoring, machine } = this.G;
           ball.updateHeld(dt, camera);
+          this.autoDribble(dt);
           if (scoring.ended) return;
           if (this.G.modeDef.shotScore && player.inShotZone() && player.mode !== "shot") {
             machine.set("shot");
           }
         }
+        /**
+         * 自动拍球：持球就一直拍，不用管键位；节拍跟着移速走（站着慢拍、跑动快拍）。
+         * 上一拍动画没走完就顺延，绝不叠拍或抢帧。
+         */
+        autoDribble(dt) {
+          const { player, ball, sfx, fx, ui, scoring } = this.G;
+          const [slow, fast] = CFG.tap.every;
+          const sp = Math.hypot(player.vel.x, player.vel.z);
+          const gap = MathUtils.lerp(slow, fast, Math.min(1, sp / Math.max(player.speed, 1e-3)));
+          this.tapT += dt;
+          if (this.tapT < gap) return;
+          this.tapT = 0;
+          if (!ball.tap()) return;
+          sfx.play("tap", { rate: 1.85 + Math.random() * 0.12, volume: 0.85 });
+          const { points } = scoring.addTap();
+          if (points > 0) ui.showScorePopup(points, null, 0);
+          fx.burstTap(ball.position);
+        }
         onLeftDown() {
           if (!this.G.modeDef.shotScore) return;
           this.G.pendingCharge = true;
           this.G.machine.set("shot");
-        }
-        onTap() {
-          const { ball, sfx, fx, ui, scoring } = this.G;
-          if (ball.tap()) {
-            sfx.play("tap", { rate: 1.85 + Math.random() * 0.12, volume: 0.85 });
-            const { points } = scoring.addTap();
-            if (points > 0) ui.showScorePopup(points, null, 0);
-            fx.burstTap(ball.position);
-          }
         }
         onGrab() {
           discardBall(this.G);
@@ -31656,7 +31700,7 @@
           this.flightT = 0;
           this._prevY = void 0;
           ui.showPowerBar(true);
-          ui.setPrompt("<b>\u6309\u4F4F\u5DE6\u952E</b> \u84C4\u529B \xB7 <b>\u677E\u624B</b> \u6295\u7BEE \xB7 <b>\u53F3\u952E</b> \u53D6\u6D88 \xB7 <b>E</b> \u5F03\u7403");
+          ui.setPrompt("<b>\u6309\u4F4F\u5DE6\u952E</b> \u84C4\u529B \xB7 <b>\u677E\u624B</b> \u6295\u7BEE \xB7 <b>\u7A7A\u683C</b> \u8DF3\u6295\uFF08\u7A7A\u4E2D\u4E5F\u80FD\u51FA\u624B\uFF09\xB7 <b>\u53F3\u952E</b> \u53D6\u6D88 \xB7 <b>E</b> \u5F03\u7403");
         }
         exit() {
           const { player, ui } = this.G;
@@ -31747,7 +31791,7 @@
           this.charging = false;
           if (this.charge < CFG.shot.cancelCharge) {
             this.charge = 0;
-            this.G.ui.setPrompt("<b>\u6309\u4F4F\u5DE6\u952E</b> \u84C4\u529B \xB7 <b>\u677E\u624B</b> \u6295\u7BEE \xB7 <b>\u53F3\u952E</b> \u53D6\u6D88 \xB7 <b>E</b> \u5F03\u7403");
+            this.G.ui.setPrompt("<b>\u6309\u4F4F\u5DE6\u952E</b> \u84C4\u529B \xB7 <b>\u677E\u624B</b> \u6295\u7BEE \xB7 <b>\u7A7A\u683C</b> \u8DF3\u6295 \xB7 <b>\u53F3\u952E</b> \u53D6\u6D88 \xB7 <b>E</b> \u5F03\u7403");
             return;
           }
           const { ball, player, sfx, scoring } = this.G;
@@ -32303,6 +32347,7 @@
       var scoring = new ScoreManager();
       var sfx = new Sfx();
       var ui = new UI();
+      player.onLand = () => sfx.play("bounce", { volume: 0.3, rate: 0.72 });
       var cinema = createCinema({ camera, player, sfx });
       cinema.scene.environment = scene.environment;
       var playerLoc = "gym";
@@ -32394,6 +32439,9 @@
         bestCache = loadRecord(id);
         scoring.reset(G.modeDef);
         player.vel.set(0, 0, 0);
+        player.y = 0;
+        player.vy = 0;
+        player.landDip = 0;
         player.freeYaw = 0;
         player.freePitch = 0;
         player.yaw = 0;
@@ -32513,7 +32561,7 @@
           if (e.code === "Space") {
             e.preventDefault();
             document.activeElement?.blur?.();
-            machine.dispatch("onTap");
+            if (player.jump()) sfx.play("bounce", { volume: 0.2, rate: 1.62 });
             return;
           }
           if (k === "e") {
@@ -32776,57 +32824,97 @@
             player.pos.set(ball.position.x, 0, ball.position.z + 1.2);
             machine.update(0.016);
           };
+          const drive = (n) => {
+            for (let i = 0; i < n; i++) {
+              machine.update(0.016);
+              player.update(0.016);
+            }
+          };
           setTimeout(() => {
             toBall();
             machine.dispatch("onGrab");
             mark("pickup");
           }, 1200);
           setTimeout(() => {
-            machine.dispatch("onTap");
-            mark("tap1");
-          }, 1800);
-          setTimeout(() => {
-            machine.update(0.5);
-            machine.dispatch("onTap");
-            mark("tap2");
-          }, 2600);
+            drive(125);
+            mark(`AUTO taps=${scoring.taps}`);
+          }, 1900);
           setTimeout(() => {
             machine.dispatch("onGrab");
             mark("discard");
-          }, 3e3);
+          }, 2500);
           setTimeout(() => {
             ball.syncFromPhysics();
             mark(`dropped ${ball.position.x.toFixed(1)},${ball.position.y.toFixed(1)},${ball.position.z.toFixed(1)}`);
-          }, 3200);
+          }, 2900);
           setTimeout(() => {
             toBall();
             machine.dispatch("onGrab");
             mark("regrab");
-          }, 3600);
+          }, 3300);
+          setTimeout(() => {
+            const ok = player.jump();
+            drive(20);
+            const up = player.y;
+            drive(45);
+            mark(`JUMP ok=${ok ? 1 : 0} up=${up.toFixed(2)} land=${player.y.toFixed(2)} dip=${player.landDip.toFixed(3)}`);
+          }, 3900);
           setTimeout(() => {
             machine.dispatch("onLeftDown");
-            mark("charge");
-          }, 4200);
-          setTimeout(() => {
+            const from = machine.name;
             machine.dispatch("onRightDown");
-            mark("cancel");
-          }, 4500);
+            mark(`CANCEL ${from}>${machine.name} ch=${(machine.current?.charge ?? -1).toFixed(2)}`);
+          }, 4600);
           setTimeout(() => {
+            player.jump();
+            drive(14);
+            const airY = player.y;
             machine.dispatch("onLeftDown");
-            mark("charge2");
-          }, 4800);
-          setTimeout(() => {
             if (machine.current) machine.current.charge = 0.8;
-            mark("setcharge");
-          }, 5400);
-          setTimeout(() => {
+            drive(4);
+            const rel = ball.position.y;
             machine.dispatch("onLeftUp");
-            mark("release");
-          }, 5600);
+            mark(`JUMPSHOT air=${airY.toFixed(2)} rel=${rel.toFixed(2)} fly=${machine.current?.flying ? 1 : 0} taken=${scoring.shotTaken}`);
+          }, 5200);
           setTimeout(() => {
-            mark("final");
+            mark(`final taps=${scoring.taps}`);
             console.log("DEMO_TAP", marks.join(" | "));
-          }, 7e3);
+          }, 6400);
+        }
+        if (demo === "move") {
+          const drive = (n) => {
+            for (let i = 0; i < n; i++) player.update(0.016);
+          };
+          const sp = () => Math.hypot(player.vel.x, player.vel.z);
+          setTimeout(() => {
+            player.pos.set(0, 0, 6);
+            player.vel.set(0, 0, 0);
+            player.keys.w = true;
+            drive(6);
+            const s10 = sp();
+            drive(6);
+            const s20 = sp();
+            drive(12);
+            const s40 = sp();
+            const walk = 6 - player.pos.z;
+            player.keys.w = false;
+            drive(6);
+            const glide = sp();
+            player.keys.s = true;
+            drive(12);
+            const braking = sp();
+            player.keys.s = false;
+            const top = player.speed;
+            const ok = player.jump();
+            let peak = 0, t = 0;
+            while (t < 2 && (player.y > 1e-4 || player.vy > 0)) {
+              drive(1);
+              t += 0.016;
+              peak = Math.max(peak, player.y);
+            }
+            drive(30);
+            mark(`MOVE top=${top.toFixed(2)} s10=${s10.toFixed(2)} s20=${s20.toFixed(2)} s40=${s40.toFixed(2)} walk=${walk.toFixed(2)}m glide=${glide.toFixed(2)} brake=${braking.toFixed(2)} jump=${ok ? 1 : 0} apex=${peak.toFixed(2)}/${(CFG.player.jumpSpeed ** 2 / (2 * CFG.player.gravity)).toFixed(2)} air=${t.toFixed(2)} back=${player.y.toFixed(2)} dip=${player.landDip.toFixed(3)} pos=${player.pos.x.toFixed(1)},${player.pos.z.toFixed(1)}`);
+          }, 2e3);
         }
         if (demo === "sit" || demo === "grid") {
           addEventListener("error", (e) => {

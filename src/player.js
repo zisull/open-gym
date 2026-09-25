@@ -1,7 +1,8 @@
 /**
  * player.js —— 第一人称"玩家"（镜头即玩家，不渲染人物模型）
- * 职责：WASD 移动、鼠标阻尼转向、视角平滑插值（自由视角 <-> 投篮瞄准视角）、
- *       头部微晃（head bob）、与投篮触发区的几何判断。
+ * 职责：WASD 移动（指数逼近、帧率无关）、空格跳跃（含落地缓冲）、鼠标阻尼转向、
+ *       视角平滑插值（自由视角 <-> 投篮瞄准视角）、头部微晃（head bob）、
+ *       与投篮触发区的几何判断。
  */
 import * as THREE from 'three';
 import { CFG } from './config.js';
@@ -13,8 +14,15 @@ export class Player {
    */
   constructor(camera) {
     this.camera = camera;
-    this.pos = new THREE.Vector3(0, 0, 2.2);      // 地面位置（y 恒为 0），位于中圈附近
+    this.pos = new THREE.Vector3(0, 0, 2.2);      // 地面位置（脚底投影），位于中圈附近
     this.vel = new THREE.Vector3();
+    // --- 竖直（跳跃）---
+    // pos 始终是脚底在地面上的投影；离地高度单独记在 y 上，
+    // 这样边界钳制、投篮距离、拾球判定都仍是纯 2D 的，不必处处减高度。
+    this.y = 0;
+    this.vy = 0;
+    this.landDip = 0;                              // 落地缓冲（视高瞬时下沉，指数衰减）
+    this.onLand = null;                            // 落地回调（main 挂音效）
 
     // --- 视角状态 ---
     // freeYaw/freePitch：鼠标直接控制的"原始"目标角（累积）
@@ -61,6 +69,17 @@ export class Player {
       this.shotOffsetYaw = THREE.MathUtils.clamp(this.shotOffsetYaw - dx * sens, -0.22, 0.22);
       this.shotOffsetPitch = THREE.MathUtils.clamp(this.shotOffsetPitch - dy * sens * 0.8, -0.25, 0.25);
     }
+  }
+
+  /**
+   * 起跳（空格）：只在落地状态下有效，空中再按不接力。
+   * @returns {boolean} 是否真的跳起来了
+   */
+  jump() {
+    if (!this.inputEnabled || this.y > 1e-4 || this.vy > 0) return false;
+    this.vy = CFG.player.jumpSpeed;
+    this.y = 0.002; // 立刻标记离地，本帧的落地判定不会再吃掉这次起跳
+    return true;
   }
 
   /** 切换到投篮瞄准模式（进入触发区时由状态机调用） */
@@ -131,11 +150,28 @@ export class Player {
     if (mag > 0) { ix /= mag; iz /= mag; }
     const wishX = fx * iz + rx * ix;
     const wishZ = fz * iz + rz * ix;
-    const k = Math.min(1, P.accel * dt / Math.max(this.speed, 0.001)); // 加速度平滑
+    // 帧率无关的指数逼近：起速跟手、松键平滑滑行（旧的 accel/speed 比值写法会让
+    // 手感随帧率漂移 —— 高刷屏发飘、低刷屏粘脚）
+    const inAir = this.y > 1e-4 || this.vy > 0;
+    const rate = (mag > 0 ? P.accel : P.brake) * (inAir ? P.airControl : 1);
+    const k = 1 - Math.exp(-rate * dt);
     this.vel.x += (wishX * this.speed - this.vel.x) * k;
     this.vel.z += (wishZ * this.speed - this.vel.z) * k;
     this.pos.x += this.vel.x * dt;
     this.pos.z += this.vel.z * dt;
+
+    /* ---- 1b. 跳跃：竖直积分 + 落地缓冲 ---- */
+    if (inAir) {
+      this.vy -= P.gravity * dt;
+      this.y += this.vy * dt;
+      if (this.y <= 0) {
+        this.landDip = Math.min(0.16, -this.vy * 0.03); // 落得越重视高沉得越多
+        this.y = 0;
+        this.vy = 0;
+        this.onLand?.(); // 落地音效由外层挂
+      }
+    }
+    this.landDip *= Math.exp(-13 * dt);
 
     /* ---- 2. 边界钳制 + 圆柱阻挡（bounds/blockers 可被影院场景替换） ---- */
     const B = this.bounds;
@@ -173,15 +209,16 @@ export class Player {
     this.yaw += this.wrapDelta(this.targetYaw - this.yaw) * damp;
     this.pitch += (this.targetPitch - this.pitch) * damp;
 
-    /* ---- 5. 相机落位：视高 + 头部微晃 ---- */
+    /* ---- 5. 相机落位：视高 + 跳跃离地 + 头部微晃 ---- */
     const speedH = Math.hypot(this.vel.x, this.vel.z);
-    if (P.headBob) {
-      this.bobPhase += dt * (4.5 + speedH * 1.4);
-    }
-    const bob = speedH > 0.4 ? Math.sin(this.bobPhase * 2) * 0.018 * Math.min(1, speedH / 3) : 0;
-    const roll = speedH > 0.4 ? Math.sin(this.bobPhase) * 0.004 * Math.min(1, speedH / 3) : 0;
+    const bobOn = P.headBob && !inAir;
+    if (bobOn) this.bobPhase += dt * (4.5 + speedH * 1.4);
+    // 晃幅用平滑斜坡开门，不在某个速度上硬切（那一下突跳就是"移动不顺眼"的根源）
+    const ramp = Math.min(1, Math.max(0, (speedH - 0.15) / 0.9));
+    const bob = bobOn ? Math.sin(this.bobPhase * 2) * 0.018 * Math.min(1, speedH / 3) * ramp : 0;
+    const roll = bobOn ? Math.sin(this.bobPhase) * 0.004 * Math.min(1, speedH / 3) * ramp : 0;
 
-    this.camera.position.set(this.pos.x, this.eyeHeight + bob, this.pos.z);
+    this.camera.position.set(this.pos.x, this.eyeHeight + this.y - this.landDip + bob, this.pos.z);
     this.camera.rotation.set(0, 0, 0);
     this.camera.rotateY(this.yaw);
     this.camera.rotateX(this.pitch);

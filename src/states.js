@@ -3,7 +3,9 @@
  * 三种状态：无球(noBall) / 持球(hold) / 投篮蓄力(shot)
  * 每个状态是一个独立类，逻辑解耦；状态间只通过 G（游戏上下文）通信。
  *
- * 事件接口：enter() / exit() / update(dt) / onLeftDown() / onLeftUp() / onRightDown() / onTap()（空格） / onGrab()（E）
+ * 事件接口：enter() / exit() / update(dt) / onLeftDown() / onLeftUp() / onRightDown() / onGrab()（E）
+ * 拍球不再是事件：持球状态下由 HoldState 每帧自动打节拍（见 autoDribble）。
+ * 空格是玩家级的跳跃，直接走 Player.jump()，不进状态机。
  */
 import * as THREE from 'three';
 import { CFG } from './config.js';
@@ -74,8 +76,6 @@ class State {
   onLeftDown() {}
   onLeftUp() {}
   onRightDown() {}
-  /** 空格：拍球 */
-  onTap() {}
   /** E：手上没人就捡球，球在身上就弃球 */
   onGrab() {}
 }
@@ -105,7 +105,7 @@ export class NoBallState extends State {
       ball.position.y < 1.35;
     ui.setPrompt(near
       ? '<b>E</b> 拾球'
-      : 'WASD 移动 · 走近篮球后按 E 拾取');
+      : 'WASD 移动 · <b>空格</b> 跳跃 · 走近篮球后按 E 拾取');
     this._near = near;
   }
   onGrab() {
@@ -122,34 +122,44 @@ export class HoldState extends State {
   enter() {
     const { player, ui, modeDef } = this.G;
     player.speed = CFG.player.speedHold;
+    this.tapT = 0;
     ui.setPrompt(modeDef.id === 'free'
-      ? '<b>空格</b> 拍球 · <b>左键</b> 投篮（按住蓄力 松手出手）· <b>E</b> 弃球 · 全场任意位置'
-      : 'WASD 走位 · <b>空格</b> 拍球 · <b>左键</b> 按住蓄力投篮 · <b>E</b> 弃球');
+      ? '球<b>自动拍</b>（跟着走位就变速）· <b>左键</b> 投篮（按住蓄力 松手出手）· <b>空格</b> 跳跃（可跳投）· <b>E</b> 弃球'
+      : 'WASD 走位 · 球自动拍 · <b>左键</b> 按住蓄力投篮 · <b>空格</b> 跳投 · <b>E</b> 弃球');
   }
   update(dt) {
     const { player, ball, camera, scoring, machine } = this.G;
     ball.updateHeld(dt, camera);
+    this.autoDribble(dt);
     if (scoring.ended) return;
     // 持球移动进入投篮触发区 -> 自动切入投篮瞄准（仅计分投篮的模式）
     if (this.G.modeDef.shotScore && player.inShotZone() && player.mode !== 'shot') {
       machine.set('shot');
     }
   }
+  /**
+   * 自动拍球：持球就一直拍，不用管键位；节拍跟着移速走（站着慢拍、跑动快拍）。
+   * 上一拍动画没走完就顺延，绝不叠拍或抢帧。
+   */
+  autoDribble(dt) {
+    const { player, ball, sfx, fx, ui, scoring } = this.G;
+    const [slow, fast] = CFG.tap.every;
+    const sp = Math.hypot(player.vel.x, player.vel.z);
+    const gap = THREE.MathUtils.lerp(slow, fast, Math.min(1, sp / Math.max(player.speed, 0.001)));
+    this.tapT += dt;
+    if (this.tapT < gap) return;
+    this.tapT = 0;
+    if (!ball.tap()) return;
+    sfx.play('tap', { rate: 1.85 + Math.random() * 0.12, volume: 0.85 });
+    const { points } = scoring.addTap();
+    if (points > 0) ui.showScorePopup(points, null, 0);
+    fx.burstTap(ball.position);
+  }
   onLeftDown() {
     // 左键 = 投篮：立即进入蓄力状态（松手出手）
     if (!this.G.modeDef.shotScore) return;
     this.G.pendingCharge = true;
     this.G.machine.set('shot');
-  }
-  onTap() {
-    // 空格 = 无门槛拍球：自动跟手
-    const { ball, sfx, fx, ui, scoring } = this.G;
-    if (ball.tap()) {
-      sfx.play('tap', { rate: 1.85 + Math.random() * 0.12, volume: 0.85 });
-      const { points } = scoring.addTap();
-      if (points > 0) ui.showScorePopup(points, null, 0);
-      fx.burstTap(ball.position);
-    }
   }
   onGrab() {
     discardBall(this.G); // E = 弃球（球回到场地中央）
@@ -174,7 +184,7 @@ export class ShotState extends State {
     this.flightT = 0;
     this._prevY = undefined; // 飞行阶段首帧采样基线（出手时再置，保证穿越判定完整）
     ui.showPowerBar(true);
-    ui.setPrompt('<b>按住左键</b> 蓄力 · <b>松手</b> 投篮 · <b>右键</b> 取消 · <b>E</b> 弃球');
+    ui.setPrompt('<b>按住左键</b> 蓄力 · <b>松手</b> 投篮 · <b>空格</b> 跳投（空中也能出手）· <b>右键</b> 取消 · <b>E</b> 弃球');
   }
   exit() {
     const { player, ui } = this.G;
@@ -280,7 +290,7 @@ export class ShotState extends State {
     // 左键点按（蓄力过低）= 取消，不出手也不记出手数
     if (this.charge < CFG.shot.cancelCharge) {
       this.charge = 0;
-      this.G.ui.setPrompt('<b>按住左键</b> 蓄力 · <b>松手</b> 投篮 · <b>右键</b> 取消 · <b>E</b> 弃球');
+      this.G.ui.setPrompt('<b>按住左键</b> 蓄力 · <b>松手</b> 投篮 · <b>空格</b> 跳投 · <b>右键</b> 取消 · <b>E</b> 弃球');
       return;
     }
     const { ball, player, sfx, scoring } = this.G;
