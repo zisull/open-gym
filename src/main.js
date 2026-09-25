@@ -997,6 +997,76 @@ try {
       mark(`EXIT fired=${fired} rack=${document.getElementById('pb-rack') ? 1 : 0}`);
     }, 9800);
   }
+  if (demo === 'rules') {
+    // 8 球规则机回归：跳过物理，直接把「这杆进了哪些球 / 先碰到谁 / 有没有洗袋」喂给判定，
+    // 于是定组、犯规换手、黑八胜负这些分支都是确定的，不受无头 rAF 节奏影响。
+    var R = (x) => JSON.stringify(x);
+    var st = () => {
+      const p = pool.debugPool();
+      return `duel=${p.duel} ph=${p.phase} turn=${p.turn} grp=${p.grp} book=[${p.book}] foul=${p.fb} 黑八标=${document.querySelectorAll('.pbk-grp.eight').length} res=${p.result} chips=${document.querySelectorAll('.pbk-chip').length}`;
+    };
+    setTimeout(() => { player.pos.set(0, 0, 1.5); pool.debugSetDuel(1); mark(`A 开局 ${st()}`); }, 2200);
+    setTimeout(() => { pool.debugRuleShot([4], { first: 1 }); mark(`B 开球进4：不定组、继续出杆 ${st()}`); }, 2600);
+    setTimeout(() => { pool.debugRuleShot([3], { first: 3 }); mark(`C 开放台进3：定你=全色 ${st()}`); }, 3000);
+    setTimeout(() => { pool.debugRuleShot([11], { first: 11 }); mark(`D 先碰花色：犯规→换手 ${st()}`); }, 3400);
+    // 电脑回合：手工步进整桌，应看到它思考 → 导向线扫向目标 → 自己出杆（strokes 自增）
+    setTimeout(() => {
+      const s0 = pool.debugPool().strokes, b0 = pool.debugBot();
+      pool.debugSettle(2.2);
+      mark(`E 电脑出杆 strokes=${s0}→${pool.debugPool().strokes} plan=${R(b0)} mode=${pool.debugPool().mode}`);
+    }, 4200);
+    setTimeout(() => { const s = pool.debugSettle(7); mark(`F 整桌停稳 ph=${s.phase} turn=${s.turn} mode=${s.mode} live=${s.live}`); }, 7000);
+    setTimeout(() => {
+      pool.debugSetDuel(0);
+      const hid = document.getElementById('pb-book').classList.contains('hidden');
+      mark(`G 切回自由练台 ${st()} 入库条隐藏=${hid ? 1 : 0}`);
+    }, 9000);
+    setTimeout(() => {
+      pool.debugSetDuel(2); pool.debugRuleShot([1], { first: 1 }); pool.debugRuleShot([8], { first: 2 });
+      mark(`H 本组没清完就进黑八→判负 ${st()}`);
+    }, 9400);
+    setTimeout(() => {
+      pool.debugSetDuel(2); pool.debugRuleShot([1], { first: 1 });
+      for (const n of [2, 3, 4, 5, 6, 7]) pool.debugRuleShot([n], { first: n });
+      const mid = st();
+      pool.debugRuleShot([8], { first: 8 });
+      mark(`I 清台后一杆黑八→获胜 ${st()}｜清台时 ${mid}`);
+    }, 9800);
+    setTimeout(() => {
+      pool.debugSetDuel(3); pool.debugRuleShot([9], { first: 9 });
+      const x = pool.debugRuleShot([10], { first: 10, cue: true });
+      mark(`J 进球同时洗袋：犯规→换手 turn=${x.turn} book=[${x.book}] 母球=${R(pool.debugBall(0))}`);
+    }, 10200);
+    setTimeout(() => {
+      const y = pool.debugRuleShot([], { first: -1 });
+      mark(`K 空杆：犯规→换手 turn=${y.turn}`);
+      document.getElementById('pb-mode').click();
+      mark(`L 按钮切玩法 duel=${pool.debugPool().duel} 文案=${document.getElementById('pb-mode').textContent}`);
+    }, 10600);
+    setTimeout(() => {
+      pool.debugSetDuel(1);
+      const z = pool.debugRuleShot([8], { first: 1 });
+      mark(`M 开球撞进黑八：摆回继续 ph=${z.phase} turn=${z.turn} live=${z.live} book=[${z.book}] eight=${R(pool.debugBall(8))}`);
+    }, 11000);
+  }
+  if (demo === 'book') {
+    // 定住给截图看「入库记录」：你 3 颗全色、电脑 2 颗花色，刚轮到你出杆
+    setTimeout(() => {
+      player.pos.set(0, 0, 1.5);
+      pool.debugSetDuel(2);
+      pool.debugRuleShot([1], { first: 1 });     // 开球进 1：台面仍开放
+      pool.debugRuleShot([2], { first: 2 });     // 定组：你=全色
+      pool.debugRuleShot([3], { first: 3 });     // 连进，继续出杆
+      pool.debugRuleShot([12], { first: 12 });   // 先碰花色 → 犯规换手
+      pool.debugRuleShot([9], { first: 9 });     // 电脑进自己一组
+      const r = pool.debugRuleShot([], { first: 10 });  // 电脑空杆 → 交回你
+      mark(`BOOK turn=${r.turn} ph=${r.phase} grp=${r.grp} book=[${r.book}] foul=${r.fb}`);
+      mark(`  info=${document.getElementById('pb-info').textContent}`);
+      mark(`  行1=${document.querySelectorAll('.pbk-row')[0].textContent.replace(/\s+/g, ' ')}`);
+      mark(`  行2=${document.querySelectorAll('.pbk-row')[1].textContent.replace(/\s+/g, ' ')}`);
+      mark(`  彩片=${document.querySelectorAll('.pbk-chip').length} 花色片=${document.querySelectorAll('.pbk-chip.stripe').length}`);
+    }, 2600);
+  }
   if (demo === 'pause') {
     // 断言：解锁回调的守卫条件（历史上误用过 window.location，恒 false）。
     // 无头下 pointer lock 从未真正获得，exitPointerLock 不产生 change 事件，

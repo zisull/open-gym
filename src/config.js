@@ -147,5 +147,15 @@ export const CFG = {
     walkSpeed: 3.0,
     guide: { dash: 0.045, gap: 0.03, objLen: 0.46, cueLen: 0.3, cushLen: 0.52 },
     score: { ball: 20, clear: 100, foul: 30 },
+    // 8 球对战（0=自由练台）：电脑没有身体，只借用虚线导向"演"一遍它的瞄准过程
+    duel: {
+      think: 0.7, drive: 0.6,   // 上桌前的停顿 / 导向线扫向目标的用时（秒）
+      // 三档难度：aim = 准星抖动（弧度）pow = 力度抖动比例
+      levels: [
+        { name: '轻松', aim: 0.030, pow: 0.12 },
+        { name: '标准', aim: 0.012, pow: 0.06 },
+        { name: '职业', aim: 0.003, pow: 0.02 },
+      ],
+    },
   },
 };

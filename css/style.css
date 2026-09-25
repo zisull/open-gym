@@ -394,6 +394,34 @@ body.big-screen #cinema-bar { z-index: 62; }
   border-radius: 14px; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
 }
 #pool-bar .btn { padding: 6px 12px; font-size: 14px; white-space: nowrap; }
+/* 入库记录：8 球对战时显示双方各自一组的进球（按落袋顺序排成彩片） */
+#pb-book {
+  position: fixed; top: 14px; left: 50%; transform: translateX(-50%); z-index: 61;
+  display: flex; flex-direction: column; gap: 5px;
+  padding: 8px 14px;
+  background: rgba(10, 16, 13, 0.82); border: 1px solid var(--glass-line);
+  border-radius: 12px; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
+}
+#pb-book.hidden { display: none; }
+.pbk-row { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--dim); white-space: nowrap; }
+.pbk-row.me { color: var(--text); }
+.pbk-name { min-width: 32px; font-weight: 600; }
+.pbk-grp {
+  font-size: 10px; padding: 1px 5px; border-radius: 6px;
+  background: rgba(255, 255, 255, 0.09); border: 1px solid var(--glass-line);
+}
+.pbk-grp.eight { background: rgba(255, 209, 102, 0.18); color: #ffd166; }
+.pbk-chips { display: flex; gap: 3px; min-height: 16px; }
+.pbk-chip {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 16px; height: 16px; border-radius: 50%; font-style: normal;
+  font-size: 9px; font-weight: 700; color: #1a1410;
+  background: var(--c, #999); box-shadow: inset -2px -3px 4px rgba(0, 0, 0, 0.35), inset 2px 2px 3px rgba(255, 255, 255, 0.35);
+}
+.pbk-chip.stripe { background: linear-gradient(180deg, #f3efe2 0 24%, var(--c) 24% 76%, #f3efe2 76% 100%); }
+.pbk-chip.eight { background: #141414; color: #f3efe2; }
+.pbk-cnt { font-size: 11px; opacity: 0.8; }
+.pbk-way { font-size: 11px; color: #ffd166; }
 #pb-info { font-size: 13px; color: var(--dim); white-space: nowrap; }
 #pb-power {
   position: relative; width: 132px; height: 10px; border-radius: 6px; overflow: hidden;

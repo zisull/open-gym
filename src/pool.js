@@ -52,6 +52,11 @@ const RAILS_X = RAILS.filter((r) => r.n === 'x');
 const HUE = [0xf7f3e7, 0xffd21e, 0x1f57cf, 0xd8202c, 0x7b31b8, 0xff8a1e, 0x17864a, 0x8a2f22, 0x141414];
 /** 三角摆球顺序：顶点 1，第三排中间放 8，其余按号位填 */
 const RACK_ORDER = [1, 2, 3, 4, 8, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15];
+/** 球号 → 组别：1~7 全色、9~15 花色、8 黑、0 母球 */
+const CAT = (n) => (n === 0 ? 'cue' : n === 8 ? 'eight' : n < 8 ? 'solid' : 'stripe');
+const GN = { solid: '全色', stripe: '花色' };
+const SIDE = ['你', '电脑'];
+const ballCss = (n) => `#${(n <= 8 ? HUE[n] : HUE[n - 8]).toString(16).padStart(6, '0')}`;
 
 /** 射线(单位方向) vs 圆：返回最近正向距离，打不中返回 -1 */
 function rayCircle(px, pz, dx, dz, cx, cz, rr) {
@@ -100,6 +105,8 @@ export function createPool({ camera, player, sfx }) {
   const hintEl = $('pool-hint');
   const infoEl = $('pb-info');
   const fillEl = $('pb-fill');
+  const bookEl = $('pb-book');
+  const modeEl = $('pb-mode');
 
   /* ================= 房间（黑匣子 + 暖木） ================= */
   const RW = K.room.halfW, RL = K.room.halfL, RH = K.room.height;
@@ -328,6 +335,18 @@ export function createPool({ camera, player, sfx }) {
   let needRack = false;
   let strokes = 0, pottedNum = 0, score = 0, fouls = 0;
   let best = Number(localStorage.getItem('bb.pool.best') || 0);
+
+  /* ---- 8 球规则机：开球 → 台面开放（未定组）→ 定组 → 清完本组打黑八 ---- */
+  let duel = Number(localStorage.getItem('bb.pool.duel') || 0);   // 0=自由练台，1~3=对战难度
+  let phase = 'idle';       // idle 未开赛 | break 待开球 | open 未定组 | play 已定组 | over 分出胜负
+  let turn = 0;             // 0=你 1=电脑
+  let grp = [null, null];   // grp[侧] = 'solid' | 'stripe'
+  /** 本杆快照：strike() 建立、物理过程往里填 first/pots，整桌停稳后交给 settleShot() */
+  let shot = null;
+  let pottedOrder = [];     // 落袋顺序（入库 UI）
+  let foulBy = [0, 0];
+  let result = '';
+  let botT = 0, botStep = '', botPlan = null, botFrom = 0, botDelta = 0;
   const dir = new THREE.Vector2(1, 0);
   const _eye = new THREE.Vector3(), _tgt = new THREE.Vector3(), _up = new THREE.Vector3(0, 1, 0);
   const _m = new THREE.Matrix4(), _q = new THREE.Quaternion();
@@ -355,10 +374,38 @@ export function createPool({ camera, player, sfx }) {
   }
   let _info = null;
   function setInfo() {
-    const s = `🎱 进袋 ${pottedNum}/15 · 得分 ${score}${fouls ? ` · 洗袋 ${fouls}` : ''} · 出杆 ${strokes} · 纪录 ${best}`;
+    let s;
+    if (!duel) {
+      s = `🎱 进袋 ${pottedNum}/15 · 得分 ${score}${fouls ? ` · 洗袋 ${fouls}` : ''} · 出杆 ${strokes} · 纪录 ${best}`;
+    } else if (phase === 'over') {
+      s = `🏁 ${result} · 出杆 ${strokes} · 点「🀫 重摆」再来一局`;
+    } else {
+      s = `🎱 ${turn === 0 ? '▶ 你的回合' : '电脑回合'} · 你 ${grp[0] ? GN[grp[0]] : '待定'} · ` +
+        `电脑 ${grp[1] ? GN[grp[1]] : '待定'} · 出杆 ${strokes}`;
+    }
     if (s === _info) return;
     _info = s;
     infoEl.textContent = s;
+  }
+  /** 入库记录：每行一方，彩片按落袋顺序排；本组清空后标签变成「打黑八」 */
+  let _book = null;
+  function renderBook() {
+    const sig = duel ? [phase, turn, grp.join(','), pottedOrder.join(','), foulBy.join(','), result].join('|') : '';
+    if (sig === _book) return;
+    _book = sig;
+    bookEl.classList.toggle('hidden', !duel);
+    if (!duel) { bookEl.innerHTML = ''; return; }
+    bookEl.innerHTML = [0, 1].map((i) => {
+      const g = grp[i];
+      const list = g ? pottedOrder.filter((n) => CAT(n) === g) : [];
+      const need8 = !!g && groupLeft(g) === 0;
+      const chips = list.map((n) => `<i class="pbk-chip ${n >= 9 ? 'stripe' : ''}" style="--c:${ballCss(n)}">${n}</i>`).join('');
+      return `<div class="pbk-row${i === turn ? ' me' : ''}">` +
+        `<span class="pbk-name">${i === turn && phase !== 'over' ? '▶' : ''}${SIDE[i]}</span>` +
+        `<span class="pbk-grp${need8 ? ' eight' : ''}">${g ? (need8 ? '打黑八' : GN[g]) : '待定'}</span>` +
+        `<span class="pbk-chips">${chips}</span>` +
+        `<span class="pbk-cnt">${list.length}/7${foulBy[i] ? ` · 犯规 ${foulBy[i]}` : ''}</span></div>`;
+    }).join('') + (result ? `<div class="pbk-way">🏁 ${result}</div>` : '');
   }
   let _pw = -1;
   function setPower(v) {
@@ -392,9 +439,88 @@ export function createPool({ camera, player, sfx }) {
     cue.x = -BX / 2; cue.z = 0;
   }
 
+  /** 某一组还在桌上的球数（不含黑八与母球） */
+  const groupLeft = (g) => balls.reduce((n, b) => n + (!b.potted && CAT(b.num) === g ? 1 : 0), 0);
+  /** 开球撞进黑八：摆回摆球点（顶点位置），这一局继续 */
+  function respotEight() {
+    const e = balls.find((b) => b.num === 8);
+    e.potted = false; e.sink = 0; e.vx = e.vz = 0;
+    e.mesh.visible = true; e.mesh.scale.setScalar(1);
+    const free = (x, z) => balls.every((b) => b === e || b.potted || Math.hypot(b.x - x, b.z - z) > 2.2 * R);
+    e.x = BX / 2; e.z = 0;
+    for (let j = 1; j < 30 && !free(e.x, 0); j++) {
+      e.x = BX / 2 + (j % 2 ? 1 : -1) * Math.ceil(j / 2) * 2.2 * R;
+    }
+    e.mesh.position.set(e.x, YC, e.z);
+    const k = pottedOrder.indexOf(8);
+    if (k >= 0) pottedOrder.splice(k, 1);
+    pottedNum = Math.max(0, pottedNum - 1);
+  }
+  /** 现在是不是玩家在操盘（打完了也交还给玩家，方便随便推着玩） */
+  const mine = () => !duel || turn === 0 || phase === 'over';
+  /** 某一侧此刻合法可碰的目标球：未定组=除黑八外任意；清完本组=只剩黑八 */
+  function legalBalls(side) {
+    const g = grp[side];
+    const alive = balls.filter((b) => !b.potted && b.num !== 0);
+    if (!g) return alive.filter((b) => b.num !== 8);
+    return groupLeft(g) ? alive.filter((b) => CAT(b.num) === g) : alive.filter((b) => b.num === 8);
+  }
+  /** 本杆开局快照：left 记录"出杆前本组还剩几颗"，黑八落袋时要靠它判是否已清台 */
+  function snapshotShot() {
+    const own = grp[turn];
+    return { shooter: turn, own, left: own ? groupLeft(own) : -1, first: -1, pots: [], cuePot: false, brk: duel > 0 && phase === 'break' };
+  }
+  /** 先碰的球是否非法（开球那一杆不判） */
+  function badFirst(s) {
+    if (s.brk) return false;
+    if (!s.own) return s.first === 8;
+    return CAT(s.first) !== (s.left === 0 ? 'eight' : s.own);
+  }
+  function endGame(winner, why) {
+    phase = 'over';
+    result = `${SIDE[winner]}胜 · ${why}`;
+    sfx.play(winner === 0 ? 'cheer' : 'ui', { volume: 0.72 });
+    renderBook();
+    setInfo();
+  }
+  /** 整桌停稳后结算这一杆：犯规判定 → 定组 → 黑八定生死 → 是否继续出杆 */
+  function settleShot() {
+    const s = shot;
+    shot = null;
+    botT = 0; botStep = ''; botPlan = null;
+    if (!duel || phase === 'idle' || phase === 'over') return;
+    const me = s.shooter, op = 1 - me;
+    const objs = s.pots.filter((n) => n !== 0 && n !== 8);
+    const foulWhy = s.cuePot ? '洗袋' : s.first < 0 ? '空杆' : badFirst(s) ? '先碰了别人的球' : '';
+    let eightBack = false;
+    if (s.brk && s.pots.includes(8)) {   // 开球撞进黑八：不判生死，摆回摆球点继续（休闲球房通行做法）
+      respotEight();
+      eightBack = true;
+      s.pots = s.pots.filter((n) => n !== 8);
+    } else if (s.pots.includes(8)) {     // 黑八落袋 = 一杆定生死
+      const win = !foulWhy && s.left === 0;
+      endGame(win ? me : op, win ? '清台后一杆黑八' : foulWhy ? `打黑八时${foulWhy}` : '本组还没清完就进了黑八');
+      return;
+    }
+    // 定组只在"开放台面"上发生：开球那杆之后 phase 才变成 open，所以放在改 phase 之前判
+    if (!foulWhy && phase === 'open' && objs.length) {
+      grp[me] = CAT(objs[0]);          // 第一颗落袋球定组
+      grp[op] = grp[me] === 'solid' ? 'stripe' : 'solid';
+      phase = 'play';
+    }
+    if (s.brk) phase = 'open';
+    if (foulWhy) foulBy[me]++;
+    // 继续出杆：没犯规，且这杆确实打进了自己该打的球（开球把黑八撞回去也算还你一球，不清白换手）
+    const keep = !foulWhy && (eightBack || (objs.length > 0 && (!grp[me] || objs.some((n) => CAT(n) === grp[me]))));
+    if (!keep) turn = op;
+    renderBook();
+    setInfo();
+  }
+
   function pot(b) {
     b.potted = true; b.sink = 0.01;
     b.vx = b.vz = 0;
+    if (shot) { shot.pots.push(b.num); if (b.num === 0) shot.cuePot = true; }
     if (b.num === 0) {                       // 洗袋（母球落袋）：罚分，稍后自动摆回
       fouls++;
       score = Math.max(0, score - K.score.foul);
@@ -403,9 +529,11 @@ export function createPool({ camera, player, sfx }) {
       return;
     }
     pottedNum++;
+    pottedOrder.push(b.num);
+    renderBook();
     score += K.score.ball;
     sfx.play('bounce', { volume: 0.55, rate: 0.7 + Math.random() * 0.1 });
-    if (pottedNum >= RACK_ORDER.length) {    // 清台：这一杆结算完再整桌重摆
+    if (!duel && pottedNum >= RACK_ORDER.length) {   // 自由练台清台：整桌重摆（对战由黑八收尾）
       score += K.score.clear;
       needRack = true;
       sfx.play('cheer', { volume: 0.7 });
@@ -490,6 +618,9 @@ export function createPool({ camera, player, sfx }) {
         c.x += dx * over; c.z += dz * over;
         const rel = (c.vx - a.vx) * dx + (c.vz - a.vz) * dz;
         if (rel >= 0) continue;                     // 已经在分离
+        if (shot && shot.first < 0 && (a === cue || c === cue)) {
+          shot.first = a === cue ? c.num : a.num;   // 记录母球本杆第一个真实撞击的球
+        }
         const jimp = -(1 + PH.ballRest) * rel / 2;  // 等质量：冲量对半分
         a.vx -= dx * jimp; a.vz -= dz * jimp;
         c.vx += dx * jimp; c.vz += dz * jimp;
@@ -621,6 +752,7 @@ export function createPool({ camera, player, sfx }) {
   function strike() {
     const v = THREE.MathUtils.lerp(K.speed[0], K.speed[1], power);
     const pw = power;
+    shot = snapshotShot();               // 本杆的规则判定从这一瞬开始记账
     cue.vx = dir.x * v; cue.vz = dir.y * v;
     strokes++;
     setInfo();
@@ -635,6 +767,63 @@ export function createPool({ camera, player, sfx }) {
     sfx.play('shoot', { volume: 0.45 + pw * 0.4, rate: 1.45 - v / 16 });
   }
 
+  /* ================= 电脑对手：没有身体，只把"它怎么瞄"演一遍 ================= */
+  /** 挑球（O-C 会换成整桌搜索）：本阶段先就近挑一颗合法目标球，力度按距离给 */
+  function botPick() {
+    const L = legalBalls(1);
+    if (!L.length || cue.potted) return null;
+    let best = null;
+    for (const b of L) {
+      const d = Math.hypot(b.x - cue.x, b.z - cue.z);
+      if (!best || d < best.d) best = { b, d };
+    }
+    const lv = K.duel.levels[duel - 1];
+    return {
+      num: best.b.num,
+      aim: Math.atan2(best.b.z - cue.z, best.b.x - cue.x) + (Math.random() * 2 - 1) * lv.aim,
+      power: Math.max(0.24, Math.min(0.95, 0.3 + best.d / 2.6 + (Math.random() * 2 - 1) * lv.pow)),
+    };
+  }
+  const wrapAng = (d) => { let a = d; while (a > Math.PI) a -= Math.PI * 2; while (a < -Math.PI) a += Math.PI * 2; return a; };
+  /** 电脑的三拍节奏：想一下 → 导向线扫向目标 → 出杆 */
+  function botTick(dt) {
+    if (mode === 'roll') return;
+    botT += dt;
+    if (botStep === '') {
+      if (botT < K.duel.think) return;
+      botPlan = botPick();
+      botT = 0;
+      if (!botPlan) {                       // 无球可打：把回合交回玩家，绝不卡死
+        turn = 0; setInfo(); renderBook(); return;
+      }
+      if (mode !== 'aim') takeOver();
+      botFrom = aimA; botDelta = wrapAng(botPlan.aim - aimA);
+      botStep = 'aim';
+    } else if (botStep === 'aim') {
+      const k = Math.min(1, botT / K.duel.drive), e = 1 - (1 - k) * (1 - k) * (1 - k);
+      aimA = botFrom + botDelta * e;
+      dir.set(Math.cos(aimA), Math.sin(aimA));
+      power = botPlan.power * e;            // 力度条同步爬升，玩家看得见它在蓄力
+      if (k >= 1) { botStep = 'hit'; botT = 0; }
+    } else if (botStep === 'hit') {
+      if (botT < 0.14) return;
+      power = botPlan.power;
+      botStep = '';
+      strike();
+    }
+  }
+
+  /** 开局 / 换玩法：整桌重摆，规则机回到"待开球" */
+  function startDuel() {
+    rack();
+    pottedOrder = []; foulBy = [0, 0]; grp = [null, null]; result = ''; shot = null;
+    turn = 0; strokes = 0; pottedNum = 0; score = 0; fouls = 0;
+    phase = duel ? 'break' : 'idle';
+    needRack = false;
+    botT = 0; botStep = ''; botPlan = null;
+    _book = null;
+    renderBook(); setInfo();
+  }
   function canvasLock() {
     const c = document.getElementById('gl');
     try {
@@ -643,6 +832,19 @@ export function createPool({ camera, player, sfx }) {
     } catch (e) { /* 旧浏览器同步抛错同样忽略 */ }
   }
 
+  function syncModeBtn() {
+    modeEl.textContent = duel ? `🤖 对战 · ${K.duel.levels[duel - 1].name}` : '🧘 自由练台';
+    modeEl.title = duel
+      ? '点击切到下一种玩法（自由练台 → 轻松 → 标准 → 职业）；换玩法会重摆整桌'
+      : '点击开始与电脑打 8 球：先进完自己一组（全色/花色）再打黑八';
+  }
+  modeEl.addEventListener('click', () => {
+    duel = (duel + 1) % (K.duel.levels.length + 1);
+    localStorage.setItem('bb.pool.duel', String(duel));
+    syncModeBtn();
+    startDuel();
+    sfx.play('ui', { volume: 0.5, rate: duel ? 1.35 : 1 });
+  });
   $('pb-rack').addEventListener('click', () => api.rerack());
   $('pb-exit').addEventListener('click', () => { if (api.onExitRequest) api.onExitRequest(); });
 
@@ -667,10 +869,15 @@ export function createPool({ camera, player, sfx }) {
       player.freePitch = -0.1;
       aimT = 0;
       mode = 'walk';
+      syncModeBtn();
+      _book = null;
+      renderBook();
       setInfo();
       bar.classList.remove('hidden');   // 球室条常驻：重摆 / 退出都得够得着
       canvasLock();
-      setHint('<b>走近球桌</b> <b>左键</b> 上手瞄准 · 回球场点 <b>🚪 退出球室</b>');
+      setHint(duel
+        ? '<b>走近球桌</b> <b>左键</b> 上手开球 · 点 <b>🧘 自由练台</b> 可切回自己练'
+        : '<b>走近球桌</b> <b>左键</b> 上手瞄准 · 回球场点 <b>🚪 退出球室</b>');
     },
     exit() {
       releaseCue();
@@ -695,14 +902,16 @@ export function createPool({ camera, player, sfx }) {
           for (const b of balls) { b.vx = 0; b.vz = 0; }
           if (cue.potted) respotCue();
           if (needRack) { needRack = false; rack(); pottedNum = 0; }
+          settleShot();                    // 整桌停稳 → 交规则机判定（定组/犯规/换人/胜负）
           mode = 'aim';
           power = 0;
           cueStick.visible = true;
-          sfx.play('ui', { volume: 0.25, rate: 1.35 });
+          if (mine()) sfx.play('ui', { volume: 0.25, rate: 1.35 });
         }
       } else if (mode === 'aim' && charging) {
         power = Math.min(1, power + dt / K.chargeTime);
       }
+      if (duel && turn === 1 && phase !== 'over') botTick(dt);
       syncMeshes(dt);
       setBest();
 
@@ -721,9 +930,13 @@ export function createPool({ camera, player, sfx }) {
         camera.position.lerp(_eye, aimT);
         camera.quaternion.slerp(_q, aimT);
       }
-      setPower(mode === 'aim' && charging ? power : 0);
+      setPower(mode === 'aim' && (charging || !mine()) ? power : 0);
 
-      if (mode === 'walk') {
+      if (phase === 'over') {
+        setHint(`🏁 ${result} · 点 <b>🀫 重摆</b> 再来一局，或 <b>🧘 自由练台</b> 自己练`);
+      } else if (!mine()) {
+        setHint(botPlan ? `🤖 电脑正在瞄准 <b>${botPlan.num}</b> 号…` : '🤖 电脑思考中…');
+      } else if (mode === 'walk') {
         setHint(nearTable() ? '<b>左键</b> 上手瞄准 · <b>右键</b> 继续走动' : '');
       } else if (mode === 'aim') {
         setHint('<b>移动鼠标</b> 转导向线 · <b>按住左键</b> 蓄力、松手出杆 · <b>右键</b> 收杆 · <b>E</b> 重摆 · WASD 走动');
@@ -732,37 +945,40 @@ export function createPool({ camera, player, sfx }) {
       }
     },
 
-    /** 瞄准：鼠标横向增量转导向线 */
+    /** 瞄准：鼠标横向增量转导向线（电脑回合让玩家的手闲著） */
     onLook(dx) {
-      if (mode !== 'aim') return;
+      if (mode !== 'aim' || !mine()) return;
       aimA += dx * K.aim.sens;
       dir.set(Math.cos(aimA), Math.sin(aimA));
     },
     onLeftDown() {
-      if (mode === 'roll') return;
+      if (mode === 'roll' || !mine()) return;
       if (mode === 'walk') { if (nearTable()) takeOver(); return; }
       charging = true;
       power = 0;
     },
     onLeftUp() {
-      if (mode !== 'aim' || !charging) return;
+      if (mode !== 'aim' || !charging || !mine()) return;
       charging = false;
       if (power < K.cancelCharge) { power = 0; setPower(0); return; }   // 轻点＝收力，不出杆
       strike();
     },
     onRightDown() {
-      if (mode === 'aim') releaseCue();
+      if (mode === 'aim' && mine()) releaseCue();
     },
     /** 瞄准时按方向键 = 收杆回走动（与影院"按 WASD 起身"同一套语言） */
     onMoveKey() {
-      if (mode === 'aim') releaseCue();
+      if (mode === 'aim' && mine()) releaseCue();
     },
-    /** E / 按钮：整桌重摆 */
+    /** E / 按钮：自由练台=整桌重摆；对战=开一局新的（重摆 + 规则机复位） */
     rerack() {
-      rack();
-      pottedNum = 0;
-      needRack = false;
-      setInfo();
+      if (duel) startDuel();
+      else {
+        rack();
+        pottedNum = 0;
+        needRack = false;
+        setInfo();
+      }
       sfx.play('ui', { volume: 0.5, rate: 1.2 });
     },
     /** 暂停/失焦：力度作废（松手的 mouseup 可能永远收不到） */
@@ -778,7 +994,34 @@ export function createPool({ camera, player, sfx }) {
         mode, live: balls.filter((b) => !b.potted).length, potted: pottedNum,
         score, strokes, fouls, cue: [+cue.x.toFixed(3), +cue.z.toFixed(3)],
         aimT: +aimT.toFixed(3), power: +power.toFixed(2),
+        duel, turn, phase, grp: grp.map((g) => (g ? (g === 'solid' ? 'S' : 'T') : '-')).join(''),
+        fb: foulBy.join('/'), book: pottedOrder.join(','), result,
       };
+    },
+    /** 切玩法（0=自由练台 1~3=对战难度）并重新开局：测试用，绕过按钮 */
+    debugSetDuel(v) {
+      duel = Math.max(0, Math.min(K.duel.levels.length, Number(v) || 0));
+      syncModeBtn();
+      startDuel();
+      return this.debugPool();
+    },
+    /** 把一杆结果直接喂给规则机（跳过物理，专测定组/犯规/黑八判定）
+     *  nums=落袋的球号；opt.first=母球第一个碰到的球号；opt.cue=母球洗袋 */
+    debugRuleShot(nums, opt = {}) {
+      shot = snapshotShot();
+      if (typeof opt.first === 'number') shot.first = opt.first;
+      for (const n of nums || []) {
+        const b = balls.find((x) => x.num === n);
+        if (b && !b.potted) pot(b);
+      }
+      if (opt.cue) pot(cue);
+      settleShot();
+      if (cue.potted) respotCue();   // 真实流程里母球总在"整桌停稳"时摆回，探针也照做
+      return this.debugPool();
+    },
+    /** 电脑这次的计划与所处节拍 */
+    debugBot() {
+      return { step: botStep || '-', t: +botT.toFixed(2), num: botPlan ? botPlan.num : -1, power: botPlan ? +botPlan.power.toFixed(2) : 0 };
     },
     debugGuide() {
       const g = mode === 'aim' ? drawGuide() : predict();

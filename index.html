@@ -108,9 +108,12 @@
   <div id="pool-bar" class="hidden">
     <span id="pb-info">🎱</span>
     <div id="pb-power" title="按住左键的力度"><div id="pb-fill"></div></div>
+    <button class="btn" id="pb-mode" title="切换玩法：自由练台 / 与电脑打 8 球（三档难度循环）">🧘 自由练台</button>
     <button class="btn" id="pb-rack" title="15 颗重新摆成三角（也可按 E）">🀫 重摆</button>
     <button class="btn primary" id="pb-exit" title="离开台球室，回到篮球馆">🚪 退出球室</button>
   </div>
+  <!-- 入库记录：8 球对战时挂在正上方（不能放进 #pool-bar，那层有 transform，会锁死 fixed 定位） -->
+  <div id="pb-book" class="hidden"></div>
   <!-- 放映控制台：管"看与听"（出声/播停/总音量/厅形/共享/恢复默认）；片源的增删在「⛶ 放大观看」平铺视角 -->
   <div id="cinema-console" class="hidden">
     <div class="cc-head">
