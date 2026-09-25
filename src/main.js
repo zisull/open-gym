@@ -146,7 +146,11 @@ pool.onExitRequest = exitPoolToGym;
 /** 任何"回球馆玩法"的入口前调用：硬切回球馆场景 */
 function forceGym() {
   if (playerLoc === 'cinema') cinema.exit();
-  else if (playerLoc === 'pool') pool.exit();
+  else if (playerLoc === 'pool') {
+    playerLoc = 'gym';   // 先改地点：否则 setPoolHud(false) 里"回瞄准就重锁指针"会在离场时误触发
+    setPoolHud(false);
+    pool.exit();
+  }
   else return;
   playerLoc = 'gym';
   renderPass.scene = scene;
@@ -1093,15 +1097,22 @@ try {
       const r = P();
       mark(`WALK mode=${r.mode} aimT=${r.aimT} bar=${document.getElementById('pool-bar').classList.contains('hidden') ? 0 : 1} bounds=${player.bounds.maxX.toFixed(1)}`);
     }, 5600);
-    // 退出接线：球室条那颗按钮唯一出口
+    // 退出接线：球室条那颗按钮唯一出口。
+    // 顺带盯住 Q-B 那个 bug：对战的入库条挂在 body 上（不在球室条那层里），
+    // 退出球室时不显式收就会跟着回球馆/主菜单，所以断言"退前亮、退后收"。
+    let exitFired = 0;
+    const bookShown = () => (document.getElementById('pool-book').classList.contains('hidden') ? 0 : 1);
+    setTimeout(() => { pool.debugSetDuel(1); }, 9400);
     setTimeout(() => {
       const orig = pool.onExitRequest;
-      let fired = 0;
-      pool.onExitRequest = () => { fired++; if (orig) orig(); };
+      pool.onExitRequest = () => { exitFired++; if (orig) orig(); };
+      mark(`EXIT 对战入库条=${bookShown()}`);
       document.getElementById('pool-exit').click();
       pool.onExitRequest = orig;
-      mark(`EXIT fired=${fired} rack=${document.getElementById('pool-rack') ? 1 : 0}`);
     }, 9800);
+    setTimeout(() => {
+      mark(`EXITED fired=${exitFired} 入库条=${bookShown()} loc=${GAME.location} bar=${document.getElementById('pool-bar').classList.contains('hidden') ? 0 : 1}`);
+    }, 10800);
   }
   if (demo === 'spin') {
     // 杆法回归：同一杆正打，只挪红点 —— 定杆停在接触点、高杆跟进、低杆拉回；

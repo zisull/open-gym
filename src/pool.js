@@ -30,13 +30,16 @@ const RZ = BZ + T.railW;
 /* ---------------- 袋口 / 库边段（物理与建模共用一份数据） ---------------- */
 const CM = K.pocket.cornerMouth;  // 角袋在两条库边上各留的缺口
 const SM = K.pocket.sideMouth;    // 中袋缺口
+/* r = 进袋判定半径（物理）；vis = 画在呢绒上的袋口半径（视觉）。
+   角袋的 vis 要大到把整块"库边缺口处的呢绒角"吞掉，否则那块亮绿会伸出桌身、
+   看着像一片悬浮的桌布角（真台的角袋本来就是一个大漏斗）。 */
 const POCKETS = [
-  { x: BX + 0.015, z: BZ + 0.015, r: K.pocket.r },
-  { x: -BX - 0.015, z: BZ + 0.015, r: K.pocket.r },
-  { x: BX + 0.015, z: -BZ - 0.015, r: K.pocket.r },
-  { x: -BX - 0.015, z: -BZ - 0.015, r: K.pocket.r },
-  { x: 0, z: BZ + 0.02, r: K.pocket.r * 0.94 },
-  { x: 0, z: -BZ - 0.02, r: K.pocket.r * 0.94 },
+  { x: BX + 0.015, z: BZ + 0.015, r: K.pocket.r, vis: 0.132 },
+  { x: -BX - 0.015, z: BZ + 0.015, r: K.pocket.r, vis: 0.132 },
+  { x: BX + 0.015, z: -BZ - 0.015, r: K.pocket.r, vis: 0.132 },
+  { x: -BX - 0.015, z: -BZ - 0.015, r: K.pocket.r, vis: 0.132 },
+  { x: 0, z: BZ + 0.02, r: K.pocket.r * 0.94, vis: 0.098 },
+  { x: 0, z: -BZ - 0.02, r: K.pocket.r * 0.94, vis: 0.098 },
 ];
 /** 一条库边：法线轴 n、朝向 s、切向区间 [lo,hi]（区间外即袋口通道） */
 const RAILS = [
@@ -144,16 +147,23 @@ export function createPool({ camera, player, sfx }) {
   const railMat = new THREE.MeshStandardMaterial({ color: 0x2c1b12, roughness: 0.38, metalness: 0.14, envMapIntensity: 0.8 });
   const brassMat = new THREE.MeshStandardMaterial({ color: 0xb08d4a, roughness: 0.26, metalness: 0.9, envMapIntensity: 1.1 });
 
-  // 台身：从地面一直顶到呢绒下方 2cm（顶面绝不能高过呢绒，否则会把台面整块盖掉）
-  const cabinet = new THREE.Mesh(new THREE.BoxGeometry(RX * 2 - 0.06, TH - 0.02, RZ * 2 - 0.06), woodMat);
-  cabinet.position.y = (TH - 0.02) / 2;
-  scene.add(cabinet);
+  // 台身分两段：与呢绒齐宽的「裙框」+ 四周各收 9cm 的「桌身」。
+  // 一整只落地方箱是最显厚的那种画法；收出一道阴影线，侧面立刻变薄。
+  const SKIRT = 0.13;
+  const skirt = new THREE.Mesh(new THREE.BoxGeometry(RX * 2 - 0.002, SKIRT, RZ * 2 - 0.002), woodMat);
+  skirt.position.y = TH - 0.02 - SKIRT / 2;   // 顶面绝不能高过呢绒，否则会把台面整块盖掉
+  scene.add(skirt);
+  const bodyH = TH - 0.02 - SKIRT + 0.04;     // 与裙框重叠 4cm，接缝处不透亮线
+  const body = new THREE.Mesh(new THREE.BoxGeometry(RX * 2 - 0.19, bodyH, RZ * 2 - 0.19), woodMat);
+  body.position.y = bodyH / 2;
+  scene.add(body);
   /** 呢绒：整张台面就这一个不透明面片，袋口/开球线/库边投影全画在贴图里
-   *  （台面上不再叠任何第二个共面对象 —— 从根上没有 z-fighting） */
+   *  （台面上不再叠任何第二个共面对象 —— 从根上没有 z-fighting）
+   *  比裙框小 8mm：呢绒是零厚度面片，绝不能比木头宽，否则角袋缺口处会看到绿色伸出桌身 */
   const felt = new THREE.Mesh(
-    new THREE.PlaneGeometry(RX * 2, RZ * 2),
+    new THREE.PlaneGeometry(RX * 2 - 0.008, RZ * 2 - 0.008),
     new THREE.MeshStandardMaterial({
-      map: makeFeltTexture(RX * 2, RZ * 2, T.railW, POCKETS),
+      map: makeFeltTexture(RX * 2 - 0.008, RZ * 2 - 0.008, T.railW, POCKETS),
       roughness: 0.95, metalness: 0, envMapIntensity: 0.12,
     })
   );
@@ -161,7 +171,7 @@ export function createPool({ camera, player, sfx }) {
   felt.position.y = TH;
   scene.add(felt);
   // 库边：与 RAILS 一一对应（同一段数据既用来反弹也用来建模）
-  const RAIL_H = 0.105;
+  const RAIL_H = T.railH;
   for (const rl of RAILS) {
     const len = rl.hi - rl.lo;
     const face = rl.s * (rl.n === 'x' ? BX : BZ);
@@ -169,15 +179,15 @@ export function createPool({ camera, player, sfx }) {
     const m = new THREE.Mesh(
       new THREE.BoxGeometry(rl.n === 'z' ? len : T.railW, RAIL_H, rl.n === 'x' ? len : T.railW), railMat);
     m.position.set(rl.n === 'x' ? face + rl.s * T.railW / 2 : along,
-      TH + RAIL_H / 2 - 0.02,
+      TH + RAIL_H / 2 - 0.018,
       rl.n === 'z' ? face + rl.s * T.railW / 2 : along);
     scene.add(m);
     // 库顶定位珠（现实里就是给瞄准用的参照点）
     const n = rl.n === 'z' ? 3 : 2;
     for (let i = 1; i <= n; i++) {
       const q = rl.lo + (rl.hi - rl.lo) * (i / (n + 1));
-      const d = new THREE.Mesh(new THREE.SphereGeometry(0.011, 8, 6), brassMat);
-      d.position.set(rl.n === 'x' ? face + rl.s * T.railW * 0.5 : q, TH + RAIL_H - 0.02,
+      const d = new THREE.Mesh(new THREE.SphereGeometry(0.008, 8, 6), brassMat);
+      d.position.set(rl.n === 'x' ? face + rl.s * T.railW * 0.5 : q, TH + RAIL_H - 0.018,
         rl.n === 'x' ? q : face + rl.s * T.railW * 0.5);
       scene.add(d);
     }
@@ -1006,6 +1016,9 @@ export function createPool({ camera, player, sfx }) {
       player.speed = CFG.player.speedIdle;
       setHint('');
       bar.classList.add('hidden');
+      // 入库条挂在 body 上（不在球室条那层里），不显式收就会跟着回球馆/主菜单
+      _book = null;
+      bookEl.classList.add('hidden');
     },
 
     /** 每帧（main 在 playing 且 loc==='pool' 时调用，必须在 player.update 之后） */

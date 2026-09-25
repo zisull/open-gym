@@ -22275,7 +22275,8 @@
           // 球馆侧入口（与电影院红门左右对称）
           room: { halfW: 4.9, halfL: 6.4, height: 3.1 },
           // 台面：库内沿半长/半宽按标准 9 尺台比例（2.54 x 1.27）；h 为呢绒上表面离地高度
-          table: { h: 0.82, halfL: 1.27, halfW: 0.635, railW: 0.13, frame: 0.62 },
+          // railW 是木库边顶面宽度、railH 是它高出呢绒的那截（含 1.8cm 埋进呢绒里的部分）
+          table: { h: 0.82, halfL: 1.27, halfW: 0.635, railW: 0.088, railH: 0.062 },
           ball: { r: 0.03 },
           // 袋口：r = 球心进入判定的半径（比标准略宽，休闲好进袋）；两个 mouth 是库边在袋口处留的缺口
           pocket: { r: 0.078, cornerMouth: 0.105, sideMouth: 0.088 },
@@ -29966,7 +29967,7 @@
       ctx.fill();
     }
     for (const p of pockets) {
-      const r = S(p.r);
+      const r = S(p.vis || p.r);
       const gg = ctx.createRadialGradient(X(p.x), Z(p.z), r * 0.35, X(p.x), Z(p.z), r);
       gg.addColorStop(0, "#000000");
       gg.addColorStop(0.72, "#04070a");
@@ -31896,13 +31897,18 @@
     const woodMat = new MeshStandardMaterial({ color: 3810329, roughness: 0.42, metalness: 0.12, envMapIntensity: 0.7 });
     const railMat = new MeshStandardMaterial({ color: 2890514, roughness: 0.38, metalness: 0.14, envMapIntensity: 0.8 });
     const brassMat = new MeshStandardMaterial({ color: 11570506, roughness: 0.26, metalness: 0.9, envMapIntensity: 1.1 });
-    const cabinet = new Mesh(new BoxGeometry(RX * 2 - 0.06, TH - 0.02, RZ * 2 - 0.06), woodMat);
-    cabinet.position.y = (TH - 0.02) / 2;
-    scene.add(cabinet);
+    const SKIRT = 0.13;
+    const skirt = new Mesh(new BoxGeometry(RX * 2 - 2e-3, SKIRT, RZ * 2 - 2e-3), woodMat);
+    skirt.position.y = TH - 0.02 - SKIRT / 2;
+    scene.add(skirt);
+    const bodyH = TH - 0.02 - SKIRT + 0.04;
+    const body = new Mesh(new BoxGeometry(RX * 2 - 0.19, bodyH, RZ * 2 - 0.19), woodMat);
+    body.position.y = bodyH / 2;
+    scene.add(body);
     const felt = new Mesh(
-      new PlaneGeometry(RX * 2, RZ * 2),
+      new PlaneGeometry(RX * 2 - 8e-3, RZ * 2 - 8e-3),
       new MeshStandardMaterial({
-        map: makeFeltTexture(RX * 2, RZ * 2, T.railW, POCKETS),
+        map: makeFeltTexture(RX * 2 - 8e-3, RZ * 2 - 8e-3, T.railW, POCKETS),
         roughness: 0.95,
         metalness: 0,
         envMapIntensity: 0.12
@@ -31911,7 +31917,7 @@
     felt.rotation.x = -Math.PI / 2;
     felt.position.y = TH;
     scene.add(felt);
-    const RAIL_H = 0.105;
+    const RAIL_H = T.railH;
     for (const rl of RAILS) {
       const len = rl.hi - rl.lo;
       const face = rl.s * (rl.n === "x" ? BX : BZ);
@@ -31922,17 +31928,17 @@
       );
       m.position.set(
         rl.n === "x" ? face + rl.s * T.railW / 2 : along,
-        TH + RAIL_H / 2 - 0.02,
+        TH + RAIL_H / 2 - 0.018,
         rl.n === "z" ? face + rl.s * T.railW / 2 : along
       );
       scene.add(m);
       const n = rl.n === "z" ? 3 : 2;
       for (let i = 1; i <= n; i++) {
         const q = rl.lo + (rl.hi - rl.lo) * (i / (n + 1));
-        const d = new Mesh(new SphereGeometry(0.011, 8, 6), brassMat);
+        const d = new Mesh(new SphereGeometry(8e-3, 8, 6), brassMat);
         d.position.set(
           rl.n === "x" ? face + rl.s * T.railW * 0.5 : q,
-          TH + RAIL_H - 0.02,
+          TH + RAIL_H - 0.018,
           rl.n === "x" ? q : face + rl.s * T.railW * 0.5
         );
         scene.add(d);
@@ -32831,6 +32837,8 @@
         player.speed = CFG.player.speedIdle;
         setHint("");
         bar.classList.add("hidden");
+        _book = null;
+        bookEl.classList.add("hidden");
       },
       /** 每帧（main 在 playing 且 loc==='pool' 时调用，必须在 player.update 之后） */
       update(dt) {
@@ -33111,12 +33119,12 @@
       CM = K2.pocket.cornerMouth;
       SM = K2.pocket.sideMouth;
       POCKETS = [
-        { x: BX + 0.015, z: BZ + 0.015, r: K2.pocket.r },
-        { x: -BX - 0.015, z: BZ + 0.015, r: K2.pocket.r },
-        { x: BX + 0.015, z: -BZ - 0.015, r: K2.pocket.r },
-        { x: -BX - 0.015, z: -BZ - 0.015, r: K2.pocket.r },
-        { x: 0, z: BZ + 0.02, r: K2.pocket.r * 0.94 },
-        { x: 0, z: -BZ - 0.02, r: K2.pocket.r * 0.94 }
+        { x: BX + 0.015, z: BZ + 0.015, r: K2.pocket.r, vis: 0.132 },
+        { x: -BX - 0.015, z: BZ + 0.015, r: K2.pocket.r, vis: 0.132 },
+        { x: BX + 0.015, z: -BZ - 0.015, r: K2.pocket.r, vis: 0.132 },
+        { x: -BX - 0.015, z: -BZ - 0.015, r: K2.pocket.r, vis: 0.132 },
+        { x: 0, z: BZ + 0.02, r: K2.pocket.r * 0.94, vis: 0.098 },
+        { x: 0, z: -BZ - 0.02, r: K2.pocket.r * 0.94, vis: 0.098 }
       ];
       RAILS = [
         { n: "z", s: 1, lo: -BX + CM, hi: -SM },
@@ -34140,8 +34148,11 @@
       pool.onExitRequest = exitPoolToGym;
       function forceGym() {
         if (playerLoc === "cinema") cinema.exit();
-        else if (playerLoc === "pool") pool.exit();
-        else return;
+        else if (playerLoc === "pool") {
+          playerLoc = "gym";
+          setPoolHud(false);
+          pool.exit();
+        } else return;
         playerLoc = "gym";
         renderPass.scene = scene;
         fadeEl.classList.remove("on");
@@ -35080,17 +35091,24 @@
             const r = P();
             mark(`WALK mode=${r.mode} aimT=${r.aimT} bar=${document.getElementById("pool-bar").classList.contains("hidden") ? 0 : 1} bounds=${player.bounds.maxX.toFixed(1)}`);
           }, 5600);
+          let exitFired = 0;
+          const bookShown = () => document.getElementById("pool-book").classList.contains("hidden") ? 0 : 1;
+          setTimeout(() => {
+            pool.debugSetDuel(1);
+          }, 9400);
           setTimeout(() => {
             const orig = pool.onExitRequest;
-            let fired = 0;
             pool.onExitRequest = () => {
-              fired++;
+              exitFired++;
               if (orig) orig();
             };
+            mark(`EXIT \u5BF9\u6218\u5165\u5E93\u6761=${bookShown()}`);
             document.getElementById("pool-exit").click();
             pool.onExitRequest = orig;
-            mark(`EXIT fired=${fired} rack=${document.getElementById("pool-rack") ? 1 : 0}`);
           }, 9800);
+          setTimeout(() => {
+            mark(`EXITED fired=${exitFired} \u5165\u5E93\u6761=${bookShown()} loc=${GAME.location} bar=${document.getElementById("pool-bar").classList.contains("hidden") ? 0 : 1}`);
+          }, 10800);
         }
         if (demo === "spin") {
           const parse = (s) => {

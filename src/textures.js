@@ -615,7 +615,7 @@ export function makeFeltTexture(len, wid, pad, pockets) {
   }
   // 袋口：直接画成黑洞 + 一点皮口高光，省掉六个悬浮圆片
   for (const p of pockets) {
-    const r = S(p.r);
+    const r = S(p.vis || p.r);
     const gg = ctx.createRadialGradient(X(p.x), Z(p.z), r * 0.35, X(p.x), Z(p.z), r);
     gg.addColorStop(0, '#000000');
     gg.addColorStop(0.72, '#04070a');

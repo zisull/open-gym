@@ -131,7 +131,8 @@ export const CFG = {
     gymDoor: { x: -6.0, z: 16.35, r: 1.25 }, // 球馆侧入口（与电影院红门左右对称）
     room: { halfW: 4.9, halfL: 6.4, height: 3.1 },
     // 台面：库内沿半长/半宽按标准 9 尺台比例（2.54 x 1.27）；h 为呢绒上表面离地高度
-    table: { h: 0.82, halfL: 1.27, halfW: 0.635, railW: 0.13, frame: 0.62 },
+    // railW 是木库边顶面宽度、railH 是它高出呢绒的那截（含 1.8cm 埋进呢绒里的部分）
+    table: { h: 0.82, halfL: 1.27, halfW: 0.635, railW: 0.088, railH: 0.062 },
     ball: { r: 0.03 },
     // 袋口：r = 球心进入判定的半径（比标准略宽，休闲好进袋）；两个 mouth 是库边在袋口处留的缺口
     pocket: { r: 0.078, cornerMouth: 0.105, sideMouth: 0.088 },
