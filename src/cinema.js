@@ -1,37 +1,47 @@
 /**
- * cinema.js —— 电影院场景 + 圆筒环墙放映器
- * 独立 THREE.Scene：圆筒形黑匣子影厅，环墙都是银幕。**全厅统一一个银幕高度（6.8m，近乎
- * 贴天花板）**，屏数 = 片源数（3 个就 3 块、5 个就 5 块），每块吃满自己的等分槽位弧（比自身
+ * cinema.js —— 电影院场景 + 环墙放映器（圆筒厅 / 正多边形厅两种形态）
+ * 独立 THREE.Scene：黑匣子影厅，环墙都是银幕。**全厅统一一个银幕高度（6.8m，近乎
+ * 贴天花板）**，屏数 = 片源数（3 个就 3 块、5 个就 5 块），每块吃满自己的等分槽位（比自身
  * 宽高比略宽时按 cover 等比裁剪，不拉伸变形），所以片源一多就自动铺满一整圈。中央圆形小床
  * （无围栏，视线通透），任意角度入座、按住拖拽环视、滚轮变焦，控制条可一键收起。
+ * 厅形二选一（控制台切换，存档记忆）：**圆筒** = 96 段柱面 + 弧形幕；**正多边形** = n 部片就
+ * 是 n 条直墙（3 部三角形、4 部正方形、6 部六边形），每面墙挂一块平面幕。墙的位置由**内切
+ * 半径**定：6 边以上就取 ring.r（与圆筒同距），3~5 边按 `polyK` 略微收小，免得墙比幕宽一大截。
+ * 两种厅形**都没有门**：墙是一整圈闭合的（黑匣子不漏光、整圈都能挂幕），回球场只走放映条的
+ * 「🚪 退出影院」。
  * 片源管理统一在放映控制台（抽屉）：一行一部管出声/播停/删片，底部换片单、加入、恢复默认；
  * 「放大观看」宫格只做切出声。
- * 「隐藏出口」后门洞从厅壳里缺掉的那一角被补成完整 360°，屏位随之吃满整圈，退出改点放映条
- * 的「🚪 退出影院」（此时红门不再参与射线检测，不会挡住身后的床与银幕）。
  * 「开始播放」会把当次片单名字存成历史快照（bb.cinema.playlists），控制台底部一键换回。
  * file:// 下本地相对路径视频会污染 WebGL 贴图，因此片源只允许
  * data:（video/manifest.js 内嵌短片）或 blob:（"选择视频"文件）两种同源形式。
  */
 import * as THREE from 'three';
 import { CFG } from './config.js';
-import { makeDoorSignTexture, makeScreenPlaceholderTexture, makeCarpetTexture } from './textures.js';
+import { makeScreenPlaceholderTexture, makeCarpetTexture } from './textures.js';
 
 const K = CFG.cinema;
 const R = K.ring.r;
 const H = K.ring.height;
-const GAP = (K.door.gapDeg * Math.PI) / 180; // 出口门开着时占掉的圆心角（隐藏出口后为整圈 360°）
 const DEG = Math.PI / 180;
-const DOOR_KEY = 'bb.cinema.door';
-/** 上次的「隐藏出口」选择：黑匣子模式下环墙一整圈都能挂幕 */
-function loadDoorOn() {
-  try { return localStorage.getItem(DOOR_KEY) !== '0'; } catch (e) { return true; }
+const SHAPE_KEY = 'bb.cinema.shape';
+/** 上次的厅形：round = 圆筒弧幕（默认），poly = 正多边形直墙平面幕 */
+function loadShape() {
+  try { return localStorage.getItem(SHAPE_KEY) === 'poly' ? 'poly' : 'round'; } catch (e) { return 'round'; }
 }
 /** 环上某角度处的位置（约定同 CylinderGeometry：theta=0 在 +z，x=R·sin, z=R·cos） */
 const ringAt = (a, r = R) => ({ x: Math.sin(a) * r, z: Math.cos(a) * r });
-/** 厅壳壁面：门洞开着就缺那一角，隐藏出口后是完整一圈 */
-function shellGeo(span) {
-  return new THREE.CylinderGeometry(R, R, H, 96, 1, true, (Math.PI * 2 - span) / 2, span);
+/** 正 n 边形的**外接**半径：由内切半径 ap 反推（顶点比墙面远，所以 n 越小厅越大） */
+const circumR = (n, ap) => ap / Math.cos(Math.PI / n);
+/** 厅壳：圆筒 = 96 段柱面；多边形 = 正 n 棱柱（每段面正好是一条直墙、挂一块幕）。
+ *  CylinderGeometry 的顶点角与 ringAt 同约定，所以面心天然落在 slot·(i+0.5) 上，无需对相。 */
+function shellGeo(shape, n, ap) {
+  return shape === 'poly'
+    ? new THREE.CylinderGeometry(circumR(n, ap), circumR(n, ap), H, n, 1, true)
+    : new THREE.CylinderGeometry(R, R, H, 96, 1, true);
 }
+/** 走动范围的**外层 AABB**（模块级，applyShell 只改字段不换引用，所以 player.bounds 一直指向它）：
+ *  真正的边界由 cinema.update() 按厅形做径向/按边法线夹取，这里只兜住多边形厅的角落。 */
+const ROOM_BOUNDS = { minX: -(R - 0.7), maxX: R - 0.7, minZ: -(R - 0.7), maxZ: R - 0.7 };
 
 /** 创建离屏 <video>：必须保持渲染（opacity .01 而非 display:none）才会持续解码出帧 */
 function makeVideoEl() {
@@ -49,12 +59,18 @@ export function createCinema({ camera, player, sfx }) {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x06070b);
 
-  let doorOn = loadDoorOn(); // 「隐藏出口」开关（存档记忆）
-  const spanOf = () => Math.PI * 2 - (doorOn ? GAP : 0);
+  let shape = loadShape(); // 'round' | 'poly'（存档记忆）
+  let edges = 0;           // 多边形厅的边数 = 该厅的墙数；0 表示当前是圆筒
+  /** 当前厅的"墙到轴心距离"（多边形=内切半径，圆筒=R）。边数少时按 polyK 收一点：
+   *  三角形那条边本来有 36m 长，幕最多 19m，墙会空一大片；收小半径既让幕基本铺满直墙、
+   *  又把观看距离从 10.5m 提到 IMAX 感的 7.6m。6 边以上就与圆筒同距。 */
+  const apOf = () => (edges ? R * (K.polyK[edges] || 1) : R);
+  let AP = R;
 
-  /* ================= 圆筒黑匣子（壁/顶/地三者不共面，从结构上杜绝闪烁） ========= */
+  /* ================= 黑匣子厅壳（壁/顶/地三者不共面，从结构上杜绝闪烁） =========
+     这里只按"圆筒"建一份占位几何，真实形态由 applyShell() 在第一次 rebuild() 时统一建好 */
   const wall = new THREE.Mesh(
-    shellGeo(spanOf()),
+    shellGeo('round', 3, R),
     new THREE.MeshStandardMaterial({ color: 0x14161d, roughness: 0.95, metalness: 0, side: THREE.BackSide, envMapIntensity: 0.1 })
   );
   wall.position.y = H / 2;
@@ -73,14 +89,58 @@ export function createCinema({ camera, player, sfx }) {
   carpet.rotation.x = -Math.PI / 2;
   carpet.position.y = 0.01;
   scene.add(carpet);
+  /** 地/顶/走动范围跟着厅形走：多边形取「过顶点的外接圆」，比直墙还大一圈，超出部分藏在墙后看不见。
+   *  灯带与壁灯也一起贴到当前墙面上（圆筒=一圈圆，多边形=沿着棱走的折线带）。
+   *  ROOM_BOUNDS 只是外层 AABB，真正的边界靠 update() 里按边法线做的夹取。 */
+  function applyShell() {
+    AP = apOf();
+    const rr = edges ? circumR(edges, AP) : R;
+    wall.geometry.dispose();
+    wall.geometry = shellGeo(shape, Math.max(3, edges), AP);
+    ceiling.geometry.dispose();
+    ceiling.geometry = new THREE.CircleGeometry(rr, 64);
+    carpet.geometry.dispose();
+    carpet.geometry = new THREE.CircleGeometry(rr, 64);
+    ROOM_BOUNDS.minX = -(rr - 0.7); ROOM_BOUNDS.maxX = rr - 0.7;
+    ROOM_BOUNDS.minZ = -(rr - 0.7); ROOM_BOUNDS.maxZ = rr - 0.7;
+    cove.geometry.dispose();
+    if (edges) {
+      // 折线灯带：走一圈墙面内缩 42cm 的多边形（过曲线控制点，转角自然圆过去，比硬折角好看）
+      const vr = circumR(edges, AP - 0.42);
+      const pts = [];
+      for (let e = 0; e < edges; e++) {
+        const a = e * ((Math.PI * 2) / edges);
+        pts.push(new THREE.Vector3(Math.sin(a) * vr, 0, Math.cos(a) * vr));
+      }
+      cove.geometry = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts, true), edges * 16, 0.055, 8, true);
+      cove.rotation.x = 0; // 点本身已在水平面上
+    } else {
+      cove.geometry = new THREE.TorusGeometry(R - 0.42, 0.055, 8, 96);
+      cove.rotation.x = Math.PI / 2;
+    }
+    sconces.forEach((lp, i) => {
+      const a = edges ? (i + 0.5) * ((Math.PI * 2) / edges) : SCONCE_DEG[i] * DEG;
+      const d = AP - 0.6;
+      lp.position.set(Math.sin(a) * d, H - 0.5, Math.cos(a) * d);
+    });
+  }
 
-  /* ================= 弧形银幕 ================= */
+  /* ================= 银幕（弧面 / 平面两种几何） ================= */
   const SH = K.screen.h; // 全厅唯一的银幕高度：片多片少都不缩放
-  const PR = R - 0.1;    // 银幕柱面半径（离墙留 10cm，避免与墙共面闪烁）
+  const PR = R - 0.1;    // 幕面到轴心的距离（离墙留 10cm，避免与墙共面闪烁）
   const placeholderTex = makeScreenPlaceholderTexture();
   placeholderTex.repeat.x = -1; // 从筒内壁看是镜像的，横向翻回来
   placeholderTex.offset.x = 1;
-  const PH_ARC = (SH * K.screen.defAr) / PR; // 占位图就按它自己的 16:9 取弧，永不拉伸
+  const phFlat = placeholderTex.clone(); // 平面幕从内侧看就是正像，不用翻
+  phFlat.repeat.set(1, 1);
+  phFlat.offset.set(0, 0);
+  phFlat.needsUpdate = true;
+  const isPoly = () => shape === 'poly';
+  /** 圆心角 -> 幕面实宽（多边形=该角对应的弦长，圆筒=弧长） */
+  const arcW = (arc) => (isPoly() ? 2 * AP * Math.tan(arc / 2) : arc * PR);
+  /** 目标宽度 -> 圆心角（arcW 的逆） */
+  const wArc = (w) => (isPoly() ? 2 * Math.atan(w / (2 * AP)) : w / PR);
+  const phArc = () => wArc(SH * K.screen.defAr); // 占位图按它自己的 16:9 取宽，永不拉伸
 
   /** 截一柱面：半径 radius、高 h、圆心角 theta，中心已抬到屏心高度 */
   function patchGeo(radius, h, theta) {
@@ -89,18 +149,38 @@ export function createCinema({ camera, player, sfx }) {
     g.translate(0, K.screen.cy, 0);
     return g;
   }
+  /** 一块幕的面（银幕与黑背衬共用）：圆筒切柱面片（几何自身抬到屏心高），多边形切平面板（摆位时抬） */
+  function faceGeo(arc, h, radius) {
+    return isPoly()
+      ? new THREE.PlaneGeometry(arcW(arc), h)
+      : patchGeo(radius, h, arc);
+  }
+  /** 摆正一块幕：圆筒只绕 y 转到槽位角（柱面片几何自身已抬到屏心高度）；
+   *  平面板要抬到屏心高、站到该面墙的内侧，并把法线（默认 +z）转到朝向轴心。
+   *  back=true 是黑背衬，往墙里再贴 6cm（与圆筒模式同一套间距）。 */
+  function placeFace(mesh, a, back) {
+    if (isPoly()) {
+      const d = AP - (back ? 0.04 : 0.1);
+      mesh.position.set(Math.sin(a) * d, K.screen.cy, Math.cos(a) * d);
+      mesh.rotation.y = a + Math.PI;
+    } else {
+      mesh.position.set(0, 0, 0);
+      mesh.rotation.y = a;
+    }
+  }
 
-  /** cover 适配：画面等比放大到铺满屏面，多出来的裁掉，所以永不拉伸变形。
-   *  从筒内壁看贴图是左右反的，故水平方向用负的 repeat.x + 补 offset 翻回正像。 */
-  function applyCover(tex, patchAr, srcAr) {
-    if (patchAr >= srcAr) { // 屏比画面宽 -> 裁上下
+  /** cover 适配：画面等比放大到铺满幕面，多出来的裁掉，所以永不拉伸变形。
+   *  圆筒内壁看是左右反的（flip=true 用负 repeat 翻回正像）；平面板本来就是正像。 */
+  function applyCover(tex, patchAr, srcAr, flip) {
+    const s = flip ? -1 : 1; // 水平方向的正负号
+    if (patchAr >= srcAr) { // 幕比画面宽 -> 裁上下
       const f = srcAr / patchAr;
-      tex.repeat.set(-1, f);
-      tex.offset.set(1, (1 - f) / 2);
-    } else {                // 画面比屏宽 -> 裁左右
+      tex.repeat.set(s, f);
+      tex.offset.set(flip ? 1 : 0, (1 - f) / 2);
+    } else {                // 画面比幕宽 -> 裁左右
       const f = patchAr / srcAr;
-      tex.repeat.set(-f, 1);
-      tex.offset.set((1 + f) / 2, 0);
+      tex.repeat.set(s * f, 1);
+      tex.offset.set(flip ? (1 + f) / 2 : (1 - f) / 2, 0);
     }
   }
 
@@ -139,40 +219,46 @@ export function createCinema({ camera, player, sfx }) {
 
   /** 建一块屏：src 为 null 时是永久占位空洞（比如上次用本地文件放的，重开复原不了） */
   const frameMat = new THREE.MeshStandardMaterial({ color: 0x04050a, roughness: 0.92, metalness: 0, side: THREE.BackSide });
-  function mkFrameGeo(arc) {
-    // 黑色背衬：比银幕高 16cm、靠墙 6cm，从上下缘包住画面 —— "挂了幕布"而不是"墙面发光"
-    const g = new THREE.CylinderGeometry(R - 0.04, R - 0.04, SH + 0.16, Math.max(16, Math.ceil(arc / 0.05)), 1, true, -arc / 2, arc);
-    g.translate(0, K.screen.cy, 0);
-    return g;
-  }
+  const frameMatFlat = new THREE.MeshStandardMaterial({ color: 0x04050a, roughness: 0.92, metalness: 0 }); // 平面板正面朝轴心
   function makeScreen(src, a, slot) {
+    const poly = isPoly();
     const videoEl = makeVideoEl();
     const tex = new THREE.VideoTexture(videoEl);
     tex.colorSpace = THREE.SRGBColorSpace;
     tex.minFilter = THREE.LinearFilter;
     tex.magFilter = THREE.LinearFilter;
-    const arc = Math.min(slot, PH_ARC); // 元数据到位前先按占位图的比例挂上去
-    const mat = new THREE.MeshBasicMaterial({ map: placeholderTex, color: 0xb8c2d0, side: THREE.BackSide });
-    const mesh = new THREE.Mesh(patchGeo(PR, SH, arc), mat);
-    mesh.rotation.y = a;
+    const arc = Math.min(slot, phArc()); // 元数据到位前先按占位图的比例挂上去
+    const mat = new THREE.MeshBasicMaterial({
+      map: poly ? phFlat : placeholderTex, color: 0xb8c2d0, side: poly ? THREE.FrontSide : THREE.BackSide,
+    });
+    const mesh = new THREE.Mesh(faceGeo(arc, SH, PR), mat);
+    placeFace(mesh, a, false);
     scene.add(mesh);
-    const frame = new THREE.Mesh(mkFrameGeo(arc), frameMat); // 共享材质，rebuild 只 dispose 几何
-    frame.rotation.y = a;
+    // 黑色背衬：比幕面高 16cm、往墙里再贴 6cm，从上下缘包住画面 —— "挂了幕布"而不是"墙面发光"
+    const frame = new THREE.Mesh(faceGeo(arc, SH + 0.16, R - 0.04), poly ? frameMatFlat : frameMat);
+    placeFace(frame, a, true);
     scene.add(frame);
     const s = { src, mesh, mat, tex, videoEl, slot, arc, frame };
+    /** 按当前 ar 重算幕面尺寸（元数据到位、或换厅形时调用） */
+    function reshape() {
+      const ar = src && src.ar ? src.ar : K.screen.defAr;
+      const na = Math.min(s.slot, wArc(SH * ar * (src ? K.screen.maxWide : 1)));
+      s.arc = na;
+      s.mesh.geometry.dispose();
+      s.mesh.geometry = faceGeo(na, SH, PR);
+      s.frame.geometry.dispose();
+      s.frame.geometry = faceGeo(na, SH + 0.16, R - 0.04);
+      placeFace(s.mesh, a, PR);
+      placeFace(s.frame, a, R - 0.04);
+      if (src && src.ar) applyCover(s.tex, arcW(na) / SH, ar, !isPoly());
+    }
     if (src) {
       videoEl.src = src.url;
-      // 元数据到位 -> 记下真实宽高比，把弧吃满槽位（上限 maxWide 倍）并按 cover 裁剪画面
+      // 元数据到位 -> 记下真实宽高比，把幕面吃满槽位（上限 maxWide 倍）并按 cover 裁剪画面
       videoEl.addEventListener('loadedmetadata', () => {
         src.ar = (videoEl.videoWidth || 16) / (videoEl.videoHeight || 9);
-        const na = Math.min(s.slot, ((SH * src.ar) / PR) * K.screen.maxWide);
-        s.arc = na;
-        mesh.geometry.dispose();
-        mesh.geometry = patchGeo(PR, SH, na);
-        frame.geometry.dispose();
-        frame.geometry = mkFrameGeo(na);
-        applyCover(tex, (na * PR) / SH, src.ar);
         mat.map = tex;
+        reshape();
         mat.color.setHex(0xffffff);
         mat.needsUpdate = true;
         saveLayout(); // 宽高比一并存档，下次开机不用等元数据再重排
@@ -181,7 +267,7 @@ export function createCinema({ camera, player, sfx }) {
     return s;
   }
 
-  /** 按当前片源列表重排圆环：屏数=源数，高度恒定，等分槽位吃到满 */
+  /** 按当前片源列表重排一圈：屏数=源数，高度恒定，等分槽位吃到满；多边形厅边数=屏数 */
   function rebuild() {
     for (const s of screens) {
       scene.remove(s.mesh, s.frame);
@@ -193,9 +279,10 @@ export function createCinema({ camera, player, sfx }) {
     }
     screens.length = 0;
     const n = Math.max(sources.length, 1);
-    const gap = doorOn ? GAP : 0;
-    const slot = (Math.PI * 2 - gap) / n;
-    for (let i = 0; i < n; i++) screens.push(makeScreen(sources[i] || null, gap / 2 + slot * (i + 0.5), slot));
+    edges = shape === 'poly' ? Math.max(3, n) : 0; // 1~2 部片时多边形退化成三角形（其余边是空墙）
+    applyShell();
+    const slot = (Math.PI * 2) / (edges || n);
+    for (let i = 0; i < n; i++) screens.push(makeScreen(sources[i] || null, slot * (i + 0.5), slot));
     syncVoices();
     applyAudio(); // 新建的 <video> 一律 muted，必须在这里按出声集合重新放行
     layoutBigGrid(document.body.classList.contains('big-screen'));
@@ -211,15 +298,17 @@ export function createCinema({ camera, player, sfx }) {
   scene.add(proj);
   const sconceMat = new THREE.MeshStandardMaterial({ color: 0x1a1207, emissive: 0xffb877, emissiveIntensity: 2.2 });
   // 天花凹槽灯带：一整圈暖光条，把「银幕上方的黑洞」变成有层次的顶棚（不投影，零闪烁风险）
+  // 几何与摆位由 applyShell() 按厅形重建（圆筒=圆环，多边形=沿棱的折线带）
   const cove = new THREE.Mesh(new THREE.TorusGeometry(R - 0.42, 0.055, 8, 96), sconceMat);
   cove.rotation.x = Math.PI / 2;
   cove.position.y = H - 0.28;
   scene.add(cove);
-  for (const deg of [62, 118, 242, 298]) {
-    const l = ringAt(deg * DEG, R - 0.6);
-    const lp = new THREE.PointLight(0xff9a55, 2.0, 10, 1.9); // 灯带投出的暖光，位置与灯带一致
-    lp.position.set(l.x, H - 0.5, l.z);
+  const SCONCE_DEG = [62, 118, 242, 298]; // 圆筒厅的暖光点方位（多边形厅改为沿墙心均分）
+  const sconces = [];
+  for (const deg of SCONCE_DEG) {
+    const lp = new THREE.PointLight(0xff9a55, 2.0, 10, 1.9); // 灯带投出的暖光
     scene.add(lp);
+    sconces.push(lp);
   }
 
   /* ================= 中央圆形小床（无围栏无靠背：环视零遮挡） ================= */
@@ -272,58 +361,27 @@ export function createCinema({ camera, player, sfx }) {
   scene.add(bed);
   const bedHit = bed.children[2]; // 床垫作为点击目标
 
-  /* ================= 出口门（开在 theta=0 的门洞里，走回球场） ================= */
-  const exitGroup = new THREE.Group();
-  exitGroup.position.set(0, 0, R - 0.06);
-  exitGroup.rotation.y = Math.PI; // 门脸朝厅内
-  {
-    const frame = new THREE.Mesh(
-      new THREE.BoxGeometry(1.9, 2.9, 0.1),
-      new THREE.MeshStandardMaterial({ color: 0x1c3524, roughness: 0.6, metalness: 0.3 })
-    );
-    frame.position.y = 1.45;
-    exitGroup.add(frame);
-    const slab = new THREE.Mesh(
-      new THREE.BoxGeometry(1.55, 2.6, 0.12),
-      new THREE.MeshStandardMaterial({ color: 0x2c3440, roughness: 0.7 })
-    );
-    slab.position.set(0, 1.3, 0.04);
-    exitGroup.add(slab);
-    const signTex = makeDoorSignTexture('出 口', '→ 篮球馆');
-    const sign = new THREE.Mesh(
-      new THREE.PlaneGeometry(1.9, 0.48),
-      new THREE.MeshStandardMaterial({ map: signTex, emissiveMap: signTex, emissive: 0xffffff, emissiveIntensity: 1.0 })
-    );
-    sign.position.set(0, 3.15, 0.1);
-    exitGroup.add(sign);
-  }
-  scene.add(exitGroup);
-  const exitHit = exitGroup.children[1]; // 门板本体作为点击目标
-  exitGroup.visible = doorOn;
-
-  /**
-   * 隐藏/显示出口门。隐藏后：门洞补成整圈墙（黑匣子不漏光），银幕从「缺 14° 的一圈」
-   * 变成「完整 360° 一圈」，观看沉浸感更好；此时退出厅只能走放映条上的「⏏ 退出放映厅」。
-   */
-  function setDoor(on) {
-    doorOn = !!on;
-    try { localStorage.setItem(DOOR_KEY, doorOn ? '1' : '0'); } catch (e) { /* 存不了不影响放映 */ }
-    wall.geometry.dispose();
-    wall.geometry = shellGeo(spanOf());
-    exitGroup.visible = doorOn;
-    rebuild(); // 可用弧变了，屏位要重排
-    renderDoorBtn();
-    setStatus(doorOn
-      ? '🚪 出口门已恢复：走到门口或点放映条都能回球场'
-      : '🚪 出口已隐藏：整圈墙都是银幕，回球场点放映条「⏏ 退出放映厅」');
+  /* ================= 厅形切换（圆筒弧幕 / 正多边形直墙平面幕） =================
+     厅里**没有门**：墙是一整圈闭合的黑匣子，整圈都能挂幕，回球场走放映条「🚪 退出影院」。
+     多边形厅按「片数 = 边数」长：3 部三角形、4 部正方形、6 部六边形；1~2 部时退化成三角形，
+     多出来的边就是空墙。内切半径固定为 ring.r，所以几种厅形下座位到幕的距离完全一样。 */
+  function setShape(toPoly) {
+    shape = toPoly ? 'poly' : 'round';
+    try { localStorage.setItem(SHAPE_KEY, shape); } catch (e) { /* 存不了不影响放映 */ }
+    rebuild(); // 边数/幕面类型/厅壳全变，整厅重排最省事
+    renderShapeBtn();
+    setStatus(shape === 'poly'
+      ? `⬡ 多边形厅：${edges} 部片 = ${edges} 面直墙 · 幕距 ${AP.toFixed(1)}m · ${edges >= 5 ? '每面墙基本铺满' : '边少墙宽，幕居中挂一块'}`
+      : '◯ 圆筒厅：环墙弧幕');
     sfx.play('ui', { volume: 0.4 });
   }
-  function renderDoorBtn() {
-    const b = $('cb-door');
+  function renderShapeBtn() {
+    const b = $('cb-shape');
     if (!b) return;
-    b.textContent = doorOn ? '🚪 隐藏出口' : '🚪 恢复出口';
-    b.classList.toggle('on', !doorOn);
-    b.title = doorOn ? '收起门洞：整圈墙都能挂幕，退出改走放映条按钮' : '把出口门亮回来：走到门口自动回球场';
+    const poly = shape === 'poly';
+    b.textContent = poly ? '⬡ 多边形厅' : '◯ 圆筒厅';
+    b.classList.toggle('on', poly);
+    b.title = poly ? '换回圆筒厅：环墙弧幕，任意片数都铺满一圈' : '改成正多边形厅：几部片就几条直墙（3 部三角形、4 部正方形、6 部六边形）';
   }
 
   /* ================= 片源列表与持久化 =================
@@ -343,17 +401,21 @@ export function createCinema({ camera, player, sfx }) {
 
   function saveLayout() {
     try {
-      localStorage.setItem(STORE_KEY, JSON.stringify(
-        sources.map((s) => (s ? { n: s.name, k: s.local ? 1 : 0, a: s.ar ? +s.ar.toFixed(3) : undefined } : null))
-      ));
+      const rec = [];
+      for (const s of sources) {
+        if (!s) { rec.push(null); continue; } // 空洞要留位（环上排布才复现得出来）
+        rec.push({ n: s.name, k: s.local ? 1 : 0, a: s.ar ? +s.ar.toFixed(3) : undefined });
+      }
+      localStorage.setItem(STORE_KEY, JSON.stringify(rec));
     } catch (e) { /* 无痕模式下存不了，不影响放映 */ }
   }
 
   const defaultSources = () => LIB.slice(0, K.maxScreens).map((it) => ({ name: it.name, url: it.url }));
 
-  /** 释放本地临时片源的 blob URL（换片单/删片时调用，防内存泄漏） */
+  /** 释放一次性片源：本地文件要收回 blob URL */
   function disposeSource(src) {
-    if (src && src.local) { try { URL.revokeObjectURL(src.url); } catch (e) { /* noop */ } }
+    if (!src) return;
+    if (src.local) { try { URL.revokeObjectURL(src.url); } catch (e) { /* noop */ } }
   }
 
   function loadSources() {
@@ -452,7 +514,7 @@ export function createCinema({ camera, player, sfx }) {
   } catch (e) { /* 无痕模式读不到就用默认值 */ }
   rebuild();
   refreshStatus();
-  renderDoorBtn(); // 「隐藏出口」的按钮态要和存档一致
+  renderShapeBtn(); // 厅形按钮的文案/高亮要和存档一致
 
   function syncPlayBtn() {
     playBtn.textContent = screens.some((o) => o.src && !o.videoEl.paused) ? '⏸ 暂停' : '▶ 播放';
@@ -642,7 +704,7 @@ export function createCinema({ camera, player, sfx }) {
   });
   $('cb-stand').addEventListener('click', () => stand());
   $('cb-exit').addEventListener('click', () => { if (api.onExitRequest) api.onExitRequest(); });
-  $('cb-door').addEventListener('click', () => setDoor(!doorOn));
+  $('cb-shape').addEventListener('click', () => setShape(shape === 'round'));
   $('cb-reset').addEventListener('click', () => {
     const old = sources;
     sources = defaultSources();
@@ -699,7 +761,6 @@ export function createCinema({ camera, player, sfx }) {
   /* ================= 入座 / 走动 ================= */
   let seated = false;
   let hoverBed = false;
-  let hoverExit = false;
   let hoverScreen = -1;
   const raycaster = new THREE.Raycaster();
   const _ndc = new THREE.Vector2();
@@ -710,8 +771,7 @@ export function createCinema({ camera, player, sfx }) {
     minZ: CFG.gym.playerMinZ, maxZ: CFG.gym.playerMaxZ,
   };
   const GYM_BLOCKERS = [{ x: 0, z: CFG.hoop.boardFaceZ - 0.95, r: 0.9 }];
-  // 圆筒用方形 AABB 只能兜住内接正方形，所以再在 update() 里做一次径向夹取
-  const ROOM_BOUNDS = { minX: -(R - 0.7), maxX: R - 0.7, minZ: -(R - 0.7), maxZ: R - 0.7 };
+  // 圆筒/多边形共用同一份外层 AABB（applyShell 会按外接半径改字段），细节夹取在 update() 里做
   const BED_BLOCKER = [{ x: K.bed.x, z: K.bed.z, r: K.bed.r + 0.1 }];
 
   /* ---- 床上滚轮变焦：只调相机 fov，起身/回球场立刻复原 ---- */
@@ -787,11 +847,12 @@ export function createCinema({ camera, player, sfx }) {
   const api = {
     scene,
     get seated() { return seated; },
-    get doorVisible() { return doorOn; },
+    get shape() { return shape; },
+    get edges() { return edges; },
     onExitRequest: null,
 
     enter() {
-      player.pos.set(0, 0, R - 2.6); // 刚进门，站在出口门内侧
+      player.pos.set(0, 0, AP - 2.6); // 从球场进来，落在靠墙那一侧的槽位前（厅里没有门，墙是闭合的）
       player.vel.set(0, 0, 0);
       player.bounds = ROOM_BOUNDS;
       player.blockers = BED_BLOCKER;
@@ -805,8 +866,7 @@ export function createCinema({ camera, player, sfx }) {
       applyZoom();
       canvasLock();                 // 走动状态锁指针（与球馆一致）
       if (!sources.some(Boolean)) { sources = loadSources(); rebuild(); refreshStatus(); }
-      setHint('<b>左键</b> 点屏幕切换出声 · 靠近圆床 <b>左键</b> 入座 · '
-        + (doorOn ? '走向 <b>出口门</b> 回球场' : '出口已隐藏，点放映条 <b>⏏ 退出放映厅</b> 回球场'));
+      setHint('<b>左键</b> 点屏幕切换出声 · 靠近圆床 <b>左键</b> 入座 · 回球场点放映条 <b>🚪 退出影院</b>');
     },
     exit() {
       stand();
@@ -822,28 +882,30 @@ export function createCinema({ camera, player, sfx }) {
     /** 每帧（main 在 playing 且 loc==='cinema' 时调用；player.update 之后） */
     update(dt) {
       if (seated) return;
-      // 径向夹取：方形 AABB 兜不住圆筒，靠这一步把玩家拉回半径内
-      const rr = R - 0.75;
-      const d = Math.hypot(player.pos.x - K.bed.x, player.pos.z - K.bed.z);
-      if (d > rr) {
-        const k = rr / d;
-        player.pos.x = K.bed.x + (player.pos.x - K.bed.x) * k;
-        player.pos.z = K.bed.z + (player.pos.z - K.bed.z) * k;
+      // 方形 AABB 兜不住圆/多边形，靠这一步把玩家夹回厅内：圆筒按半径，多边形按每条边的法线距离
+      const lim = AP - 0.75;
+      const px = player.pos.x - K.bed.x, pz = player.pos.z - K.bed.z;
+      if (edges) {
+        let k = 1;
+        for (let e = 0; e < edges; e++) {
+          const a = (e + 0.5) * ((Math.PI * 2) / edges);
+          const d = px * Math.sin(a) + pz * Math.cos(a);
+          if (d > 0.01) k = Math.min(k, lim / d);
+        }
+        if (k < 1) { player.pos.x = K.bed.x + px * k; player.pos.z = K.bed.z + pz * k; }
+      } else {
+        const d = Math.hypot(px, pz);
+        if (d > lim) { player.pos.x = K.bed.x + px * (lim / d); player.pos.z = K.bed.z + pz * (lim / d); }
       }
-      // 准星射线：圆床 / 出口门（隐藏出口时不参与，免得挡住身后的幕）/ 环上所有银幕
+      // 准星射线：圆床 + 环上所有幕（厅里没门，少一个目标也少一次"隐形物挡射线"的坑）
       raycaster.setFromCamera({ x: 0, y: 0 }, camera);
-      const targets = [bedHit, ...(doorOn ? [exitHit] : []), ...screens.map((s) => s.mesh)];
-      const hits = raycaster.intersectObjects(targets, false);
-      const hit = hits.find((h) => h.distance < 20) || null;
+      const hits = raycaster.intersectObjects([bedHit, ...screens.map((s) => s.mesh)], false);
+      const hit = hits.find((h) => h.distance < 24) || null;
       hoverBed = !!hit && hit.object === bedHit;
-      hoverExit = doorOn && !!hit && hit.object === exitHit;
       hoverScreen = hit ? screens.findIndex((s) => s.mesh === hit.object) : -1;
-      const dp = ringAt(0, R);
-      if (doorOn && Math.hypot(player.pos.x - dp.x, player.pos.z - dp.z) < K.door.trigR && api.onExitRequest) api.onExitRequest();
-      const dBed = Math.hypot(player.pos.x - K.bed.x, player.pos.z - K.bed.z);
+      const dBed = Math.hypot(px, pz);
       const nearBed = hoverBed || dBed < K.bed.r + 0.6;
       setHint(nearBed ? '<b>左键</b> 在圆床上入座（任意朝向）'
-        : hoverExit ? '<b>左键</b> 或走过去：返回篮球馆'
         : hoverScreen >= 0 && screens[hoverScreen].src ? '<b>左键</b> 播放/暂停 · 切换该屏声音' : '');
     },
 
@@ -855,7 +917,6 @@ export function createCinema({ camera, player, sfx }) {
       const onBed = ray.intersectsSphere(sph) ||
         Math.hypot(player.pos.x - K.bed.x, player.pos.z - K.bed.z) < K.bed.r + 0.6;
       if (onBed) { sit(); return; }
-      if (hoverExit) { if (api.onExitRequest) api.onExitRequest(); return; }
       if (hoverScreen >= 0) tapScreen(hoverScreen);
     },
     onRightDown() {
@@ -890,12 +951,18 @@ export function createCinema({ camera, player, sfx }) {
       rebuild();
       refreshStatus();
     },
-    /** 无头验证用：当前环上每块屏的几何（高度 / 槽位圆心角 / 实占弧 / 宽高比 / 是否有片源） */
+    /** 无头验证用：当前厅壳形态（厅形 / 多边形边数 / 外接半径 / 走动 AABB） */
+    debugHall() {
+      return { shape, edges, ap: +AP.toFixed(2), rc: +(edges ? circumR(edges, AP) : R).toFixed(2), bound: +ROOM_BOUNDS.maxX.toFixed(2) };
+    },
+    /** 无头验证用：环上每块幕的几何（高度 / 槽位圆心角 / 实占圆心角 / 幕面实宽 / 宽高比 / 是否有片源）
+     *  两种厅形都用「圆心角」表达，所以弧幕和直墙平面幕可以直接用同一组断言比。 */
     debugRing() {
       return screens.map((s, i) => ({
         h: SH,
-        slotDeg: +((s.slot / DEG) % 360).toFixed(1),
-        arcDeg: +((s.arc / DEG)).toFixed(1),
+        slotDeg: +(s.slot / DEG).toFixed(1),
+        arcDeg: +(s.arc / DEG).toFixed(1),
+        w: +arcW(s.arc).toFixed(2),
         ar: +(s.src?.ar ? s.src.ar.toFixed(2) : 0),
         src: s.src ? 1 : 0,
         voice: voices.has(i) ? 1 : 0,

@@ -669,38 +669,51 @@ try {
       const back = document.getElementById('cinema-bar').classList.contains('hidden') ? 0 : 1;
       mark(`BAR hide=${hidden} console=${cc} ghost=${ghost} back=${back}`);
     }, 8000);
-    // 隐藏出口：门洞补成整圈墙，银幕槽位从 346°/n 变成 360°/n（slotDeg 就是这件事的证据）
+    // 厅形切换：切到正多边形（2 部片 = 三角形，边数下限 3），幕面从柱面片变平面板。
+    // ap=内切半径（3~5 边按 polyK 收小）、rc=外接半径、bound=走动 AABB 半宽都要跟着厅形走。
     setTimeout(() => {
       document.getElementById('cb-console').click();
-      document.getElementById('cb-door').click();
+      document.getElementById('cb-shape').click();
     }, 8800);
     setTimeout(() => {
       const r = cinema.debugRing();
-      mark(`DOOR hidden=${cinema.doorVisible ? 0 : 1} slot0=${r[0] ? r[0].slotDeg : '-'} sum=${r.reduce((a, x) => a + x.slotDeg, 0).toFixed(1)}`);
+      const hall = cinema.debugHall();
+      mark(`POLY shape=${hall.shape} edges=${hall.edges} ap=${hall.ap} rc=${hall.rc} bound=${hall.bound}`
+        + ` slot0=${r[0] ? r[0].slotDeg : '-'} w0=${r[0] ? r[0].w : '-'} sum=${r.reduce((a, x) => a + x.slotDeg, 0).toFixed(1)}`);
     }, 9600);
+    // 换回圆筒：槽位重新等分整圈（2 块屏 = 180°+180°），弧幕回归
+    setTimeout(() => { document.getElementById('cb-shape').click(); }, 10100);
+    setTimeout(() => {
+      const r = cinema.debugRing();
+      const hall = cinema.debugHall();
+      mark(`ROUND shape=${hall.shape} edges=${hall.edges} ap=${hall.ap} rc=${hall.rc}`
+        + ` slot0=${r[0] ? r[0].slotDeg : '-'} w0=${r[0] ? r[0].w : '-'} sum=${r.reduce((a, x) => a + x.slotDeg, 0).toFixed(1)}`);
+    }, 10800);
     // 片单快照：开始播放（换/加片）各记一次，点旧 chip 整条换回
     setTimeout(() => {
       const chips = document.querySelectorAll('#cc-hist .cc-chip');
       mark(`HIST n=${cinema.debugLists().length} parts=${cinema.debugLists().map((p) => p.n).join('/')} chips=${chips.length} rows=${document.querySelectorAll('#cc-list .ccrow').length}`);
       if (chips.length > 1) chips[1].click();
-    }, 10400);
+    }, 11400);
     setTimeout(() => {
       mark(`BACK rows=${document.querySelectorAll('#cc-list .ccrow').length} btv=${document.querySelectorAll('.btv').length} voice=${cinema.debugRing().map((r) => r.voice).join('')}`);
-    }, 11400);
-    // 放映条「🚪 退出影院」：只验接线（转场有淡入淡出，不靠无头帧序）
+    }, 12400);
+    // 放映条「🚪 退出影院」：厅里没有门了，这是唯一出口 —— 只验接线（转场有淡入淡出，不靠无头帧序）
     setTimeout(() => {
       const orig = cinema.onExitRequest;
       let fired = 0;
       cinema.onExitRequest = () => { fired++; if (orig) orig(); };
       document.getElementById('cb-exit').click();
-      mark(`EXIT fired=${fired}`);
+      mark(`EXIT fired=${fired} door=${document.getElementById('cb-door') ? 1 : 0}`);
       cinema.onExitRequest = orig;
-    }, 12200);
+    }, 13200);
   }
   if (demo === 'ring') {
     // 视觉验证「等高 + 铺满一整圈」：导入 ?n= 部假片（blob 解码不了 -> 银幕停在占位卡上，
-    // 画面看得见弧度），入座正对环墙，肉眼即可检查有无空隙/有无高低不齐
+    // 画面看得见形状），入座正对墙，肉眼即可检查有无空隙/有无高低不齐；&shape=poly 顺便切到
+    // 正多边形厅（n 部片 = n 条直墙）
     const cnt = Math.max(1, Number(params.get('n')) || 5);
+    const poly = params.get('shape') === 'poly';
     setTimeout(() => {
       const inp = document.getElementById('cb-file-in');
       const files = Array.from({ length: cnt }, (_, i) => new File([new Blob(['x'], { type: 'video/mp4' })], `demo-${i}.mp4`, { type: 'video/mp4' }));
@@ -709,23 +722,29 @@ try {
       player.pos.set(0, 0, CFG.cinema.bed.z + 1.6);
       player.freeYaw = 0; player.yaw = 0;
       cinema.onLeftDown();
+      if (poly) document.getElementById('cb-shape').click();
     }, 2600);
     setTimeout(() => {
-      mark(`RING n=${cnt} arc=${cinema.debugRing().map((r) => r.arcDeg).join('/')} sum=${cinema.debugRing().reduce((a, r) => a + r.arcDeg, 0).toFixed(1)}`);
+      const r = cinema.debugRing();
+      const hall = cinema.debugHall();
+      mark(`RING n=${cnt} shape=${hall.shape} edges=${hall.edges} rc=${hall.rc}`
+        + ` w=${r.map((x) => x.w).join('/')} arc=${r.map((x) => x.arcDeg).join('/')} sum=${r.reduce((a, x) => a + x.slotDeg, 0).toFixed(1)}`);
     }, 3600);
   }
   if (demo === 'exit') {
-    // 出口门：把玩家挪到门洞口（θ=0 的 +z 侧）并手动推帧（无头 rAF 被限流，靠自然
-    // 帧序赶不上断言时刻）。进厅转场的 fadeTo 有 fading 互斥，故多推几次直到真的转回去。
+    // 厅里已经没有出口门：站在墙边推帧也不该自动传送回去（防残留触发逻辑），
+    // 退出只认放映条那颗「🚪 退出影院」。手动推帧是因为无头 rAF 被限流赶不上断言时刻。
     const step = () => {
       if (GAME.location !== 'cinema') return;
-      player.pos.set(0, 0, CFG.cinema.ring.r - 0.9);
+      player.pos.set(0, 0, cinema.debugHall().ap - 0.3); // 贴到幕后的墙面上
       cinema.update(0.016);
     };
-    setTimeout(() => { step(); mark(`door d=${Math.hypot(player.pos.x, player.pos.z - CFG.cinema.ring.r).toFixed(2)} loc=${GAME.location}`); }, 2400);
-    setTimeout(step, 3000);
-    setTimeout(step, 3600);
-    setTimeout(() => mark(`done loc=${GAME.location} pos=${player.pos.x.toFixed(1)},${player.pos.z.toFixed(1)}`), 4600);
+    // 入场转场比这批定时器晚落地，所以先连着贴墙推 20 帧再断言（覆盖两种厅形都成立）
+    if (params.get('shape') === 'poly') setTimeout(() => document.getElementById('cb-shape').click(), 1500);
+    for (let i = 0; i < 20; i++) setTimeout(step, 1600 + i * 200);
+    setTimeout(() => mark(`nowalk loc=${GAME.location}`), 5800);
+    setTimeout(() => { mark(`pre=${GAME.location}`); document.getElementById('cb-exit').click(); }, 6400);
+    setTimeout(() => mark(`done loc=${GAME.location} pos=${player.pos.x.toFixed(1)},${player.pos.z.toFixed(1)}`), 7800);
   }
   if (demo === 'pause') {
     // 断言：解锁回调的守卫条件（历史上误用过 window.location，恒 false）。

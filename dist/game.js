@@ -22052,12 +22052,10 @@
         cinema: {
           // 球馆侧入口门：玩家走进该圆区域自动传送进影厅
           gymDoor: { x: 6, z: 16.35, r: 1.25 },
-          // 圆筒影厅。角度约定与 THREE.CylinderGeometry 完全一致：
+          // 影厅。角度约定与 THREE.CylinderGeometry 完全一致：
           // theta = 0 在 +z 方向，x = R·sin(theta)，z = R·cos(theta)，俯视逆时针递增
+          // 厅里**没有出口门**（墙是一整圈闭合的黑匣子），回球场走放映条按钮
           ring: { r: 10.5, height: 7 },
-          // 出口门开在 theta = 0（+z）处；gapDeg 是门洞占的圆心角，银幕只在剩下的弧上排布，
-          // trigR 为"走到门口就自动传送回去"的判定半径
-          door: { gapDeg: 14, trigR: 1.3 },
           // 弧形银幕：**全厅只有一个高度 h，永不随片数缩放**（屏多就裁画面两侧，屏少就裁上下，
           // 绝不拉伸变形）。每块屏尽量吃满自己的等分槽位弧，最宽只到「按自身宽高比排」的
           // maxWide 倍（再宽画面就废了），剩下的才留给墙，所以片源够多就一定铺满一整圈。
@@ -22066,6 +22064,9 @@
           screen: { h: 6.8, cy: 3.5, maxWide: 1.6, defAr: 16 / 9 },
           maxScreens: 12,
           // 环形排布屏数上限（再多每块就太挤了）
+          // 多边形厅的内切半径系数（键 = 边数，缺省 1 = 与圆筒同距）：
+          // 三/四边形的墙本来就比一块 16:9 幕宽得多，收小半径让幕基本铺满直墙、观看距离也更 IMAX
+          polyK: { 3: 0.72, 4: 0.86, 5: 0.95 },
           // 在床上的滚轮变焦：fov 从相机默认值线性拉到 min（越大越贴近画面）
           zoom: { min: 30, step: 0.07 },
           // 中央圆形小床（无围栏无靠背，视线全程通透）：sitR 为就坐时距心半径，eyeSit 为落座视高，
@@ -30050,15 +30051,15 @@
   });
 
   // src/cinema.js
-  function loadDoorOn() {
+  function loadShape() {
     try {
-      return localStorage.getItem(DOOR_KEY) !== "0";
+      return localStorage.getItem(SHAPE_KEY) === "poly" ? "poly" : "round";
     } catch (e) {
-      return true;
+      return "round";
     }
   }
-  function shellGeo(span) {
-    return new CylinderGeometry(R, R, H, 96, 1, true, (Math.PI * 2 - span) / 2, span);
+  function shellGeo(shape, n, ap) {
+    return shape === "poly" ? new CylinderGeometry(circumR(n, ap), circumR(n, ap), H, n, 1, true) : new CylinderGeometry(R, R, H, 96, 1, true);
   }
   function makeVideoEl() {
     const v = document.createElement("video");
@@ -30073,10 +30074,12 @@
   function createCinema({ camera, player, sfx }) {
     const scene = new Scene();
     scene.background = new Color(395019);
-    let doorOn = loadDoorOn();
-    const spanOf = () => Math.PI * 2 - (doorOn ? GAP : 0);
+    let shape = loadShape();
+    let edges = 0;
+    const apOf = () => edges ? R * (K.polyK[edges] || 1) : R;
+    let AP = R;
     const wall = new Mesh(
-      shellGeo(spanOf()),
+      shellGeo("round", 3, R),
       new MeshStandardMaterial({ color: 1316381, roughness: 0.95, metalness: 0, side: BackSide, envMapIntensity: 0.1 })
     );
     wall.position.y = H / 2;
@@ -30095,27 +30098,81 @@
     carpet.rotation.x = -Math.PI / 2;
     carpet.position.y = 0.01;
     scene.add(carpet);
+    function applyShell() {
+      AP = apOf();
+      const rr = edges ? circumR(edges, AP) : R;
+      wall.geometry.dispose();
+      wall.geometry = shellGeo(shape, Math.max(3, edges), AP);
+      ceiling.geometry.dispose();
+      ceiling.geometry = new CircleGeometry(rr, 64);
+      carpet.geometry.dispose();
+      carpet.geometry = new CircleGeometry(rr, 64);
+      ROOM_BOUNDS.minX = -(rr - 0.7);
+      ROOM_BOUNDS.maxX = rr - 0.7;
+      ROOM_BOUNDS.minZ = -(rr - 0.7);
+      ROOM_BOUNDS.maxZ = rr - 0.7;
+      cove.geometry.dispose();
+      if (edges) {
+        const vr = circumR(edges, AP - 0.42);
+        const pts = [];
+        for (let e = 0; e < edges; e++) {
+          const a2 = e * (Math.PI * 2 / edges);
+          pts.push(new Vector3(Math.sin(a2) * vr, 0, Math.cos(a2) * vr));
+        }
+        cove.geometry = new TubeGeometry(new CatmullRomCurve3(pts, true), edges * 16, 0.055, 8, true);
+        cove.rotation.x = 0;
+      } else {
+        cove.geometry = new TorusGeometry(R - 0.42, 0.055, 8, 96);
+        cove.rotation.x = Math.PI / 2;
+      }
+      sconces.forEach((lp, i) => {
+        const a2 = edges ? (i + 0.5) * (Math.PI * 2 / edges) : SCONCE_DEG[i] * DEG;
+        const d = AP - 0.6;
+        lp.position.set(Math.sin(a2) * d, H - 0.5, Math.cos(a2) * d);
+      });
+    }
     const SH = K.screen.h;
     const PR = R - 0.1;
     const placeholderTex = makeScreenPlaceholderTexture();
     placeholderTex.repeat.x = -1;
     placeholderTex.offset.x = 1;
-    const PH_ARC = SH * K.screen.defAr / PR;
+    const phFlat = placeholderTex.clone();
+    phFlat.repeat.set(1, 1);
+    phFlat.offset.set(0, 0);
+    phFlat.needsUpdate = true;
+    const isPoly = () => shape === "poly";
+    const arcW = (arc) => isPoly() ? 2 * AP * Math.tan(arc / 2) : arc * PR;
+    const wArc = (w) => isPoly() ? 2 * Math.atan(w / (2 * AP)) : w / PR;
+    const phArc = () => wArc(SH * K.screen.defAr);
     function patchGeo(radius, h, theta) {
       const seg = Math.max(8, Math.ceil(theta / 0.045));
       const g = new CylinderGeometry(radius, radius, h, seg, 1, true, -theta / 2, theta);
       g.translate(0, K.screen.cy, 0);
       return g;
     }
-    function applyCover(tex, patchAr, srcAr) {
+    function faceGeo(arc, h, radius) {
+      return isPoly() ? new PlaneGeometry(arcW(arc), h) : patchGeo(radius, h, arc);
+    }
+    function placeFace(mesh, a2, back) {
+      if (isPoly()) {
+        const d = AP - (back ? 0.04 : 0.1);
+        mesh.position.set(Math.sin(a2) * d, K.screen.cy, Math.cos(a2) * d);
+        mesh.rotation.y = a2 + Math.PI;
+      } else {
+        mesh.position.set(0, 0, 0);
+        mesh.rotation.y = a2;
+      }
+    }
+    function applyCover(tex, patchAr, srcAr, flip) {
+      const s = flip ? -1 : 1;
       if (patchAr >= srcAr) {
         const f = srcAr / patchAr;
-        tex.repeat.set(-1, f);
-        tex.offset.set(1, (1 - f) / 2);
+        tex.repeat.set(s, f);
+        tex.offset.set(flip ? 1 : 0, (1 - f) / 2);
       } else {
         const f = patchAr / srcAr;
-        tex.repeat.set(-f, 1);
-        tex.offset.set((1 + f) / 2, 0);
+        tex.repeat.set(s * f, 1);
+        tex.offset.set(flip ? (1 + f) / 2 : (1 - f) / 2, 0);
       }
     }
     const screens = [];
@@ -30149,38 +30206,45 @@
       }
     }
     const frameMat = new MeshStandardMaterial({ color: 263434, roughness: 0.92, metalness: 0, side: BackSide });
-    function mkFrameGeo(arc) {
-      const g = new CylinderGeometry(R - 0.04, R - 0.04, SH + 0.16, Math.max(16, Math.ceil(arc / 0.05)), 1, true, -arc / 2, arc);
-      g.translate(0, K.screen.cy, 0);
-      return g;
-    }
+    const frameMatFlat = new MeshStandardMaterial({ color: 263434, roughness: 0.92, metalness: 0 });
     function makeScreen(src, a2, slot) {
+      const poly = isPoly();
       const videoEl = makeVideoEl();
       const tex = new VideoTexture(videoEl);
       tex.colorSpace = SRGBColorSpace;
       tex.minFilter = LinearFilter;
       tex.magFilter = LinearFilter;
-      const arc = Math.min(slot, PH_ARC);
-      const mat = new MeshBasicMaterial({ map: placeholderTex, color: 12108496, side: BackSide });
-      const mesh = new Mesh(patchGeo(PR, SH, arc), mat);
-      mesh.rotation.y = a2;
+      const arc = Math.min(slot, phArc());
+      const mat = new MeshBasicMaterial({
+        map: poly ? phFlat : placeholderTex,
+        color: 12108496,
+        side: poly ? FrontSide : BackSide
+      });
+      const mesh = new Mesh(faceGeo(arc, SH, PR), mat);
+      placeFace(mesh, a2, false);
       scene.add(mesh);
-      const frame = new Mesh(mkFrameGeo(arc), frameMat);
-      frame.rotation.y = a2;
+      const frame = new Mesh(faceGeo(arc, SH + 0.16, R - 0.04), poly ? frameMatFlat : frameMat);
+      placeFace(frame, a2, true);
       scene.add(frame);
       const s = { src, mesh, mat, tex, videoEl, slot, arc, frame };
+      function reshape() {
+        const ar = src && src.ar ? src.ar : K.screen.defAr;
+        const na = Math.min(s.slot, wArc(SH * ar * (src ? K.screen.maxWide : 1)));
+        s.arc = na;
+        s.mesh.geometry.dispose();
+        s.mesh.geometry = faceGeo(na, SH, PR);
+        s.frame.geometry.dispose();
+        s.frame.geometry = faceGeo(na, SH + 0.16, R - 0.04);
+        placeFace(s.mesh, a2, PR);
+        placeFace(s.frame, a2, R - 0.04);
+        if (src && src.ar) applyCover(s.tex, arcW(na) / SH, ar, !isPoly());
+      }
       if (src) {
         videoEl.src = src.url;
         videoEl.addEventListener("loadedmetadata", () => {
           src.ar = (videoEl.videoWidth || 16) / (videoEl.videoHeight || 9);
-          const na = Math.min(s.slot, SH * src.ar / PR * K.screen.maxWide);
-          s.arc = na;
-          mesh.geometry.dispose();
-          mesh.geometry = patchGeo(PR, SH, na);
-          frame.geometry.dispose();
-          frame.geometry = mkFrameGeo(na);
-          applyCover(tex, na * PR / SH, src.ar);
           mat.map = tex;
+          reshape();
           mat.color.setHex(16777215);
           mat.needsUpdate = true;
           saveLayout();
@@ -30199,9 +30263,10 @@
       }
       screens.length = 0;
       const n = Math.max(sources.length, 1);
-      const gap = doorOn ? GAP : 0;
-      const slot = (Math.PI * 2 - gap) / n;
-      for (let i = 0; i < n; i++) screens.push(makeScreen(sources[i] || null, gap / 2 + slot * (i + 0.5), slot));
+      edges = shape === "poly" ? Math.max(3, n) : 0;
+      applyShell();
+      const slot = Math.PI * 2 / (edges || n);
+      for (let i = 0; i < n; i++) screens.push(makeScreen(sources[i] || null, slot * (i + 0.5), slot));
       syncVoices();
       applyAudio();
       layoutBigGrid(document.body.classList.contains("big-screen"));
@@ -30217,11 +30282,12 @@
     cove.rotation.x = Math.PI / 2;
     cove.position.y = H - 0.28;
     scene.add(cove);
-    for (const deg of [62, 118, 242, 298]) {
-      const l = ringAt(deg * DEG, R - 0.6);
+    const SCONCE_DEG = [62, 118, 242, 298];
+    const sconces = [];
+    for (const deg of SCONCE_DEG) {
       const lp = new PointLight(16751189, 2, 10, 1.9);
-      lp.position.set(l.x, H - 0.5, l.z);
       scene.add(lp);
+      sconces.push(lp);
     }
     const bed = new Group();
     bed.position.set(K.bed.x, 0, K.bed.z);
@@ -30276,53 +30342,24 @@
     }
     scene.add(bed);
     const bedHit = bed.children[2];
-    const exitGroup = new Group();
-    exitGroup.position.set(0, 0, R - 0.06);
-    exitGroup.rotation.y = Math.PI;
-    {
-      const frame = new Mesh(
-        new BoxGeometry(1.9, 2.9, 0.1),
-        new MeshStandardMaterial({ color: 1848612, roughness: 0.6, metalness: 0.3 })
-      );
-      frame.position.y = 1.45;
-      exitGroup.add(frame);
-      const slab = new Mesh(
-        new BoxGeometry(1.55, 2.6, 0.12),
-        new MeshStandardMaterial({ color: 2896960, roughness: 0.7 })
-      );
-      slab.position.set(0, 1.3, 0.04);
-      exitGroup.add(slab);
-      const signTex = makeDoorSignTexture("\u51FA \u53E3", "\u2192 \u7BEE\u7403\u9986");
-      const sign = new Mesh(
-        new PlaneGeometry(1.9, 0.48),
-        new MeshStandardMaterial({ map: signTex, emissiveMap: signTex, emissive: 16777215, emissiveIntensity: 1 })
-      );
-      sign.position.set(0, 3.15, 0.1);
-      exitGroup.add(sign);
-    }
-    scene.add(exitGroup);
-    const exitHit = exitGroup.children[1];
-    exitGroup.visible = doorOn;
-    function setDoor(on) {
-      doorOn = !!on;
+    function setShape(toPoly) {
+      shape = toPoly ? "poly" : "round";
       try {
-        localStorage.setItem(DOOR_KEY, doorOn ? "1" : "0");
+        localStorage.setItem(SHAPE_KEY, shape);
       } catch (e) {
       }
-      wall.geometry.dispose();
-      wall.geometry = shellGeo(spanOf());
-      exitGroup.visible = doorOn;
       rebuild();
-      renderDoorBtn();
-      setStatus(doorOn ? "\u{1F6AA} \u51FA\u53E3\u95E8\u5DF2\u6062\u590D\uFF1A\u8D70\u5230\u95E8\u53E3\u6216\u70B9\u653E\u6620\u6761\u90FD\u80FD\u56DE\u7403\u573A" : "\u{1F6AA} \u51FA\u53E3\u5DF2\u9690\u85CF\uFF1A\u6574\u5708\u5899\u90FD\u662F\u94F6\u5E55\uFF0C\u56DE\u7403\u573A\u70B9\u653E\u6620\u6761\u300C\u23CF \u9000\u51FA\u653E\u6620\u5385\u300D");
+      renderShapeBtn();
+      setStatus(shape === "poly" ? `\u2B21 \u591A\u8FB9\u5F62\u5385\uFF1A${edges} \u90E8\u7247 = ${edges} \u9762\u76F4\u5899 \xB7 \u5E55\u8DDD ${AP.toFixed(1)}m \xB7 ${edges >= 5 ? "\u6BCF\u9762\u5899\u57FA\u672C\u94FA\u6EE1" : "\u8FB9\u5C11\u5899\u5BBD\uFF0C\u5E55\u5C45\u4E2D\u6302\u4E00\u5757"}` : "\u25EF \u5706\u7B52\u5385\uFF1A\u73AF\u5899\u5F27\u5E55");
       sfx.play("ui", { volume: 0.4 });
     }
-    function renderDoorBtn() {
-      const b2 = $2("cb-door");
+    function renderShapeBtn() {
+      const b2 = $2("cb-shape");
       if (!b2) return;
-      b2.textContent = doorOn ? "\u{1F6AA} \u9690\u85CF\u51FA\u53E3" : "\u{1F6AA} \u6062\u590D\u51FA\u53E3";
-      b2.classList.toggle("on", !doorOn);
-      b2.title = doorOn ? "\u6536\u8D77\u95E8\u6D1E\uFF1A\u6574\u5708\u5899\u90FD\u80FD\u6302\u5E55\uFF0C\u9000\u51FA\u6539\u8D70\u653E\u6620\u6761\u6309\u94AE" : "\u628A\u51FA\u53E3\u95E8\u4EAE\u56DE\u6765\uFF1A\u8D70\u5230\u95E8\u53E3\u81EA\u52A8\u56DE\u7403\u573A";
+      const poly = shape === "poly";
+      b2.textContent = poly ? "\u2B21 \u591A\u8FB9\u5F62\u5385" : "\u25EF \u5706\u7B52\u5385";
+      b2.classList.toggle("on", poly);
+      b2.title = poly ? "\u6362\u56DE\u5706\u7B52\u5385\uFF1A\u73AF\u5899\u5F27\u5E55\uFF0C\u4EFB\u610F\u7247\u6570\u90FD\u94FA\u6EE1\u4E00\u5708" : "\u6539\u6210\u6B63\u591A\u8FB9\u5F62\u5385\uFF1A\u51E0\u90E8\u7247\u5C31\u51E0\u6761\u76F4\u5899\uFF083 \u90E8\u4E09\u89D2\u5F62\u30014 \u90E8\u6B63\u65B9\u5F62\u30016 \u90E8\u516D\u8FB9\u5F62\uFF09";
     }
     const LIB = window.BB_VIDEOS || [];
     const STORE_KEY = "bb.cinema.screens";
@@ -30336,15 +30373,22 @@
     }
     function saveLayout() {
       try {
-        localStorage.setItem(STORE_KEY, JSON.stringify(
-          sources.map((s) => s ? { n: s.name, k: s.local ? 1 : 0, a: s.ar ? +s.ar.toFixed(3) : void 0 } : null)
-        ));
+        const rec = [];
+        for (const s of sources) {
+          if (!s) {
+            rec.push(null);
+            continue;
+          }
+          rec.push({ n: s.name, k: s.local ? 1 : 0, a: s.ar ? +s.ar.toFixed(3) : void 0 });
+        }
+        localStorage.setItem(STORE_KEY, JSON.stringify(rec));
       } catch (e) {
       }
     }
     const defaultSources = () => LIB.slice(0, K.maxScreens).map((it) => ({ name: it.name, url: it.url }));
     function disposeSource(src) {
-      if (src && src.local) {
+      if (!src) return;
+      if (src.local) {
         try {
           URL.revokeObjectURL(src.url);
         } catch (e) {
@@ -30445,7 +30489,7 @@
     }
     rebuild();
     refreshStatus();
-    renderDoorBtn();
+    renderShapeBtn();
     function syncPlayBtn() {
       playBtn.textContent = screens.some((o) => o.src && !o.videoEl.paused) ? "\u23F8 \u6682\u505C" : "\u25B6 \u64AD\u653E";
     }
@@ -30633,7 +30677,7 @@
     $2("cb-exit").addEventListener("click", () => {
       if (api.onExitRequest) api.onExitRequest();
     });
-    $2("cb-door").addEventListener("click", () => setDoor(!doorOn));
+    $2("cb-shape").addEventListener("click", () => setShape(shape === "round"));
     $2("cb-reset").addEventListener("click", () => {
       const old = sources;
       sources = defaultSources();
@@ -30679,7 +30723,6 @@
     });
     let seated = false;
     let hoverBed = false;
-    let hoverExit = false;
     let hoverScreen = -1;
     const raycaster = new Raycaster();
     const _ndc = new Vector2();
@@ -30691,7 +30734,6 @@
       maxZ: CFG.gym.playerMaxZ
     };
     const GYM_BLOCKERS = [{ x: 0, z: CFG.hoop.boardFaceZ - 0.95, r: 0.9 }];
-    const ROOM_BOUNDS = { minX: -(R - 0.7), maxX: R - 0.7, minZ: -(R - 0.7), maxZ: R - 0.7 };
     const BED_BLOCKER = [{ x: K.bed.x, z: K.bed.z, r: K.bed.r + 0.1 }];
     const fovBase = camera.fov;
     let zoomT = 0;
@@ -30764,12 +30806,15 @@
       get seated() {
         return seated;
       },
-      get doorVisible() {
-        return doorOn;
+      get shape() {
+        return shape;
+      },
+      get edges() {
+        return edges;
       },
       onExitRequest: null,
       enter() {
-        player.pos.set(0, 0, R - 2.6);
+        player.pos.set(0, 0, AP - 2.6);
         player.vel.set(0, 0, 0);
         player.bounds = ROOM_BOUNDS;
         player.blockers = BED_BLOCKER;
@@ -30787,7 +30832,7 @@
           rebuild();
           refreshStatus();
         }
-        setHint("<b>\u5DE6\u952E</b> \u70B9\u5C4F\u5E55\u5207\u6362\u51FA\u58F0 \xB7 \u9760\u8FD1\u5706\u5E8A <b>\u5DE6\u952E</b> \u5165\u5EA7 \xB7 " + (doorOn ? "\u8D70\u5411 <b>\u51FA\u53E3\u95E8</b> \u56DE\u7403\u573A" : "\u51FA\u53E3\u5DF2\u9690\u85CF\uFF0C\u70B9\u653E\u6620\u6761 <b>\u23CF \u9000\u51FA\u653E\u6620\u5385</b> \u56DE\u7403\u573A"));
+        setHint("<b>\u5DE6\u952E</b> \u70B9\u5C4F\u5E55\u5207\u6362\u51FA\u58F0 \xB7 \u9760\u8FD1\u5706\u5E8A <b>\u5DE6\u952E</b> \u5165\u5EA7 \xB7 \u56DE\u7403\u573A\u70B9\u653E\u6620\u6761 <b>\u{1F6AA} \u9000\u51FA\u5F71\u9662</b>");
       },
       exit() {
         stand();
@@ -30802,25 +30847,34 @@
       /** 每帧（main 在 playing 且 loc==='cinema' 时调用；player.update 之后） */
       update(dt) {
         if (seated) return;
-        const rr = R - 0.75;
-        const d = Math.hypot(player.pos.x - K.bed.x, player.pos.z - K.bed.z);
-        if (d > rr) {
-          const k = rr / d;
-          player.pos.x = K.bed.x + (player.pos.x - K.bed.x) * k;
-          player.pos.z = K.bed.z + (player.pos.z - K.bed.z) * k;
+        const lim = AP - 0.75;
+        const px2 = player.pos.x - K.bed.x, pz2 = player.pos.z - K.bed.z;
+        if (edges) {
+          let k = 1;
+          for (let e = 0; e < edges; e++) {
+            const a2 = (e + 0.5) * (Math.PI * 2 / edges);
+            const d = px2 * Math.sin(a2) + pz2 * Math.cos(a2);
+            if (d > 0.01) k = Math.min(k, lim / d);
+          }
+          if (k < 1) {
+            player.pos.x = K.bed.x + px2 * k;
+            player.pos.z = K.bed.z + pz2 * k;
+          }
+        } else {
+          const d = Math.hypot(px2, pz2);
+          if (d > lim) {
+            player.pos.x = K.bed.x + px2 * (lim / d);
+            player.pos.z = K.bed.z + pz2 * (lim / d);
+          }
         }
         raycaster.setFromCamera({ x: 0, y: 0 }, camera);
-        const targets = [bedHit, ...doorOn ? [exitHit] : [], ...screens.map((s) => s.mesh)];
-        const hits = raycaster.intersectObjects(targets, false);
-        const hit = hits.find((h) => h.distance < 20) || null;
+        const hits = raycaster.intersectObjects([bedHit, ...screens.map((s) => s.mesh)], false);
+        const hit = hits.find((h) => h.distance < 24) || null;
         hoverBed = !!hit && hit.object === bedHit;
-        hoverExit = doorOn && !!hit && hit.object === exitHit;
         hoverScreen = hit ? screens.findIndex((s) => s.mesh === hit.object) : -1;
-        const dp = ringAt(0, R);
-        if (doorOn && Math.hypot(player.pos.x - dp.x, player.pos.z - dp.z) < K.door.trigR && api.onExitRequest) api.onExitRequest();
-        const dBed = Math.hypot(player.pos.x - K.bed.x, player.pos.z - K.bed.z);
+        const dBed = Math.hypot(px2, pz2);
         const nearBed = hoverBed || dBed < K.bed.r + 0.6;
-        setHint(nearBed ? "<b>\u5DE6\u952E</b> \u5728\u5706\u5E8A\u4E0A\u5165\u5EA7\uFF08\u4EFB\u610F\u671D\u5411\uFF09" : hoverExit ? "<b>\u5DE6\u952E</b> \u6216\u8D70\u8FC7\u53BB\uFF1A\u8FD4\u56DE\u7BEE\u7403\u9986" : hoverScreen >= 0 && screens[hoverScreen].src ? "<b>\u5DE6\u952E</b> \u64AD\u653E/\u6682\u505C \xB7 \u5207\u6362\u8BE5\u5C4F\u58F0\u97F3" : "");
+        setHint(nearBed ? "<b>\u5DE6\u952E</b> \u5728\u5706\u5E8A\u4E0A\u5165\u5EA7\uFF08\u4EFB\u610F\u671D\u5411\uFF09" : hoverScreen >= 0 && screens[hoverScreen].src ? "<b>\u5DE6\u952E</b> \u64AD\u653E/\u6682\u505C \xB7 \u5207\u6362\u8BE5\u5C4F\u58F0\u97F3" : "");
       },
       onLeftDown() {
         if (seated) return;
@@ -30829,10 +30883,6 @@
         const onBed = ray.intersectsSphere(sph) || Math.hypot(player.pos.x - K.bed.x, player.pos.z - K.bed.z) < K.bed.r + 0.6;
         if (onBed) {
           sit();
-          return;
-        }
-        if (hoverExit) {
-          if (api.onExitRequest) api.onExitRequest();
           return;
         }
         if (hoverScreen >= 0) tapScreen(hoverScreen);
@@ -30869,12 +30919,18 @@
         rebuild();
         refreshStatus();
       },
-      /** 无头验证用：当前环上每块屏的几何（高度 / 槽位圆心角 / 实占弧 / 宽高比 / 是否有片源） */
+      /** 无头验证用：当前厅壳形态（厅形 / 多边形边数 / 外接半径 / 走动 AABB） */
+      debugHall() {
+        return { shape, edges, ap: +AP.toFixed(2), rc: +(edges ? circumR(edges, AP) : R).toFixed(2), bound: +ROOM_BOUNDS.maxX.toFixed(2) };
+      },
+      /** 无头验证用：环上每块幕的几何（高度 / 槽位圆心角 / 实占圆心角 / 幕面实宽 / 宽高比 / 是否有片源）
+       *  两种厅形都用「圆心角」表达，所以弧幕和直墙平面幕可以直接用同一组断言比。 */
       debugRing() {
         return screens.map((s, i) => ({
           h: SH,
-          slotDeg: +(s.slot / DEG % 360).toFixed(1),
+          slotDeg: +(s.slot / DEG).toFixed(1),
           arcDeg: +(s.arc / DEG).toFixed(1),
+          w: +arcW(s.arc).toFixed(2),
           ar: +(s.src?.ar ? s.src.ar.toFixed(2) : 0),
           src: s.src ? 1 : 0,
           voice: voices.has(i) ? 1 : 0
@@ -30895,7 +30951,7 @@
     };
     return api;
   }
-  var K, R, H, GAP, DEG, DOOR_KEY, ringAt;
+  var K, R, H, DEG, SHAPE_KEY, circumR, ROOM_BOUNDS;
   var init_cinema = __esm({
     "src/cinema.js"() {
       init_three_module();
@@ -30904,10 +30960,10 @@
       K = CFG.cinema;
       R = K.ring.r;
       H = K.ring.height;
-      GAP = K.door.gapDeg * Math.PI / 180;
       DEG = Math.PI / 180;
-      DOOR_KEY = "bb.cinema.door";
-      ringAt = (a2, r = R) => ({ x: Math.sin(a2) * r, z: Math.cos(a2) * r });
+      SHAPE_KEY = "bb.cinema.shape";
+      circumR = (n, ap) => ap / Math.cos(Math.PI / n);
+      ROOM_BOUNDS = { minX: -(R - 0.7), maxX: R - 0.7, minZ: -(R - 0.7), maxZ: R - 0.7 };
     }
   });
 
@@ -32726,20 +32782,29 @@
           }, 8e3);
           setTimeout(() => {
             document.getElementById("cb-console").click();
-            document.getElementById("cb-door").click();
+            document.getElementById("cb-shape").click();
           }, 8800);
           setTimeout(() => {
             const r = cinema.debugRing();
-            mark(`DOOR hidden=${cinema.doorVisible ? 0 : 1} slot0=${r[0] ? r[0].slotDeg : "-"} sum=${r.reduce((a2, x) => a2 + x.slotDeg, 0).toFixed(1)}`);
+            const hall = cinema.debugHall();
+            mark(`POLY shape=${hall.shape} edges=${hall.edges} ap=${hall.ap} rc=${hall.rc} bound=${hall.bound} slot0=${r[0] ? r[0].slotDeg : "-"} w0=${r[0] ? r[0].w : "-"} sum=${r.reduce((a2, x) => a2 + x.slotDeg, 0).toFixed(1)}`);
           }, 9600);
+          setTimeout(() => {
+            document.getElementById("cb-shape").click();
+          }, 10100);
+          setTimeout(() => {
+            const r = cinema.debugRing();
+            const hall = cinema.debugHall();
+            mark(`ROUND shape=${hall.shape} edges=${hall.edges} ap=${hall.ap} rc=${hall.rc} slot0=${r[0] ? r[0].slotDeg : "-"} w0=${r[0] ? r[0].w : "-"} sum=${r.reduce((a2, x) => a2 + x.slotDeg, 0).toFixed(1)}`);
+          }, 10800);
           setTimeout(() => {
             const chips = document.querySelectorAll("#cc-hist .cc-chip");
             mark(`HIST n=${cinema.debugLists().length} parts=${cinema.debugLists().map((p) => p.n).join("/")} chips=${chips.length} rows=${document.querySelectorAll("#cc-list .ccrow").length}`);
             if (chips.length > 1) chips[1].click();
-          }, 10400);
+          }, 11400);
           setTimeout(() => {
             mark(`BACK rows=${document.querySelectorAll("#cc-list .ccrow").length} btv=${document.querySelectorAll(".btv").length} voice=${cinema.debugRing().map((r) => r.voice).join("")}`);
-          }, 11400);
+          }, 12400);
           setTimeout(() => {
             const orig = cinema.onExitRequest;
             let fired = 0;
@@ -32748,12 +32813,13 @@
               if (orig) orig();
             };
             document.getElementById("cb-exit").click();
-            mark(`EXIT fired=${fired}`);
+            mark(`EXIT fired=${fired} door=${document.getElementById("cb-door") ? 1 : 0}`);
             cinema.onExitRequest = orig;
-          }, 12200);
+          }, 13200);
         }
         if (demo === "ring") {
           const cnt = Math.max(1, Number(params.get("n")) || 5);
+          const poly = params.get("shape") === "poly";
           setTimeout(() => {
             const inp = document.getElementById("cb-file-in");
             const files = Array.from({ length: cnt }, (_, i) => new File([new Blob(["x"], { type: "video/mp4" })], `demo-${i}.mp4`, { type: "video/mp4" }));
@@ -32763,24 +32829,28 @@
             player.freeYaw = 0;
             player.yaw = 0;
             cinema.onLeftDown();
+            if (poly) document.getElementById("cb-shape").click();
           }, 2600);
           setTimeout(() => {
-            mark(`RING n=${cnt} arc=${cinema.debugRing().map((r) => r.arcDeg).join("/")} sum=${cinema.debugRing().reduce((a2, r) => a2 + r.arcDeg, 0).toFixed(1)}`);
+            const r = cinema.debugRing();
+            const hall = cinema.debugHall();
+            mark(`RING n=${cnt} shape=${hall.shape} edges=${hall.edges} rc=${hall.rc} w=${r.map((x) => x.w).join("/")} arc=${r.map((x) => x.arcDeg).join("/")} sum=${r.reduce((a2, x) => a2 + x.slotDeg, 0).toFixed(1)}`);
           }, 3600);
         }
         if (demo === "exit") {
           const step = () => {
             if (GAME.location !== "cinema") return;
-            player.pos.set(0, 0, CFG.cinema.ring.r - 0.9);
+            player.pos.set(0, 0, cinema.debugHall().ap - 0.3);
             cinema.update(0.016);
           };
+          if (params.get("shape") === "poly") setTimeout(() => document.getElementById("cb-shape").click(), 1500);
+          for (let i = 0; i < 20; i++) setTimeout(step, 1600 + i * 200);
+          setTimeout(() => mark(`nowalk loc=${GAME.location}`), 5800);
           setTimeout(() => {
-            step();
-            mark(`door d=${Math.hypot(player.pos.x, player.pos.z - CFG.cinema.ring.r).toFixed(2)} loc=${GAME.location}`);
-          }, 2400);
-          setTimeout(step, 3e3);
-          setTimeout(step, 3600);
-          setTimeout(() => mark(`done loc=${GAME.location} pos=${player.pos.x.toFixed(1)},${player.pos.z.toFixed(1)}`), 4600);
+            mark(`pre=${GAME.location}`);
+            document.getElementById("cb-exit").click();
+          }, 6400);
+          setTimeout(() => mark(`done loc=${GAME.location} pos=${player.pos.x.toFixed(1)},${player.pos.z.toFixed(1)}`), 7800);
         }
         if (demo === "pause") {
           setTimeout(() => {

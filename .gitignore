@@ -18,3 +18,6 @@ video/*.webm
 video/*.mov
 video/*.avi
 video/*.mkv
+
+# 无头验证用临时浏览器 profile（每次跑完即删）
+.profile-*/
