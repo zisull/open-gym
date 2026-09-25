@@ -49,7 +49,7 @@ export const CFG = {
     brake: 8.5,          // 松开方向键后的滑行减速速率（比旧写法多一小段缓冲）
     airControl: 0.45,    // 空中操控权重：跳起后保留动量，又能微调落点
     jumpSpeed: 4.4,      // 起跳初速（apex≈0.99m，滞空≈0.9s）
-    gravity: 9.82,
+    gravity: 9.82,        // 世界重力（物理世界 + 抛体反解 + 玩家起跳都读这一个）
     sens: 0.0023,        // 鼠标灵敏度（弧度/像素）
     lookDamping: 16,     // 视角阻尼（指数趋近系数，越大越跟手）
     pickupRange: 1.9,    // 拾球距离
@@ -138,8 +138,9 @@ export const CFG = {
     // 台面物理（2D）：滚阻 = decel + drag*速度（慢球靠常数项刹住、快球多耗在空气/呢绒上），
     // 库边恢复/切向摩擦、球-球恢复、静止阈值、子步数、单杆最长解算时间
     // 杆法（旋球）：follow = 高低杆在第一次吃球后沿出杆线补的速度比例（负值即拉杆回退），
-    // cush = 加塞在吃库时给切向的推量，decay = 每秒旋量衰减（走远了自己就"没转"了）
-    phys: { decel: 0.95, drag: 0.35, cushionRest: 0.72, cushionFric: 0.965, ballRest: 0.96, stop: 0.02, sub: 8, maxTime: 9, follow: 0.62, cush: 0.30, decay: 1.15 },
+    // cush = 加塞在吃库时给切向的推量，swFlip = 塞在吃库后的翻边比例（负号即左右互换、能量损耗），
+    // decay = 每秒旋量衰减（走远了自己就"没转"了）
+    phys: { decel: 0.95, drag: 0.35, cushionRest: 0.72, cushionFric: 0.965, ballRest: 0.96, stop: 0.02, sub: 8, maxTime: 9, follow: 0.62, cush: 0.30, swFlip: -0.55, decay: 1.15 },
     speed: [0.6, 6.6],    // 出杆初速区间（力度 0 → 1）
     chargeTime: 1.0,      // 蓄力 0→1 用时（秒）
     cancelCharge: 0.05,   // 低于此力度视为收杆，不出手

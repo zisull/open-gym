@@ -22163,6 +22163,7 @@
           jumpSpeed: 4.4,
           // 起跳初速（apex≈0.99m，滞空≈0.9s）
           gravity: 9.82,
+          // 世界重力（物理世界 + 抛体反解 + 玩家起跳都读这一个）
           sens: 23e-4,
           // 鼠标灵敏度（弧度/像素）
           lookDamping: 16,
@@ -22281,8 +22282,9 @@
           // 台面物理（2D）：滚阻 = decel + drag*速度（慢球靠常数项刹住、快球多耗在空气/呢绒上），
           // 库边恢复/切向摩擦、球-球恢复、静止阈值、子步数、单杆最长解算时间
           // 杆法（旋球）：follow = 高低杆在第一次吃球后沿出杆线补的速度比例（负值即拉杆回退），
-          // cush = 加塞在吃库时给切向的推量，decay = 每秒旋量衰减（走远了自己就"没转"了）
-          phys: { decel: 0.95, drag: 0.35, cushionRest: 0.72, cushionFric: 0.965, ballRest: 0.96, stop: 0.02, sub: 8, maxTime: 9, follow: 0.62, cush: 0.3, decay: 1.15 },
+          // cush = 加塞在吃库时给切向的推量，swFlip = 塞在吃库后的翻边比例（负号即左右互换、能量损耗），
+          // decay = 每秒旋量衰减（走远了自己就"没转"了）
+          phys: { decel: 0.95, drag: 0.35, cushionRest: 0.72, cushionFric: 0.965, ballRest: 0.96, stop: 0.02, sub: 8, maxTime: 9, follow: 0.62, cush: 0.3, swFlip: -0.55, decay: 1.15 },
           speed: [0.6, 6.6],
           // 出杆初速区间（力度 0 → 1）
           chargeTime: 1,
@@ -29287,7 +29289,7 @@
 
   // src/physics.js
   function createPhysics() {
-    const world = new World({ gravity: new Vec3(0, -9.82, 0) });
+    const world = new World({ gravity: new Vec3(0, -CFG.player.gravity, 0) });
     world.broadphase = new SAPBroadphase(world);
     world.defaultContactMaterial.friction = 0.3;
     world.defaultContactMaterial.restitution = 0.3;
@@ -30419,6 +30421,196 @@
     }
   });
 
+  // src/ui.js
+  function lockPointer(el = $("gl")) {
+    try {
+      const p = el.requestPointerLock?.();
+      if (p && p.catch) p.catch(() => {
+      });
+    } catch (e) {
+    }
+  }
+  var $, UI;
+  var init_ui = __esm({
+    "src/ui.js"() {
+      init_config();
+      $ = (id) => document.getElementById(id);
+      UI = class {
+        constructor() {
+          this.el = {
+            hud: $("hud"),
+            cross: $("crosshair"),
+            mode: $("hud-mode"),
+            score: $("hud-score"),
+            best: $("hud-best"),
+            sub: $("hud-sub"),
+            timerBox: $("hud-timer"),
+            timerText: $("timer-text"),
+            timerFill: $("timer-fill"),
+            chipS: $("chip-s"),
+            comboS: $("combo-s"),
+            mulS: $("mul-s"),
+            prompt: $("hud-prompt"),
+            popup: $("score-popup"),
+            pbar: $("power-bar"),
+            pFill: $("power-fill"),
+            pSweet: $("power-sweet"),
+            menu: $("menu"),
+            pause: $("pause"),
+            result: $("result"),
+            badgeNew: $("badge-new"),
+            resTitle: $("res-title"),
+            resScore: $("res-score"),
+            resScoreLabel: $("res-score-label"),
+            resLines: $("res-lines"),
+            resShare: $("res-share"),
+            recFree: $("rec-free"),
+            recShot: $("rec-shot"),
+            setShadow: $("set-shadow"),
+            setVolume: $("set-volume"),
+            pauseShadow: $("pause-shadow")
+          };
+          this._lastComboS = -1;
+          this._prompt = "";
+          this._lastScore = -1;
+          this._lastBest = -1;
+          this._lastSub = "";
+          this._lastTimer = -1;
+          this._bindButtons();
+        }
+        /** 回调注入（由 main.js 装配） */
+        bindCallbacks(cb2) {
+          this.cb = cb2;
+        }
+        _bindButtons() {
+          document.querySelectorAll("#mode-cards .card").forEach((card) => {
+            card.addEventListener("click", () => {
+              card.blur();
+              this.cb.onModeSelect?.(card.dataset.mode);
+            });
+          });
+          $("btn-resume").addEventListener("click", () => this.cb.onResume?.());
+          $("btn-restart").addEventListener("click", () => this.cb.onRestart?.());
+          $("btn-finish").addEventListener("click", () => this.cb.onFinishFree?.());
+          $("btn-quit").addEventListener("click", () => this.cb.onQuit?.());
+          $("btn-again").addEventListener("click", () => this.cb.onAgain?.());
+          $("btn-menu").addEventListener("click", () => this.cb.onQuit?.());
+          this.el.setShadow.addEventListener("change", () => this.cb.onShadow?.(this.el.setShadow.checked));
+          this.el.pauseShadow.addEventListener("change", () => this.cb.onShadow?.(this.el.pauseShadow.checked));
+          this.el.setVolume.addEventListener("input", () => this.cb.onVolume?.(Number(this.el.setVolume.value)));
+        }
+        /* ---------- 主菜单 ---------- */
+        showMenu(records) {
+          this.el.menu.classList.remove("hidden");
+          this.el.hud.classList.add("hidden");
+          this.el.cross.classList.add("hidden");
+          this.el.result.classList.add("hidden");
+          this.el.pause.classList.add("hidden");
+          this.el.recFree.textContent = records.free;
+          this.el.recShot.textContent = records.shot;
+        }
+        hideMenu() {
+          this.el.menu.classList.add("hidden");
+        }
+        showHud(modeName, timed) {
+          this.hideMenu();
+          this.el.hud.classList.remove("hidden");
+          this.el.cross.classList.remove("hidden");
+          this.el.mode.textContent = modeName;
+          this.el.timerBox.classList.toggle("hidden", !timed);
+        }
+        showPause(show) {
+          this.el.pause.classList.toggle("hidden", !show);
+        }
+        /* ---------- 数值面板（脏检查：避免逐帧写 DOM） ---------- */
+        setScore(score, best, subText) {
+          if (score !== this._lastScore) {
+            this.el.score.textContent = score;
+            this._lastScore = score;
+          }
+          if (best !== this._lastBest) {
+            this.el.best.textContent = best;
+            this._lastBest = best;
+          }
+          if (subText !== this._lastSub) {
+            this.el.sub.textContent = subText || "";
+            this._lastSub = subText;
+          }
+        }
+        setCombos(cs, mulS) {
+          if (cs !== this._lastComboS) {
+            this.el.comboS.textContent = cs;
+            this.el.mulS.textContent = `\xD7${mulS}`;
+            this.el.chipS.classList.remove("pulse");
+            void this.el.chipS.offsetWidth;
+            if (cs > 0) this.el.chipS.classList.add("pulse");
+            this._lastComboS = cs;
+          }
+        }
+        setTimer(secondsLeft, frac, urgent) {
+          const sec = Math.ceil(secondsLeft);
+          if (sec !== this._lastTimer) {
+            this._lastTimer = sec;
+            this.el.timerText.textContent = sec;
+            this.el.timerText.classList.toggle("urgent", urgent);
+          }
+          this.el.timerFill.style.width = `${frac * 100}%`;
+        }
+        setPrompt(html, kind) {
+          if (this._prompt === html) return;
+          this._prompt = html;
+          this.el.prompt.innerHTML = html;
+          this.el.prompt.classList.toggle("pump", kind === "pump");
+        }
+        /* ---------- 中央飘字 ---------- */
+        showScorePopup(points, label, combo) {
+          const el = this.el.popup;
+          el.innerHTML = (points > 0 ? `+${points}` : "") + (label ? `<small>${label}</small>` : "");
+          el.classList.toggle("bad", points === 0 && !!label);
+          el.classList.remove("show");
+          void el.offsetWidth;
+          el.classList.add("show");
+        }
+        /* ---------- 投篮力度条 ---------- */
+        showPowerBar(show) {
+          this.el.pbar.classList.toggle("hidden", !show);
+        }
+        updatePowerBar(charge, sweetP) {
+          this.el.pFill.style.height = `${charge * 100}%`;
+          this.el.pbar.classList.toggle("maxed", charge >= 0.999);
+          if (sweetP == null) {
+            this.el.pSweet.style.display = "none";
+          } else {
+            const half = CFG.shot.sweetHalf;
+            this.el.pSweet.style.display = "";
+            this.el.pSweet.style.bottom = `${Math.max(0, sweetP - half) * 100}%`;
+            this.el.pSweet.style.height = `${Math.min(100, half * 2 * 100)}%`;
+          }
+        }
+        /* ---------- 结算弹窗 ---------- */
+        showResult({ modeName, scoreLabel, score, best, prevBest, isNew, stats }) {
+          this.el.result.classList.remove("hidden");
+          this.el.resTitle.textContent = `${modeName} \xB7 \u7ED3\u7B97`;
+          this.el.resScore.textContent = score;
+          this.el.resScoreLabel.textContent = scoreLabel;
+          this.el.badgeNew.classList.toggle("hidden", !isNew);
+          let html = `<div class="${isNew ? "rec-row" : ""}">\u{1F3C6} \u5386\u53F2\u6700\u9AD8\uFF1A<b>${best}</b>${isNew ? "\uFF08\u5237\u65B0\u7EAA\u5F55\uFF01\uFF09" : ""}</div>`;
+          html += stats.map((s) => `<div>${s}</div>`).join("");
+          this.el.resLines.innerHTML = html;
+          this.el.resShare.textContent = "\u{1F4F8} \u622A\u56FE\u5206\u4EAB\u7ED9\u597D\u53CB\uFF0C\u6BD4\u62FC\u4F60\u7684\u5206\u6570\uFF01";
+          this.el.resShare.classList.remove("hidden");
+        }
+        hideResult() {
+          this.el.result.classList.add("hidden");
+        }
+        setShadowChecked(on) {
+          this.el.setShadow.checked = on;
+          this.el.pauseShadow.checked = on;
+        }
+      };
+    }
+  });
+
   // src/cinema.js
   function loadShape() {
     try {
@@ -30623,6 +30815,20 @@
       }
       return s;
     }
+    function freeVideo(v) {
+      if (!v) return;
+      try {
+        v.pause();
+      } catch (e) {
+      }
+      v.removeAttribute("src");
+      if (v.srcObject) v.srcObject = null;
+      try {
+        v.load();
+      } catch (e) {
+      }
+      v.remove();
+    }
     function rebuild() {
       for (const s of screens) {
         scene.remove(s.mesh, s.frame);
@@ -30630,7 +30836,7 @@
         s.frame.geometry.dispose();
         s.mat.dispose();
         s.tex.dispose();
-        s.videoEl.remove();
+        freeVideo(s.videoEl);
       }
       screens.length = 0;
       const n = Math.max(sources.length, 1);
@@ -30638,6 +30844,7 @@
       applyShell();
       const slot = Math.PI * 2 / (edges || n);
       for (let i = 0; i < n; i++) screens.push(makeScreen(sources[i] || null, slot * (i + 0.5), slot));
+      pickables = [bedHit, ...screens.map((x) => x.mesh)];
       syncVoices();
       applyAudio();
       layoutBigGrid(document.body.classList.contains("big-screen"));
@@ -30713,6 +30920,7 @@
     }
     scene.add(bed);
     const bedHit = bed.children[2];
+    let pickables = [bedHit];
     function setShape(toPoly) {
       shape = toPoly ? "poly" : "round";
       try {
@@ -31205,6 +31413,7 @@
     let hoverBed = false;
     let hoverScreen = -1;
     const raycaster = new Raycaster();
+    const _center2 = { x: 0, y: 0 };
     const _ndc = new Vector2();
     const hintEl = $2("cinema-hint");
     const GYM_BOUNDS = {
@@ -31270,16 +31479,7 @@
         layoutBigGrid(false);
         $2("cb-big").title = "\u5E73\u94FA\u89C6\u89D2\uFF1A\u6574\u5C4F\u6309\u5404\u7247\u6BD4\u4F8B\u62FC\u6EE1\uFF08\u65E0\u9ED1\u8FB9\uFF09\uFF0C\u52A0\u7247\u5220\u7247\u5C31\u5728\u8FD9\u91CC";
       }
-      canvasLock();
-    }
-    function canvasLock() {
-      const c2 = document.getElementById("gl");
-      try {
-        const p = c2.requestPointerLock?.();
-        if (p && p.catch) p.catch(() => {
-        });
-      } catch (e) {
-      }
+      lockPointer();
     }
     const api = {
       scene,
@@ -31306,7 +31506,7 @@
         player.freePitch = 0;
         zoomT = 0;
         applyZoom();
-        canvasLock();
+        lockPointer();
         if (!sources.some(Boolean)) {
           sources = loadSources();
           rebuild();
@@ -31347,9 +31547,9 @@
             player.pos.z = K.bed.z + pz2 * (lim / d);
           }
         }
-        raycaster.setFromCamera({ x: 0, y: 0 }, camera);
-        const hits = raycaster.intersectObjects([bedHit, ...screens.map((s) => s.mesh)], false);
-        const hit = hits.find((h) => h.distance < 24) || null;
+        raycaster.setFromCamera(_center2, camera);
+        const hits = raycaster.intersectObjects(pickables, false);
+        const hit = hits.length && hits[0].distance < 24 ? hits[0] : null;
         hoverBed = !!hit && hit.object === bedHit;
         hoverScreen = hit ? screens.findIndex((s) => s.mesh === hit.object) : -1;
         const dBed = Math.hypot(px2, pz2);
@@ -31457,6 +31657,7 @@
       init_three_module();
       init_config();
       init_textures();
+      init_ui();
       K = CFG.cinema;
       R = K.ring.r;
       H = K.ring.height;
@@ -31464,6 +31665,141 @@
       SHAPE_KEY = "bb.cinema.shape";
       circumR = (n, ap) => ap / Math.cos(Math.PI / n);
       ROOM_BOUNDS = { minX: -(R - 0.7), maxX: R - 0.7, minZ: -(R - 0.7), maxZ: R - 0.7 };
+    }
+  });
+
+  // src/scoring.js
+  function loadRecord(modeId) {
+    try {
+      return Number(localStorage.getItem(CFG.MODES[modeId].recordKey)) || 0;
+    } catch {
+      return 0;
+    }
+  }
+  function saveRecord(modeId, score) {
+    try {
+      localStorage.setItem(CFG.MODES[modeId].recordKey, String(score));
+    } catch {
+    }
+  }
+  function loadSetting(key, dft) {
+    try {
+      const v = localStorage.getItem(key);
+      return v === null ? dft : v;
+    } catch {
+      return dft;
+    }
+  }
+  function saveSetting(key, v) {
+    try {
+      localStorage.setItem(key, String(v));
+    } catch {
+    }
+  }
+  var LS_SHADOW, LS_VOLUME, ScoreManager;
+  var init_scoring = __esm({
+    "src/scoring.js"() {
+      init_config();
+      LS_SHADOW = "fpbb.settings.shadow";
+      LS_VOLUME = "fpbb.settings.volume";
+      ScoreManager = class _ScoreManager {
+        constructor() {
+          this.mode = null;
+          this.reset(CFG.MODES.free);
+        }
+        /** 开局/重开：清空当局数据（不影响历史最高分） */
+        reset(modeDef) {
+          this.mode = modeDef;
+          this.tapScore = 0;
+          this.taps = 0;
+          this.shotScore = 0;
+          this.shotCombo = 0;
+          this.shotComboMax = 0;
+          this.shotFail = 0;
+          this.shotMade = 0;
+          this.shotTaken = 0;
+          this.spots = 0;
+          this.currentSpot = null;
+          this.timeLeft = modeDef.timed ? CFG.challenge.duration : Infinity;
+          this.ended = false;
+        }
+        /** 当前模式下展示的总分 */
+        get displayScore() {
+          if (this.mode.id === "shot") return this.shotScore;
+          return this.tapScore + this.shotScore;
+        }
+        /** 投篮连击倍数（索引=连击数，3+ 封顶） */
+        shotMultiplier() {
+          const S = CFG.shot;
+          return S.comboMul[Math.min(this.shotCombo, S.maxComboMul)];
+        }
+        /**
+         * 出手距离倍率：≥3m 起 1.0x，随距离线性增长，25m 处封顶 3.0x（球场内 ≤3x）。
+         * 取 0.1 步进，便于 UI 展示整档数值。
+         */
+        static distanceMultiplier(dist) {
+          const S = CFG.shot;
+          const m = 1 + (S.distMulCap - 1) * (dist - S.distMulMin) / (S.distMulFull - S.distMulMin);
+          return Math.round(Math.min(S.distMulCap, Math.max(1, m)) * 10) / 10;
+        }
+        /** 拍球一次（无门槛）。返回 { points } */
+        addTap() {
+          this.taps++;
+          if (!this.mode.tapScore) return { points: 0 };
+          const pts = CFG.tap.points;
+          this.tapScore += pts;
+          return { points: pts };
+        }
+        /** 投篮出手登记 */
+        registerShotAttempt() {
+          this.shotTaken++;
+        }
+        /** 进球。返回 { points, is3, distMul, multiplier }；连击 +1 */
+        addShotMade(dist) {
+          this.shotCombo++;
+          this.shotComboMax = Math.max(this.shotComboMax, this.shotCombo);
+          this.shotFail = 0;
+          this.shotMade++;
+          if (!this.mode.shotScore) return { points: 0, is3: false, distMul: 1, multiplier: 1 };
+          const is3 = dist > CFG.shot.score2Dist;
+          const distMul = _ScoreManager.distanceMultiplier(dist);
+          const mul = this.shotMultiplier();
+          const pts = Math.round(CFG.shot.base * distMul * mul);
+          this.shotScore += pts;
+          return { points: pts, is3, distMul, multiplier: mul };
+        }
+        /** 投篮未中。返回是否达到 3 连败（连击清零） */
+        addShotMiss() {
+          this.shotFail++;
+          if (this.shotFail >= 3) {
+            this.shotCombo = 0;
+            this.shotFail = 0;
+            return true;
+          }
+          return false;
+        }
+        /** 倒计时推进；返回是否刚好结束 */
+        tickTimer(dt) {
+          if (!this.mode.timed || this.ended) return false;
+          this.timeLeft -= dt;
+          if (this.timeLeft <= 0) {
+            this.timeLeft = 0;
+            this.ended = true;
+            return true;
+          }
+          return false;
+        }
+        /** 结算：写入新纪录则返回 true */
+        finalize() {
+          const score = this.displayScore;
+          const best = loadRecord(this.mode.id);
+          if (score > best) {
+            saveRecord(this.mode.id, score);
+            return { score, best: score, prevBest: best, isNew: true };
+          }
+          return { score, best, prevBest: best, isNew: false };
+        }
+      };
     }
   });
 
@@ -31625,8 +31961,8 @@
     }
     const ballGeo = new SphereGeometry(R2, 24, 16);
     const balls = [];
-    function mkBall(num) {
-      const tex = makePoolBallTexture(num, num <= 8 ? HUE[num] : HUE[num - 8], num >= 9);
+    function mkBall(num2) {
+      const tex = makePoolBallTexture(num2, num2 <= 8 ? HUE[num2] : HUE[num2 - 8], num2 >= 9);
       const mesh = new Mesh(ballGeo, new MeshStandardMaterial({
         map: tex,
         roughness: 0.1,
@@ -31635,7 +31971,7 @@
       }));
       mesh.position.set(0, YC, 0);
       scene.add(mesh);
-      const b2 = { num, mesh, x: 0, z: 0, vx: 0, vz: 0, potted: false, sink: 0, sy: 0, sw: 0, hit: false };
+      const b2 = { num: num2, mesh, x: 0, z: 0, vx: 0, vz: 0, potted: false, sink: 0, sy: 0, sw: 0, hit: false };
       balls.push(b2);
       return b2;
     }
@@ -31751,8 +32087,15 @@
     let aimT = 0;
     let needRack = false;
     let strokes = 0, pottedNum = 0, score = 0, fouls = 0;
-    let best = Number(localStorage.getItem("bb.pool.best") || 0);
-    let duel = Number(localStorage.getItem("bb.pool.duel") || 0);
+    const num = (k, dft) => {
+      const v = Number(loadSetting(k, ""));
+      return Number.isFinite(v) ? v : dft;
+    };
+    let best = Math.max(0, num("bb.pool.best", 0));
+    let duel = (() => {
+      const v = Math.trunc(Number(loadSetting("bb.pool.duel", "0")));
+      return Number.isInteger(v) && v > 0 && v <= K2.duel.levels.length ? v : 0;
+    })();
     let phase = "idle";
     let turn = 0;
     let grp = [null, null];
@@ -31766,7 +32109,7 @@
     let spinY = 0;
     let hudOpen = false;
     {
-      const s = (localStorage.getItem("bb.pool.spin") || "").split(",");
+      const s = loadSetting("bb.pool.spin", "").split(",");
       const c2 = (v) => Number.isFinite(Number(v)) ? MathUtils.clamp(Number(v), -1, 1) : 0;
       spinX = c2(s[0]);
       spinY = c2(s[1]);
@@ -31836,7 +32179,7 @@
     function setBest() {
       if (best < score) {
         best = score;
-        localStorage.setItem("bb.pool.best", String(best));
+        saveSetting("bb.pool.best", best);
       }
     }
     function respotCue() {
@@ -31964,21 +32307,23 @@
       }
       setInfo();
     }
+    const _sp = { x: 0, z: 0, imp: 0 };
     function cueAfterHit(vx, vz, nx, nz, sy) {
       const j = (1 + PH.ballRest) * (vx * nx + vz * nz) / 2;
       const sp = Math.hypot(vx, vz) || 1;
       const k = sy * PH.follow * sp;
-      return { x: vx - nx * j + vx / sp * k, z: vz - nz * j + vz / sp * k };
+      _sp.x = vx - nx * j + vx / sp * k;
+      _sp.z = vz - nz * j + vz / sp * k;
+      return _sp;
     }
     function railBounce(vx, vz, nx, nz, sw) {
       const vn = vx * nx + vz * nz;
       const imp = Math.abs(vn);
       const push = sw * PH.cush * imp;
-      return {
-        x: (vx - vn * nx) * PH.cushionFric - nx * vn * PH.cushionRest - nz * push,
-        z: (vz - vn * nz) * PH.cushionFric - nz * vn * PH.cushionRest + nx * push,
-        imp
-      };
+      _sp.x = (vx - vn * nx) * PH.cushionFric - nx * vn * PH.cushionRest - nz * push;
+      _sp.z = (vz - vn * nz) * PH.cushionFric - nz * vn * PH.cushionRest + nx * push;
+      _sp.imp = imp;
+      return _sp;
     }
     function substep(h) {
       for (const b2 of balls) {
@@ -32018,7 +32363,7 @@
             const o = railBounce(b2.vx, b2.vz, 0, rl.s, b2.sw);
             b2.vx = o.x;
             b2.vz = o.z;
-            if (b2.sw) b2.sw *= -0.55;
+            if (b2.sw) b2.sw *= PH.swFlip;
             if (o.imp > 0.3) sfx.play("rim", { volume: Math.min(0.45, o.imp / 8), rate: 1.35 });
           }
         }
@@ -32030,7 +32375,7 @@
             const o = railBounce(b2.vx, b2.vz, rl.s, 0, b2.sw);
             b2.vx = o.x;
             b2.vz = o.z;
-            if (b2.sw) b2.sw *= -0.55;
+            if (b2.sw) b2.sw *= PH.swFlip;
             if (o.imp > 0.3) sfx.play("rim", { volume: Math.min(0.45, o.imp / 8), rate: 1.35 });
           }
         }
@@ -32165,37 +32510,56 @@
       }
       return g;
     }
+    const _rn = 32;
+    const _cos = [], _sin = [], _ring = [];
+    for (let i = 0; i <= _rn; i++) {
+      const a2 = i / _rn * Math.PI * 2;
+      _cos.push(Math.cos(a2));
+      _sin.push(Math.sin(a2));
+      _ring.push({ x: _cos[i], z: _sin[i] });
+    }
+    const _seg = [{ x: 0, z: 0 }, { x: 0, z: 0 }];
+    function seg(ax, az, bx, bz) {
+      _seg[0].x = ax;
+      _seg[0].z = az;
+      _seg[1].x = bx;
+      _seg[1].z = bz;
+      return _seg;
+    }
+    function ring(cx, cz) {
+      for (let i = 0; i <= _rn; i++) {
+        _ring[i].x = cx + _cos[i] * R2;
+        _ring[i].z = cz + _sin[i] * R2;
+      }
+      return _ring;
+    }
     function drawGuide() {
       const g = predict();
       if (mode !== "aim" || g.kind === "none") {
         hideGuide();
         return g;
       }
-      const end = g.kind === "pocket" ? nearestPocket(g.gx, g.gz) : { x: g.gx, z: g.gz };
-      gMain.show([{ x: cue.x, z: cue.z }, { x: end.x, z: end.z }]);
+      const end = g.kind === "pocket" ? nearestPocket(g.gx, g.gz) : null;
+      const ex = end ? end.x : g.gx, ez = end ? end.z : g.gz;
+      gMain.show(seg(cue.x, cue.z, ex, ez));
       gObj.show(HIDE);
       gCue.show(HIDE);
       gCush.show(HIDE);
       gGhost.show(HIDE);
       if (g.kind === "ball") {
-        const pts = [];
-        for (let i = 0; i <= 32; i++) {
-          const a2 = i / 32 * Math.PI * 2;
-          pts.push({ x: g.gx + Math.cos(a2) * R2, z: g.gz + Math.sin(a2) * R2 });
-        }
-        gGhost.show(pts);
+        gGhost.show(ring(g.gx, g.gz));
         const ob = balls.find((b2) => b2.num === g.ball);
         if (ob) {
-          gObj.show([{ x: ob.x, z: ob.z }, { x: ob.x + g.ox * GD.objLen, z: ob.z + g.oz * GD.objLen }]);
+          gObj.show(seg(ob.x, ob.z, ob.x + g.ox * GD.objLen, ob.z + g.oz * GD.objLen));
           const cl = Math.hypot(g.cx, g.cz);
           if (cl > 0.08) {
-            gCue.show([{ x: g.gx, z: g.gz }, { x: g.gx + g.cx * GD.cueLen, z: g.gz + g.cz * GD.cueLen }]);
+            gCue.show(seg(g.gx, g.gz, g.gx + g.cx * GD.cueLen, g.gz + g.cz * GD.cueLen));
           }
         }
       } else if (g.kind === "rail") {
         const t2 = rayEdge(g.gx, g.gz, g.rx, g.rz);
         const L = Math.min(GD.cushLen, t2 > 0 ? t2 : GD.cushLen);
-        gCush.show([{ x: g.gx, z: g.gz }, { x: g.gx + g.rx * L, z: g.gz + g.rz * L }]);
+        gCush.show(seg(g.gx, g.gz, g.gx + g.rx * L, g.gz + g.rz * L));
       }
       return g;
     }
@@ -32338,15 +32702,6 @@
       renderBook();
       setInfo();
     }
-    function canvasLock() {
-      const c2 = document.getElementById("gl");
-      try {
-        const p = c2.requestPointerLock?.();
-        if (p && p.catch) p.catch(() => {
-        });
-      } catch (e) {
-      }
-    }
     function syncModeBtn() {
       modeEl.textContent = duel ? `\u{1F916} \u5BF9\u6218 \xB7 ${K2.duel.levels[duel - 1].name}` : "\u{1F9D8} \u81EA\u7531\u7EC3\u53F0";
       modeEl.title = duel ? "\u70B9\u51FB\u5207\u5230\u4E0B\u4E00\u79CD\u73A9\u6CD5\uFF08\u81EA\u7531\u7EC3\u53F0 \u2192 \u8F7B\u677E \u2192 \u6807\u51C6 \u2192 \u804C\u4E1A\uFF09\uFF1B\u6362\u73A9\u6CD5\u4F1A\u91CD\u6446\u6574\u684C" : "\u70B9\u51FB\u5F00\u59CB\u4E0E\u7535\u8111\u6253 8 \u7403\uFF1A\u5148\u8FDB\u5B8C\u81EA\u5DF1\u4E00\u7EC4\uFF08\u5168\u8272/\u82B1\u8272\uFF09\u518D\u6253\u9ED1\u516B";
@@ -32354,7 +32709,7 @@
     }
     modeEl.addEventListener("click", () => {
       duel = (duel + 1) % (K2.duel.levels.length + 1);
-      localStorage.setItem("bb.pool.duel", String(duel));
+      saveSetting("bb.pool.duel", duel);
       syncModeBtn();
       startDuel();
       sfx.play("ui", { volume: 0.5, rate: duel ? 1.35 : 1 });
@@ -32381,7 +32736,7 @@
     function saveSpin() {
       clearTimeout(spinSaveTimer);
       spinSaveTimer = setTimeout(() => {
-        localStorage.setItem("bb.pool.spin", `${spinX.toFixed(3)},${spinY.toFixed(3)}`);
+        saveSetting("bb.pool.spin", `${spinX.toFixed(3)},${spinY.toFixed(3)}`);
       }, 300);
     }
     function applySpin(x, y) {
@@ -32448,7 +32803,7 @@
         renderBook();
         setInfo();
         bar.classList.remove("hidden");
-        canvasLock();
+        lockPointer();
         setHint(duel ? "<b>\u8D70\u8FD1\u7403\u684C</b> <b>\u5DE6\u952E</b> \u4E0A\u624B\u5F00\u7403 \xB7 \u70B9 <b>\u{1F9D8} \u81EA\u7531\u7EC3\u53F0</b> \u53EF\u5207\u56DE\u81EA\u5DF1\u7EC3" : "<b>\u8D70\u8FD1\u7403\u684C</b> <b>\u5DE6\u952E</b> \u4E0A\u624B\u7784\u51C6 \xB7 \u56DE\u7403\u573A\u70B9 <b>\u{1F6AA} \u9000\u51FA\u7403\u5BA4</b>");
       },
       exit() {
@@ -32669,13 +33024,13 @@
         drawGuide();
         return { n: gMain.count(), len: +gMain.length().toFixed(2), obj: +gObj.length().toFixed(2), cush: +gCush.length().toFixed(2) };
       },
-      debugBall(num) {
-        const b2 = balls.find((x) => x.num === num);
+      debugBall(num2) {
+        const b2 = balls.find((x) => x.num === num2);
         return b2 ? { x: +b2.x.toFixed(4), z: +b2.z.toFixed(4), vx: +b2.vx.toFixed(3), vz: +b2.vz.toFixed(3), potted: b2.potted } : null;
       },
       /** 测试用：把某号球挪到指定位置（摆一颗孤球，才能干净地验「预测==实际」） */
-      debugPlace(num, x, z) {
-        const b2 = balls.find((y) => y.num === num);
+      debugPlace(num2, x, z) {
+        const b2 = balls.find((y) => y.num === num2);
         if (!b2 || b2.potted) return false;
         b2.x = x;
         b2.z = z;
@@ -32695,8 +33050,8 @@
         return true;
       },
       /** 把导向线正对某号球：测试用来验证"预测==实际" */
-      debugAimAt(num) {
-        const b2 = balls.find((x) => x.num === num);
+      debugAimAt(num2) {
+        const b2 = balls.find((x) => x.num === num2);
         if (!b2) return false;
         aimA = Math.atan2(b2.z - cue.z, b2.x - cue.x);
         dir.set(Math.cos(aimA), Math.sin(aimA));
@@ -32723,6 +33078,8 @@
       init_three_module();
       init_config();
       init_textures();
+      init_scoring();
+      init_ui();
       K2 = CFG.pool;
       T = K2.table;
       PH = K2.phys;
@@ -32878,10 +33235,6 @@
         /** 球当前世界位置 */
         get position() {
           return this.mesh.position;
-        }
-        /** 是否已经落在地面上（静止判定用） */
-        resting() {
-          return this.mode === "physics" && this.body.velocity.length() < 0.35 && this.body.position.y < CFG.ball.radius + 0.08;
         }
       };
     }
@@ -33215,7 +33568,7 @@
 
   // src/states.js
   function idealPower(releasePos) {
-    const g = 9.82, a2 = CFG.shot.elevAngle;
+    const g = CFG.player.gravity, a2 = CFG.shot.elevAngle;
     const d = Math.hypot(RIM_POS.x - releasePos.x, RIM_POS.z - releasePos.z);
     const dy = RIM_POS.y - releasePos.y;
     const denom = d * Math.tan(a2) - dy;
@@ -33548,141 +33901,6 @@
     }
   });
 
-  // src/scoring.js
-  function loadRecord(modeId) {
-    try {
-      return Number(localStorage.getItem(CFG.MODES[modeId].recordKey)) || 0;
-    } catch {
-      return 0;
-    }
-  }
-  function saveRecord(modeId, score) {
-    try {
-      localStorage.setItem(CFG.MODES[modeId].recordKey, String(score));
-    } catch {
-    }
-  }
-  function loadSetting(key, dft) {
-    try {
-      const v = localStorage.getItem(key);
-      return v === null ? dft : v;
-    } catch {
-      return dft;
-    }
-  }
-  function saveSetting(key, v) {
-    try {
-      localStorage.setItem(key, String(v));
-    } catch {
-    }
-  }
-  var LS_SHADOW, LS_VOLUME, ScoreManager;
-  var init_scoring = __esm({
-    "src/scoring.js"() {
-      init_config();
-      LS_SHADOW = "fpbb.settings.shadow";
-      LS_VOLUME = "fpbb.settings.volume";
-      ScoreManager = class _ScoreManager {
-        constructor() {
-          this.mode = null;
-          this.reset(CFG.MODES.free);
-        }
-        /** 开局/重开：清空当局数据（不影响历史最高分） */
-        reset(modeDef) {
-          this.mode = modeDef;
-          this.tapScore = 0;
-          this.taps = 0;
-          this.shotScore = 0;
-          this.shotCombo = 0;
-          this.shotComboMax = 0;
-          this.shotFail = 0;
-          this.shotMade = 0;
-          this.shotTaken = 0;
-          this.spots = 0;
-          this.currentSpot = null;
-          this.timeLeft = modeDef.timed ? CFG.challenge.duration : Infinity;
-          this.ended = false;
-        }
-        /** 当前模式下展示的总分 */
-        get displayScore() {
-          if (this.mode.id === "shot") return this.shotScore;
-          return this.tapScore + this.shotScore;
-        }
-        /** 投篮连击倍数（索引=连击数，3+ 封顶） */
-        shotMultiplier() {
-          const S = CFG.shot;
-          return S.comboMul[Math.min(this.shotCombo, S.maxComboMul)];
-        }
-        /**
-         * 出手距离倍率：≥3m 起 1.0x，随距离线性增长，25m 处封顶 3.0x（球场内 ≤3x）。
-         * 取 0.1 步进，便于 UI 展示整档数值。
-         */
-        static distanceMultiplier(dist) {
-          const S = CFG.shot;
-          const m = 1 + (S.distMulCap - 1) * (dist - S.distMulMin) / (S.distMulFull - S.distMulMin);
-          return Math.round(Math.min(S.distMulCap, Math.max(1, m)) * 10) / 10;
-        }
-        /** 拍球一次（无门槛）。返回 { points } */
-        addTap() {
-          this.taps++;
-          if (!this.mode.tapScore) return { points: 0 };
-          const pts = CFG.tap.points;
-          this.tapScore += pts;
-          return { points: pts };
-        }
-        /** 投篮出手登记 */
-        registerShotAttempt() {
-          this.shotTaken++;
-        }
-        /** 进球。返回 { points, is3, distMul, multiplier }；连击 +1 */
-        addShotMade(dist) {
-          this.shotCombo++;
-          this.shotComboMax = Math.max(this.shotComboMax, this.shotCombo);
-          this.shotFail = 0;
-          this.shotMade++;
-          if (!this.mode.shotScore) return { points: 0, is3: false, distMul: 1, multiplier: 1 };
-          const is3 = dist > CFG.shot.score2Dist;
-          const distMul = _ScoreManager.distanceMultiplier(dist);
-          const mul = this.shotMultiplier();
-          const pts = Math.round(CFG.shot.base * distMul * mul);
-          this.shotScore += pts;
-          return { points: pts, is3, distMul, multiplier: mul };
-        }
-        /** 投篮未中。返回是否达到 3 连败（连击清零） */
-        addShotMiss() {
-          this.shotFail++;
-          if (this.shotFail >= 3) {
-            this.shotCombo = 0;
-            this.shotFail = 0;
-            return true;
-          }
-          return false;
-        }
-        /** 倒计时推进；返回是否刚好结束 */
-        tickTimer(dt) {
-          if (!this.mode.timed || this.ended) return false;
-          this.timeLeft -= dt;
-          if (this.timeLeft <= 0) {
-            this.timeLeft = 0;
-            this.ended = true;
-            return true;
-          }
-          return false;
-        }
-        /** 结算：写入新纪录则返回 true */
-        finalize() {
-          const score = this.displayScore;
-          const best = loadRecord(this.mode.id);
-          if (score > best) {
-            saveRecord(this.mode.id, score);
-            return { score, best: score, prevBest: best, isNew: true };
-          }
-          return { score, best, prevBest: best, isNew: false };
-        }
-      };
-    }
-  });
-
   // src/audio.js
   var Sfx;
   var init_audio = __esm({
@@ -33753,197 +33971,23 @@
           const g = this.ctx.createGain();
           g.gain.value = opt.volume ?? 1;
           src.connect(g);
+          let tail = g;
           if (this.ctx.createStereoPanner && opt.pan) {
             const p = this.ctx.createStereoPanner();
             p.pan.value = Math.max(-1, Math.min(1, opt.pan));
             g.connect(p);
-            p.connect(this.master);
-          } else {
-            g.connect(this.master);
+            tail = p;
           }
-          src.start();
-        }
-      };
-    }
-  });
-
-  // src/ui.js
-  var $, UI;
-  var init_ui = __esm({
-    "src/ui.js"() {
-      init_config();
-      $ = (id) => document.getElementById(id);
-      UI = class {
-        constructor() {
-          this.el = {
-            hud: $("hud"),
-            cross: $("crosshair"),
-            mode: $("hud-mode"),
-            score: $("hud-score"),
-            best: $("hud-best"),
-            sub: $("hud-sub"),
-            timerBox: $("hud-timer"),
-            timerText: $("timer-text"),
-            timerFill: $("timer-fill"),
-            chipS: $("chip-s"),
-            comboS: $("combo-s"),
-            mulS: $("mul-s"),
-            prompt: $("hud-prompt"),
-            popup: $("score-popup"),
-            pbar: $("power-bar"),
-            pFill: $("power-fill"),
-            pSweet: $("power-sweet"),
-            menu: $("menu"),
-            pause: $("pause"),
-            result: $("result"),
-            badgeNew: $("badge-new"),
-            resTitle: $("res-title"),
-            resScore: $("res-score"),
-            resScoreLabel: $("res-score-label"),
-            resLines: $("res-lines"),
-            resShare: $("res-share"),
-            recFree: $("rec-free"),
-            recShot: $("rec-shot"),
-            setShadow: $("set-shadow"),
-            setVolume: $("set-volume"),
-            pauseShadow: $("pause-shadow")
+          tail.connect(this.master);
+          src.onended = () => {
+            try {
+              src.disconnect();
+              g.disconnect();
+              tail.disconnect();
+            } catch (e) {
+            }
           };
-          this._lastComboS = -1;
-          this._prompt = "";
-          this._lastScore = -1;
-          this._lastBest = -1;
-          this._lastSub = "";
-          this._lastTimer = -1;
-          this._bindButtons();
-        }
-        /** 回调注入（由 main.js 装配） */
-        bindCallbacks(cb2) {
-          this.cb = cb2;
-        }
-        _bindButtons() {
-          document.querySelectorAll("#mode-cards .card").forEach((card) => {
-            card.addEventListener("click", () => {
-              card.blur();
-              this.cb.onModeSelect?.(card.dataset.mode);
-            });
-          });
-          $("btn-resume").addEventListener("click", () => this.cb.onResume?.());
-          $("btn-restart").addEventListener("click", () => this.cb.onRestart?.());
-          $("btn-finish").addEventListener("click", () => this.cb.onFinishFree?.());
-          $("btn-quit").addEventListener("click", () => this.cb.onQuit?.());
-          $("btn-again").addEventListener("click", () => this.cb.onAgain?.());
-          $("btn-menu").addEventListener("click", () => this.cb.onQuit?.());
-          this.el.setShadow.addEventListener("change", () => this.cb.onShadow?.(this.el.setShadow.checked));
-          this.el.pauseShadow.addEventListener("change", () => this.cb.onShadow?.(this.el.pauseShadow.checked));
-          this.el.setVolume.addEventListener("input", () => this.cb.onVolume?.(Number(this.el.setVolume.value)));
-        }
-        /* ---------- 主菜单 ---------- */
-        showMenu(records) {
-          this.el.menu.classList.remove("hidden");
-          this.el.hud.classList.add("hidden");
-          this.el.cross.classList.add("hidden");
-          this.el.result.classList.add("hidden");
-          this.el.pause.classList.add("hidden");
-          this.el.recFree.textContent = records.free;
-          this.el.recShot.textContent = records.shot;
-        }
-        hideMenu() {
-          this.el.menu.classList.add("hidden");
-        }
-        showHud(modeName, timed) {
-          this.hideMenu();
-          this.el.hud.classList.remove("hidden");
-          this.el.cross.classList.remove("hidden");
-          this.el.mode.textContent = modeName;
-          this.el.timerBox.classList.toggle("hidden", !timed);
-        }
-        showPause(show) {
-          this.el.pause.classList.toggle("hidden", !show);
-        }
-        /* ---------- 数值面板（脏检查：避免逐帧写 DOM） ---------- */
-        setScore(score, best, subText) {
-          if (score !== this._lastScore) {
-            this.el.score.textContent = score;
-            this._lastScore = score;
-          }
-          if (best !== this._lastBest) {
-            this.el.best.textContent = best;
-            this._lastBest = best;
-          }
-          if (subText !== this._lastSub) {
-            this.el.sub.textContent = subText || "";
-            this._lastSub = subText;
-          }
-        }
-        setCombos(cs, mulS) {
-          if (cs !== this._lastComboS) {
-            this.el.comboS.textContent = cs;
-            this.el.mulS.textContent = `\xD7${mulS}`;
-            this.el.chipS.classList.remove("pulse");
-            void this.el.chipS.offsetWidth;
-            if (cs > 0) this.el.chipS.classList.add("pulse");
-            this._lastComboS = cs;
-          }
-        }
-        setTimer(secondsLeft, frac, urgent) {
-          const sec = Math.ceil(secondsLeft);
-          if (sec !== this._lastTimer) {
-            this._lastTimer = sec;
-            this.el.timerText.textContent = sec;
-            this.el.timerText.classList.toggle("urgent", urgent);
-          }
-          this.el.timerFill.style.width = `${frac * 100}%`;
-        }
-        setPrompt(html, kind) {
-          if (this._prompt === html) return;
-          this._prompt = html;
-          this.el.prompt.innerHTML = html;
-          this.el.prompt.classList.toggle("pump", kind === "pump");
-        }
-        /* ---------- 中央飘字 ---------- */
-        showScorePopup(points, label, combo) {
-          const el = this.el.popup;
-          el.innerHTML = (points > 0 ? `+${points}` : "") + (label ? `<small>${label}</small>` : "");
-          el.classList.toggle("bad", points === 0 && !!label);
-          el.classList.remove("show");
-          void el.offsetWidth;
-          el.classList.add("show");
-        }
-        /* ---------- 投篮力度条 ---------- */
-        showPowerBar(show) {
-          this.el.pbar.classList.toggle("hidden", !show);
-        }
-        updatePowerBar(charge, sweetP) {
-          this.el.pFill.style.height = `${charge * 100}%`;
-          this.el.pbar.classList.toggle("maxed", charge >= 0.999);
-          if (sweetP == null) {
-            this.el.pSweet.style.display = "none";
-          } else {
-            const half = CFG.shot.sweetHalf;
-            this.el.pSweet.style.display = "";
-            this.el.pSweet.style.bottom = `${Math.max(0, sweetP - half) * 100}%`;
-            this.el.pSweet.style.height = `${Math.min(100, half * 2 * 100)}%`;
-          }
-        }
-        /* ---------- 结算弹窗 ---------- */
-        showResult({ modeName, scoreLabel, score, best, prevBest, isNew, stats }) {
-          this.el.result.classList.remove("hidden");
-          this.el.resTitle.textContent = `${modeName} \xB7 \u7ED3\u7B97`;
-          this.el.resScore.textContent = score;
-          this.el.resScoreLabel.textContent = scoreLabel;
-          this.el.badgeNew.classList.toggle("hidden", !isNew);
-          let html = `<div class="${isNew ? "rec-row" : ""}">\u{1F3C6} \u5386\u53F2\u6700\u9AD8\uFF1A<b>${best}</b>${isNew ? "\uFF08\u5237\u65B0\u7EAA\u5F55\uFF01\uFF09" : ""}</div>`;
-          html += stats.map((s) => `<div>${s}</div>`).join("");
-          this.el.resLines.innerHTML = html;
-          this.el.resShare.textContent = "\u{1F4F8} \u622A\u56FE\u5206\u4EAB\u7ED9\u597D\u53CB\uFF0C\u6BD4\u62FC\u4F60\u7684\u5206\u6570\uFF01";
-          this.el.resShare.classList.remove("hidden");
-        }
-        hideResult() {
-          this.el.result.classList.add("hidden");
-        }
-        setShadowChecked(on) {
-          this.el.setShadow.checked = on;
-          this.el.pauseShadow.checked = on;
+          src.start();
         }
       };
     }
@@ -33971,14 +34015,6 @@
       init_audio();
       init_ui();
       var canvas = document.getElementById("gl");
-      function lockPointer() {
-        try {
-          const p = canvas.requestPointerLock?.();
-          if (p && p.catch) p.catch(() => {
-          });
-        } catch (e) {
-        }
-      }
       var renderer = new WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" });
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
       renderer.setSize(innerWidth, innerHeight);
@@ -34244,7 +34280,8 @@
         ui.setShadowChecked(on);
       }
       applyShadow(shadowOn);
-      var savedVol = Number(loadSetting(LS_VOLUME, 0.8));
+      var rawVol = Number(loadSetting(LS_VOLUME, 0.8));
+      var savedVol = MathUtils.clamp(Number.isFinite(rawVol) ? rawVol : 0.8, 0, 1);
       document.getElementById("set-volume").value = savedVol;
       window.BB_VOLUME = savedVol;
       var keys = player.keys;
@@ -34733,14 +34770,18 @@
           }, 2e3);
         }
         if (demo === "sit" || demo === "grid") {
+          hoverHint = "";
           addEventListener("error", (e) => {
             const el = document.getElementById("dbg-out");
             if (el) el.textContent = `ERR ${e.message} @${e.filename?.split("/").pop()}:${e.lineno}`;
           });
           setTimeout(() => {
-            player.pos.set(0, 0, CFG.cinema.bed.z + 1.6);
+            player.pos.set(0, 0, CFG.cinema.bed.r + 1.2);
             player.freeYaw = 0;
             player.yaw = 0;
+            cinema.update(0.016);
+            hoverHint = document.getElementById("cinema-hint").textContent.replace(/<[^>]+>/g, "").slice(0, 10);
+            player.pos.set(0, 0, CFG.cinema.bed.z + 1.6);
             cinema.onLeftDown();
             if (demo === "grid") document.getElementById("cb-big").click();
           }, 2600);
@@ -34753,7 +34794,7 @@
             cinema.onWheel(120);
             const el = document.getElementById("dbg-out");
             const vs = Array.from(document.querySelectorAll(".btv"));
-            el.textContent = `${demo.toUpperCase()} seated=${cinema.seated} bar=${document.getElementById("cinema-bar").classList.contains("hidden") ? 0 : 1} eye=${player.eyeHeight.toFixed(2)} pos=${player.pos.x.toFixed(1)},${player.pos.z.toFixed(1)} big=${document.body.classList.contains("big-screen") ? 1 : 0} n=${vs.length} src=${vs.map((v) => v.currentSrc || v.src ? 1 : 0).join("")} ring=${cinema.debugRing().map((r) => `h${r.h}/a${r.arcDeg}${r.src}`).join(",")} vce=${cinema.debugRing().map((r) => r.voice).join("")} zoom=${fov0.toFixed(1)}>${fovIn.toFixed(1)}>${camera.fov.toFixed(1)} tile=${vs.map((v) => `${Math.round(Number(v.style.getPropertyValue("--w").replace("px", "")) || 0)}x` + Math.round(Number(v.style.getPropertyValue("--h").replace("px", "")) || 0)).join(",")} fit=${vs[0] ? getComputedStyle(vs[0]).objectFit : "-"} cells=${document.querySelectorAll("#big-wall .bwcell").length} add=${document.getElementById("bw-add").classList.contains("hidden") ? 0 : 1}`;
+            el.textContent = `${demo.toUpperCase()} seated=${cinema.seated} hover=${hoverHint} bar=${document.getElementById("cinema-bar").classList.contains("hidden") ? 0 : 1} eye=${player.eyeHeight.toFixed(2)} pos=${player.pos.x.toFixed(1)},${player.pos.z.toFixed(1)} big=${document.body.classList.contains("big-screen") ? 1 : 0} n=${vs.length} src=${vs.map((v) => v.currentSrc || v.src ? 1 : 0).join("")} ring=${cinema.debugRing().map((r) => `h${r.h}/a${r.arcDeg}${r.src}`).join(",")} vce=${cinema.debugRing().map((r) => r.voice).join("")} zoom=${fov0.toFixed(1)}>${fovIn.toFixed(1)}>${camera.fov.toFixed(1)} tile=${vs.map((v) => `${Math.round(Number(v.style.getPropertyValue("--w").replace("px", "")) || 0)}x` + Math.round(Number(v.style.getPropertyValue("--h").replace("px", "")) || 0)).join(",")} fit=${vs[0] ? getComputedStyle(vs[0]).objectFit : "-"} cells=${document.querySelectorAll("#big-wall .bwcell").length} add=${document.getElementById("bw-add").classList.contains("hidden") ? 0 : 1}`;
           }, 3400);
         }
         if (demo === "import") {
@@ -35245,6 +35286,7 @@
       }
       var marks;
       var mark;
+      var hoverHint;
       var R3;
       var st;
     }

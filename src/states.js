@@ -19,7 +19,7 @@ import { RIM_POS } from './court.js';
  *   v^2 = g*d^2 / (2*cos^2(a) * (d*tan(a) - dy))
  */
 export function idealPower(releasePos) {
-  const g = 9.82, a = CFG.shot.elevAngle;
+  const g = CFG.player.gravity, a = CFG.shot.elevAngle;
   const d = Math.hypot(RIM_POS.x - releasePos.x, RIM_POS.z - releasePos.z);
   const dy = RIM_POS.y - releasePos.y;
   const denom = d * Math.tan(a) - dy;

@@ -71,14 +71,16 @@ export class Sfx {
     const g = this.ctx.createGain();
     g.gain.value = opt.volume ?? 1;
     src.connect(g);
+    let tail = g;
     if (this.ctx.createStereoPanner && opt.pan) {
       const p = this.ctx.createStereoPanner();
       p.pan.value = Math.max(-1, Math.min(1, opt.pan));
       g.connect(p);
-      p.connect(this.master);
-    } else {
-      g.connect(this.master);
+      tail = p;
     }
+    tail.connect(this.master);
+    // 一杆/一次拍球都要发声：放完立刻拆链，否则串行的 Gain/Panner 会一直挂在 master 上攒着
+    src.onended = () => { try { src.disconnect(); g.disconnect(); tail.disconnect(); } catch (e) { /* 已拆过 */ } };
     src.start();
   }
 }

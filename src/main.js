@@ -21,17 +21,10 @@ import { Effects } from './effects.js';
 import { StateMachine, NoBallState, HoldState, ShotState, randomShotSpot } from './states.js';
 import { ScoreManager, loadRecord, loadSetting, saveSetting, LS_SHADOW, LS_VOLUME } from './scoring.js';
 import { Sfx } from './audio.js';
-import { UI } from './ui.js';
+import { UI, lockPointer } from './ui.js';
 
 /* ================= 渲染器 / 场景 / 相机 ================= */
 const canvas = document.getElementById('gl');
-/** 安全请求指针锁：Chrome 在 ESC 解锁后 ~1s 内再锁会抛 SecurityError 拒绝，静默重试由用户点击兜底 */
-function lockPointer() {
-  try {
-    const p = canvas.requestPointerLock?.();
-    if (p && p.catch) p.catch(() => { /* 稍后点击画面再锁 */ });
-  } catch (e) { /* 旧浏览器同步抛错同样忽略 */ }
-}
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
 renderer.setSize(innerWidth, innerHeight);
@@ -298,8 +291,9 @@ function applyShadow(on) {
 }
 applyShadow(shadowOn);
 
-// 音量记忆
-const savedVol = Number(loadSetting(LS_VOLUME, 0.8));
+// 音量记忆：存档写坏时退回默认（NaN 会污染 GainNode，让所有音效失声）
+const rawVol = Number(loadSetting(LS_VOLUME, 0.8));
+const savedVol = THREE.MathUtils.clamp(Number.isFinite(rawVol) ? rawVol : 0.8, 0, 1);
 document.getElementById('set-volume').value = savedVol;
 window.BB_VOLUME = savedVol;
 
@@ -771,15 +765,20 @@ try {
     }, 2000);
   }
   if (demo === 'sit' || demo === 'grid') {
+    var hoverHint = '';   // 入座前准星扫到银幕的提示文字（下面第二个 setTimeout 里一并回读）
     // 公共：走到圆床边 + 左键入座（可选再开大屏墙），供两种演示复用
     addEventListener('error', (e) => {
       const el = document.getElementById('dbg-out');
       if (el) el.textContent = `ERR ${e.message} @${e.filename?.split('/').pop()}:${e.lineno}`;
     });
     setTimeout(() => {
-      player.pos.set(0, 0, CFG.cinema.bed.z + 1.6);
-      // 面朝 -z（θ=180°）：那块银幕正对着玩家，座下就是圆床
+      // 入座前先验准星射线还认得银幕（点屏切换出声的链路全靠这张目标表）：
+      // 站得离圆床够远（>床半径+0.6），提示就该从「入座」翻成「播放/暂停」
+      player.pos.set(0, 0, CFG.cinema.bed.r + 1.2);
       player.freeYaw = 0; player.yaw = 0;
+      cinema.update(0.016);
+      hoverHint = document.getElementById('cinema-hint').textContent.replace(/<[^>]+>/g, '').slice(0, 10);
+      player.pos.set(0, 0, CFG.cinema.bed.z + 1.6);
       cinema.onLeftDown();
       if (demo === 'grid') document.getElementById('cb-big').click();
     }, 2600);
@@ -791,6 +790,7 @@ try {
       const el = document.getElementById('dbg-out');
       const vs = Array.from(document.querySelectorAll('.btv'));
       el.textContent = `${demo.toUpperCase()} seated=${cinema.seated}`
+        + ` hover=${hoverHint}`
         + ` bar=${document.getElementById('cinema-bar').classList.contains('hidden') ? 0 : 1}`
         + ` eye=${player.eyeHeight.toFixed(2)} pos=${player.pos.x.toFixed(1)},${player.pos.z.toFixed(1)}`
         + ` big=${document.body.classList.contains('big-screen') ? 1 : 0} n=${vs.length}`

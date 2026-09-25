@@ -20,6 +20,7 @@
 import * as THREE from 'three';
 import { CFG } from './config.js';
 import { makeScreenPlaceholderTexture, makeCarpetTexture } from './textures.js';
+import { lockPointer } from './ui.js';
 
 const K = CFG.cinema;
 const R = K.ring.r;
@@ -272,6 +273,17 @@ export function createCinema({ camera, player, sfx }) {
     return s;
   }
 
+  /** 彻底放掉一个 <video>：只 remove() 不解绑，浏览器仍会持有解码器和媒体资源，
+   *  每次换片单都攒一个 —— 必须先停源、断 src、load() 让资源真正回收。 */
+  function freeVideo(v) {
+    if (!v) return;
+    try { v.pause(); } catch (e) { /* noop */ }
+    v.removeAttribute('src');
+    if (v.srcObject) v.srcObject = null;
+    try { v.load(); } catch (e) { /* noop */ }
+    v.remove();
+  }
+
   /** 按当前片源列表重排一圈：屏数=源数，高度恒定，等分槽位吃到满；多边形厅边数=屏数 */
   function rebuild() {
     for (const s of screens) {
@@ -280,7 +292,7 @@ export function createCinema({ camera, player, sfx }) {
       s.frame.geometry.dispose(); // frameMat 为共享材质，只释放几何
       s.mat.dispose();
       s.tex.dispose();
-      s.videoEl.remove();
+      freeVideo(s.videoEl);
     }
     screens.length = 0;
     const n = Math.max(sources.length, 1);
@@ -288,6 +300,7 @@ export function createCinema({ camera, player, sfx }) {
     applyShell();
     const slot = (Math.PI * 2) / (edges || n);
     for (let i = 0; i < n; i++) screens.push(makeScreen(sources[i] || null, slot * (i + 0.5), slot));
+    pickables = [bedHit, ...screens.map((x) => x.mesh)];   // 点击目标表跟着屏走（每帧射线用它，不再每帧拼数组）
     syncVoices();
     applyAudio(); // 新建的 <video> 一律 muted，必须在这里按出声集合重新放行
     layoutBigGrid(document.body.classList.contains('big-screen'));
@@ -365,6 +378,7 @@ export function createCinema({ camera, player, sfx }) {
   }
   scene.add(bed);
   const bedHit = bed.children[2]; // 床垫作为点击目标
+  let pickables = [bedHit];       // 准星射线的目标表：rebuild 时重填，避免每帧拼数组
 
   /* ================= 厅形切换（圆筒弧幕 / 正多边形直墙平面幕） =================
      厅里**没有门**：墙是一整圈闭合的黑匣子，整圈都能挂幕，回球场走放映条「🚪 退出影院」。
@@ -846,6 +860,7 @@ export function createCinema({ camera, player, sfx }) {
   let hoverBed = false;
   let hoverScreen = -1;
   const raycaster = new THREE.Raycaster();
+  const _center = { x: 0, y: 0 };   // 准星恒在屏幕正中，不必每帧抛一个临时坐标
   const _ndc = new THREE.Vector2();
   const hintEl = $('cinema-hint');
 
@@ -915,14 +930,7 @@ export function createCinema({ camera, player, sfx }) {
       layoutBigGrid(false);
       $('cb-big').title = '平铺视角：整屏按各片比例拼满（无黑边），加片删片就在这里';
     }
-    canvasLock();
-  }
-  function canvasLock() {
-    const c = document.getElementById('gl');
-    try {
-      const p = c.requestPointerLock?.();
-      if (p && p.catch) p.catch(() => { /* 无手势/限流时忽略，点击画面可再锁 */ });
-    } catch (e) { /* 旧浏览器同步抛错同样忽略 */ }
+    lockPointer();
   }
 
   /* ================= 对外接口（api 命名：按钮回调里也要能拿到 onExitRequest） ================= */
@@ -947,7 +955,7 @@ export function createCinema({ camera, player, sfx }) {
       player.freePitch = 0;
       zoomT = 0;
       applyZoom();
-      canvasLock();                 // 走动状态锁指针（与球馆一致）
+      lockPointer();                 // 走动状态锁指针（与球馆一致）
       if (!sources.some(Boolean)) { sources = loadSources(); rebuild(); refreshStatus(); }
       setHint('<b>左键</b> 点屏幕切换出声 · 靠近圆床 <b>左键</b> 入座 · 回球场点放映条 <b>🚪 退出影院</b>');
     },
@@ -981,9 +989,9 @@ export function createCinema({ camera, player, sfx }) {
         if (d > lim) { player.pos.x = K.bed.x + px * (lim / d); player.pos.z = K.bed.z + pz * (lim / d); }
       }
       // 准星射线：圆床 + 环上所有幕（厅里没门，少一个目标也少一次"隐形物挡射线"的坑）
-      raycaster.setFromCamera({ x: 0, y: 0 }, camera);
-      const hits = raycaster.intersectObjects([bedHit, ...screens.map((s) => s.mesh)], false);
-      const hit = hits.find((h) => h.distance < 24) || null;
+      raycaster.setFromCamera(_center, camera);
+      const hits = raycaster.intersectObjects(pickables, false);
+      const hit = (hits.length && hits[0].distance < 24) ? hits[0] : null;   // 结果已按距离排序
       hoverBed = !!hit && hit.object === bedHit;
       hoverScreen = hit ? screens.findIndex((s) => s.mesh === hit.object) : -1;
       const dBed = Math.hypot(px, pz);

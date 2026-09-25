@@ -7,7 +7,8 @@ import * as CANNON from 'cannon-es';
 import { CFG } from './config.js';
 
 export function createPhysics() {
-  const world = new CANNON.World({ gravity: new CANNON.Vec3(0, -9.82, 0) });
+  // 世界重力与玩家起跳积分读同一个常数（CFG.player.gravity）
+  const world = new CANNON.World({ gravity: new CANNON.Vec3(0, -CFG.player.gravity, 0) });
   world.broadphase = new CANNON.SAPBroadphase(world);
   world.defaultContactMaterial.friction = 0.3;
   world.defaultContactMaterial.restitution = 0.3;

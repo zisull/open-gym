@@ -6,6 +6,17 @@ import { CFG } from './config.js';
 
 const $ = (id) => document.getElementById(id);
 
+/**
+ * 安全请求指针锁：Chrome 在 ESC 解锁后 ~1s 内再锁会被拒绝，静默失败由用户点击画面兜底。
+ * 球馆 / 台球室 / 电影院三处共用同一个 <canvas id="gl">。
+ */
+export function lockPointer(el = $('gl')) {
+  try {
+    const p = el.requestPointerLock?.();
+    if (p && p.catch) p.catch(() => { /* 无手势时忽略，点画面可再锁 */ });
+  } catch (e) { /* 旧浏览器同步抛错同样忽略 */ }
+}
+
 export class UI {
   constructor() {
     this.el = {

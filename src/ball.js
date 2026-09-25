@@ -126,11 +126,4 @@ export class GameBall {
 
   /** 球当前世界位置 */
   get position() { return this.mesh.position; }
-
-  /** 是否已经落在地面上（静止判定用） */
-  resting() {
-    return this.mode === 'physics' &&
-      this.body.velocity.length() < 0.35 &&
-      this.body.position.y < CFG.ball.radius + 0.08;
-  }
 }

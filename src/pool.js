@@ -12,6 +12,8 @@
 import * as THREE from 'three';
 import { CFG } from './config.js';
 import { makeCarpetTexture, makeFeltTexture, makePoolBallTexture } from './textures.js';
+import { loadSetting, saveSetting } from './scoring.js';
+import { lockPointer } from './ui.js';
 
 const K = CFG.pool;
 const T = K.table;
@@ -339,10 +341,16 @@ export function createPool({ camera, player, sfx }) {
   let aimT = 0;             // 第一人称 <-> 出杆视角 的插值权重
   let needRack = false;
   let strokes = 0, pottedNum = 0, score = 0, fouls = 0;
-  let best = Number(localStorage.getItem('bb.pool.best') || 0);
+  const num = (k, dft) => { const v = Number(loadSetting(k, '')); return Number.isFinite(v) ? v : dft; };
+  let best = Math.max(0, num('bb.pool.best', 0));
 
   /* ---- 8 球规则机：开球 → 台面开放（未定组）→ 定组 → 清完本组打黑八 ---- */
-  let duel = Number(localStorage.getItem('bb.pool.duel') || 0);   // 0=自由练台，1~3=对战难度
+  let duel = (() => {
+    // 存档可能被写坏（老版本键、无痕模式塞进奇怪字符）：非法值一律退回 0=自由练台，
+    // 否则 K.duel.levels[NaN-1] 会在取不到 name 时抛错，整间球室直接起不来。
+    const v = Math.trunc(Number(loadSetting('bb.pool.duel', '0')));
+    return Number.isInteger(v) && v > 0 && v <= K.duel.levels.length ? v : 0;
+  })();   // 0=自由练台，1~3=对战难度
   let phase = 'idle';       // idle 未开赛 | break 待开球 | open 未定组 | play 已定组 | over 分出胜负
   let turn = 0;             // 0=你 1=电脑
   let grp = [null, null];   // grp[侧] = 'solid' | 'stripe'
@@ -358,7 +366,7 @@ export function createPool({ camera, player, sfx }) {
   let spinY = 0;   // −1 低杆（拉杆回退）… +1 高杆（跟进）
   let hudOpen = false;   // Tab 开的「操作台」：指针解锁中，鼠标可以拖红点、按球室条上的按钮
   {
-    const s = (localStorage.getItem('bb.pool.spin') || '').split(',');
+    const s = loadSetting('bb.pool.spin', '').split(',');
     const c = (v) => (Number.isFinite(Number(v)) ? THREE.MathUtils.clamp(Number(v), -1, 1) : 0);
     spinX = c(s[0]); spinY = c(s[1]);
   }
@@ -432,7 +440,7 @@ export function createPool({ camera, player, sfx }) {
   function setBest() {
     if (best < score) {
       best = score;
-      localStorage.setItem('bb.pool.best', String(best));
+      saveSetting('bb.pool.best', best);
     }
   }
 
@@ -558,23 +566,25 @@ export function createPool({ camera, player, sfx }) {
   }
 
   /* ================= 杆法数学：导向线与积分器共用同一份 ================= */
+  const _sp = { x: 0, z: 0, imp: 0 };   // 两个函数都写这张表：调用方当场取用，不留临时对象
   /** 母球吃到目标球后的速度：等质量冲量（法向交给目标球）+ 高低杆沿原出杆线补的一截 */
   function cueAfterHit(vx, vz, nx, nz, sy) {
     const j = (1 + PH.ballRest) * (vx * nx + vz * nz) / 2;
     const sp = Math.hypot(vx, vz) || 1;
     const k = sy * PH.follow * sp;
-    return { x: vx - nx * j + (vx / sp) * k, z: vz - nz * j + (vz / sp) * k };
+    _sp.x = vx - nx * j + (vx / sp) * k;
+    _sp.z = vz - nz * j + (vz / sp) * k;
+    return _sp;
   }
   /** 吃库后的速度：法向反弹×恢复、切向×摩擦，再按塞量沿库边推一把（sw>0=右塞） */
   function railBounce(vx, vz, nx, nz, sw) {
     const vn = vx * nx + vz * nz;
     const imp = Math.abs(vn);
     const push = sw * PH.cush * imp;
-    return {
-      x: (vx - vn * nx) * PH.cushionFric - nx * vn * PH.cushionRest - nz * push,
-      z: (vz - vn * nz) * PH.cushionFric - nz * vn * PH.cushionRest + nx * push,
-      imp,
-    };
+    _sp.x = (vx - vn * nx) * PH.cushionFric - nx * vn * PH.cushionRest - nz * push;
+    _sp.z = (vz - vn * nz) * PH.cushionFric - nz * vn * PH.cushionRest + nx * push;
+    _sp.imp = imp;
+    return _sp;
   }
 
   /* ================= 物理：一个子步 ================= */
@@ -611,7 +621,7 @@ export function createPool({ camera, player, sfx }) {
           b.z -= rl.s * pen;
           const o = railBounce(b.vx, b.vz, 0, rl.s, b.sw);
           b.vx = o.x; b.vz = o.z;
-          if (b.sw) b.sw *= -0.55;                // 塞在吃库后翻边
+          if (b.sw) b.sw *= PH.swFlip;                // 塞在吃库后翻边
           if (o.imp > 0.3) sfx.play('rim', { volume: Math.min(0.45, o.imp / 8), rate: 1.35 });
         }
       }
@@ -622,7 +632,7 @@ export function createPool({ camera, player, sfx }) {
           b.x -= rl.s * pen;
           const o = railBounce(b.vx, b.vz, rl.s, 0, b.sw);
           b.vx = o.x; b.vz = o.z;
-          if (b.sw) b.sw *= -0.55;
+          if (b.sw) b.sw *= PH.swFlip;
           if (o.imp > 0.3) sfx.play('rim', { volume: Math.min(0.45, o.imp / 8), rate: 1.35 });
         }
       }
@@ -737,33 +747,43 @@ export function createPool({ camera, player, sfx }) {
     return g;
   }
 
+  /* 导向线每帧重画：顶点点位全部复用，避免瞄准时一帧抛出几十个临时对象 */
+  const _rn = 32;
+  const _cos = [], _sin = [], _ring = [];
+  for (let i = 0; i <= _rn; i++) {
+    const a = (i / _rn) * Math.PI * 2;
+    _cos.push(Math.cos(a)); _sin.push(Math.sin(a));
+    _ring.push({ x: _cos[i], z: _sin[i] });
+  }
+  const _seg = [{ x: 0, z: 0 }, { x: 0, z: 0 }];
+  function seg(ax, az, bx, bz) { _seg[0].x = ax; _seg[0].z = az; _seg[1].x = bx; _seg[1].z = bz; return _seg; }
+  function ring(cx, cz) {
+    for (let i = 0; i <= _rn; i++) { _ring[i].x = cx + _cos[i] * R; _ring[i].z = cz + _sin[i] * R; }
+    return _ring;
+  }
   function drawGuide() {
     const g = predict();
     if (mode !== 'aim' || g.kind === 'none') { hideGuide(); return g; }
-    const end = g.kind === 'pocket' ? nearestPocket(g.gx, g.gz) : { x: g.gx, z: g.gz };
-    gMain.show([{ x: cue.x, z: cue.z }, { x: end.x, z: end.z }]);
+    const end = g.kind === 'pocket' ? nearestPocket(g.gx, g.gz) : null;
+    const ex = end ? end.x : g.gx, ez = end ? end.z : g.gz;
+    gMain.show(seg(cue.x, cue.z, ex, ez));
     gObj.show(HIDE); gCue.show(HIDE); gCush.show(HIDE); gGhost.show(HIDE);
     if (g.kind === 'ball') {
       // 幽灵球：母球球心走到这个圆上，正好与目标球相切
-      const pts = [];
-      for (let i = 0; i <= 32; i++) {
-        const a = (i / 32) * Math.PI * 2;
-        pts.push({ x: g.gx + Math.cos(a) * R, z: g.gz + Math.sin(a) * R });
-      }
-      gGhost.show(pts);
+      gGhost.show(ring(g.gx, g.gz));
       const ob = balls.find((b) => b.num === g.ball);
       if (ob) {
-        gObj.show([{ x: ob.x, z: ob.z }, { x: ob.x + g.ox * GD.objLen, z: ob.z + g.oz * GD.objLen }]);
+        gObj.show(seg(ob.x, ob.z, ob.x + g.ox * GD.objLen, ob.z + g.oz * GD.objLen));
         // 母球分离线（正面对心撞没有切向，但带高低杆时这条线照样有方向）
         const cl = Math.hypot(g.cx, g.cz);
         if (cl > 0.08) {
-          gCue.show([{ x: g.gx, z: g.gz }, { x: g.gx + g.cx * GD.cueLen, z: g.gz + g.cz * GD.cueLen }]);
+          gCue.show(seg(g.gx, g.gz, g.gx + g.cx * GD.cueLen, g.gz + g.cz * GD.cueLen));
         }
       }
     } else if (g.kind === 'rail') {
       const t2 = rayEdge(g.gx, g.gz, g.rx, g.rz);
       const L = Math.min(GD.cushLen, t2 > 0 ? t2 : GD.cushLen);
-      gCush.show([{ x: g.gx, z: g.gz }, { x: g.gx + g.rx * L, z: g.gz + g.rz * L }]);
+      gCush.show(seg(g.gx, g.gz, g.gx + g.rx * L, g.gz + g.rz * L));
     }
     return g;
   }
@@ -885,14 +905,6 @@ export function createPool({ camera, player, sfx }) {
     _book = null;
     renderBook(); setInfo();
   }
-  function canvasLock() {
-    const c = document.getElementById('gl');
-    try {
-      const p = c.requestPointerLock?.();
-      if (p && p.catch) p.catch(() => { /* 无手势时忽略，点画面可再锁 */ });
-    } catch (e) { /* 旧浏览器同步抛错同样忽略 */ }
-  }
-
   function syncModeBtn() {
     modeEl.textContent = duel ? `🤖 对战 · ${K.duel.levels[duel - 1].name}` : '🧘 自由练台';
     modeEl.title = duel
@@ -903,7 +915,7 @@ export function createPool({ camera, player, sfx }) {
   }
   modeEl.addEventListener('click', () => {
     duel = (duel + 1) % (K.duel.levels.length + 1);
-    localStorage.setItem('bb.pool.duel', String(duel));
+    saveSetting('bb.pool.duel', duel);
     syncModeBtn();
     startDuel();
     sfx.play('ui', { volume: 0.5, rate: duel ? 1.35 : 1 });
@@ -930,7 +942,7 @@ export function createPool({ camera, player, sfx }) {
   function saveSpin() {
     clearTimeout(spinSaveTimer);
     spinSaveTimer = setTimeout(() => {
-      localStorage.setItem('bb.pool.spin', `${spinX.toFixed(3)},${spinY.toFixed(3)}`);
+      saveSetting('bb.pool.spin', `${spinX.toFixed(3)},${spinY.toFixed(3)}`);
     }, 300);
   }
   function applySpin(x, y) {
@@ -981,7 +993,7 @@ export function createPool({ camera, player, sfx }) {
       renderBook();
       setInfo();
       bar.classList.remove('hidden');   // 球室条常驻：重摆 / 退出都得够得着
-      canvasLock();
+      lockPointer();
       setHint(duel
         ? '<b>走近球桌</b> <b>左键</b> 上手开球 · 点 <b>🧘 自由练台</b> 可切回自己练'
         : '<b>走近球桌</b> <b>左键</b> 上手瞄准 · 回球场点 <b>🚪 退出球室</b>');
