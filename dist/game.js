@@ -22293,7 +22293,19 @@
           // 距台边多近可以「上手」（矩形判定，四边都好使）
           walkSpeed: 3,
           guide: { dash: 0.045, gap: 0.03, objLen: 0.46, cueLen: 0.3, cushLen: 0.52 },
-          score: { ball: 20, clear: 100, foul: 30 }
+          score: { ball: 20, clear: 100, foul: 30 },
+          // 8 球对战（0=自由练台）：电脑没有身体，只借用虚线导向"演"一遍它的瞄准过程
+          duel: {
+            think: 0.7,
+            drive: 0.6,
+            // 上桌前的停顿 / 导向线扫向目标的用时（秒）
+            // 三档难度：aim = 准星抖动（弧度）pow = 力度抖动比例
+            levels: [
+              { name: "\u8F7B\u677E", aim: 0.03, pow: 0.12 },
+              { name: "\u6807\u51C6", aim: 0.012, pow: 0.06 },
+              { name: "\u804C\u4E1A", aim: 3e-3, pow: 0.02 }
+            ]
+          }
         }
       };
     }
@@ -31496,6 +31508,8 @@
     const hintEl = $2("pool-hint");
     const infoEl = $2("pb-info");
     const fillEl = $2("pb-fill");
+    const bookEl = $2("pb-book");
+    const modeEl = $2("pb-mode");
     const RW = K2.room.halfW, RL = K2.room.halfL, RH = K2.room.height;
     const shell = new Mesh(
       new BoxGeometry(RW * 2, RH, RL * 2),
@@ -31731,6 +31745,15 @@
     let needRack = false;
     let strokes = 0, pottedNum = 0, score = 0, fouls = 0;
     let best = Number(localStorage.getItem("bb.pool.best") || 0);
+    let duel = Number(localStorage.getItem("bb.pool.duel") || 0);
+    let phase = "idle";
+    let turn = 0;
+    let grp = [null, null];
+    let shot = null;
+    let pottedOrder = [];
+    let foulBy = [0, 0];
+    let result = "";
+    let botT = 0, botStep = "", botPlan = null, botFrom = 0, botDelta = 0;
     const dir = new Vector2(1, 0);
     const _eye = new Vector3(), _tgt = new Vector3(), _up = new Vector3(0, 1, 0);
     const _m = new Matrix4(), _q = new Quaternion();
@@ -31756,10 +31779,35 @@
     }
     let _info = null;
     function setInfo() {
-      const s = `\u{1F3B1} \u8FDB\u888B ${pottedNum}/15 \xB7 \u5F97\u5206 ${score}${fouls ? ` \xB7 \u6D17\u888B ${fouls}` : ""} \xB7 \u51FA\u6746 ${strokes} \xB7 \u7EAA\u5F55 ${best}`;
+      let s;
+      if (!duel) {
+        s = `\u{1F3B1} \u8FDB\u888B ${pottedNum}/15 \xB7 \u5F97\u5206 ${score}${fouls ? ` \xB7 \u6D17\u888B ${fouls}` : ""} \xB7 \u51FA\u6746 ${strokes} \xB7 \u7EAA\u5F55 ${best}`;
+      } else if (phase === "over") {
+        s = `\u{1F3C1} ${result} \xB7 \u51FA\u6746 ${strokes} \xB7 \u70B9\u300C\u{1F02B} \u91CD\u6446\u300D\u518D\u6765\u4E00\u5C40`;
+      } else {
+        s = `\u{1F3B1} ${turn === 0 ? "\u25B6 \u4F60\u7684\u56DE\u5408" : "\u7535\u8111\u56DE\u5408"} \xB7 \u4F60 ${grp[0] ? GN[grp[0]] : "\u5F85\u5B9A"} \xB7 \u7535\u8111 ${grp[1] ? GN[grp[1]] : "\u5F85\u5B9A"} \xB7 \u51FA\u6746 ${strokes}`;
+      }
       if (s === _info) return;
       _info = s;
       infoEl.textContent = s;
+    }
+    let _book = null;
+    function renderBook() {
+      const sig = duel ? [phase, turn, grp.join(","), pottedOrder.join(","), foulBy.join(","), result].join("|") : "";
+      if (sig === _book) return;
+      _book = sig;
+      bookEl.classList.toggle("hidden", !duel);
+      if (!duel) {
+        bookEl.innerHTML = "";
+        return;
+      }
+      bookEl.innerHTML = [0, 1].map((i) => {
+        const g = grp[i];
+        const list = g ? pottedOrder.filter((n) => CAT(n) === g) : [];
+        const need8 = !!g && groupLeft(g) === 0;
+        const chips = list.map((n) => `<i class="pbk-chip ${n >= 9 ? "stripe" : ""}" style="--c:${ballCss(n)}">${n}</i>`).join("");
+        return `<div class="pbk-row${i === turn ? " me" : ""}"><span class="pbk-name">${i === turn && phase !== "over" ? "\u25B6" : ""}${SIDE[i]}</span><span class="pbk-grp${need8 ? " eight" : ""}">${g ? need8 ? "\u6253\u9ED1\u516B" : GN[g] : "\u5F85\u5B9A"}</span><span class="pbk-chips">${chips}</span><span class="pbk-cnt">${list.length}/7${foulBy[i] ? ` \xB7 \u72AF\u89C4 ${foulBy[i]}` : ""}</span></div>`;
+      }).join("") + (result ? `<div class="pbk-way">\u{1F3C1} ${result}</div>` : "");
     }
     let _pw = -1;
     function setPower(v) {
@@ -31797,10 +31845,88 @@
       cue.x = -BX / 2;
       cue.z = 0;
     }
+    const groupLeft = (g) => balls.reduce((n, b2) => n + (!b2.potted && CAT(b2.num) === g ? 1 : 0), 0);
+    function respotEight() {
+      const e = balls.find((b2) => b2.num === 8);
+      e.potted = false;
+      e.sink = 0;
+      e.vx = e.vz = 0;
+      e.mesh.visible = true;
+      e.mesh.scale.setScalar(1);
+      const free = (x, z) => balls.every((b2) => b2 === e || b2.potted || Math.hypot(b2.x - x, b2.z - z) > 2.2 * R2);
+      e.x = BX / 2;
+      e.z = 0;
+      for (let j = 1; j < 30 && !free(e.x, 0); j++) {
+        e.x = BX / 2 + (j % 2 ? 1 : -1) * Math.ceil(j / 2) * 2.2 * R2;
+      }
+      e.mesh.position.set(e.x, YC, e.z);
+      const k = pottedOrder.indexOf(8);
+      if (k >= 0) pottedOrder.splice(k, 1);
+      pottedNum = Math.max(0, pottedNum - 1);
+    }
+    const mine = () => !duel || turn === 0 || phase === "over";
+    function legalBalls(side) {
+      const g = grp[side];
+      const alive = balls.filter((b2) => !b2.potted && b2.num !== 0);
+      if (!g) return alive.filter((b2) => b2.num !== 8);
+      return groupLeft(g) ? alive.filter((b2) => CAT(b2.num) === g) : alive.filter((b2) => b2.num === 8);
+    }
+    function snapshotShot() {
+      const own = grp[turn];
+      return { shooter: turn, own, left: own ? groupLeft(own) : -1, first: -1, pots: [], cuePot: false, brk: duel > 0 && phase === "break" };
+    }
+    function badFirst(s) {
+      if (s.brk) return false;
+      if (!s.own) return s.first === 8;
+      return CAT(s.first) !== (s.left === 0 ? "eight" : s.own);
+    }
+    function endGame(winner, why) {
+      phase = "over";
+      result = `${SIDE[winner]}\u80DC \xB7 ${why}`;
+      sfx.play(winner === 0 ? "cheer" : "ui", { volume: 0.72 });
+      renderBook();
+      setInfo();
+    }
+    function settleShot() {
+      const s = shot;
+      shot = null;
+      botT = 0;
+      botStep = "";
+      botPlan = null;
+      if (!duel || phase === "idle" || phase === "over") return;
+      const me = s.shooter, op = 1 - me;
+      const objs = s.pots.filter((n) => n !== 0 && n !== 8);
+      const foulWhy = s.cuePot ? "\u6D17\u888B" : s.first < 0 ? "\u7A7A\u6746" : badFirst(s) ? "\u5148\u78B0\u4E86\u522B\u4EBA\u7684\u7403" : "";
+      let eightBack = false;
+      if (s.brk && s.pots.includes(8)) {
+        respotEight();
+        eightBack = true;
+        s.pots = s.pots.filter((n) => n !== 8);
+      } else if (s.pots.includes(8)) {
+        const win = !foulWhy && s.left === 0;
+        endGame(win ? me : op, win ? "\u6E05\u53F0\u540E\u4E00\u6746\u9ED1\u516B" : foulWhy ? `\u6253\u9ED1\u516B\u65F6${foulWhy}` : "\u672C\u7EC4\u8FD8\u6CA1\u6E05\u5B8C\u5C31\u8FDB\u4E86\u9ED1\u516B");
+        return;
+      }
+      if (!foulWhy && phase === "open" && objs.length) {
+        grp[me] = CAT(objs[0]);
+        grp[op] = grp[me] === "solid" ? "stripe" : "solid";
+        phase = "play";
+      }
+      if (s.brk) phase = "open";
+      if (foulWhy) foulBy[me]++;
+      const keep = !foulWhy && (eightBack || objs.length > 0 && (!grp[me] || objs.some((n) => CAT(n) === grp[me])));
+      if (!keep) turn = op;
+      renderBook();
+      setInfo();
+    }
     function pot(b2) {
       b2.potted = true;
       b2.sink = 0.01;
       b2.vx = b2.vz = 0;
+      if (shot) {
+        shot.pots.push(b2.num);
+        if (b2.num === 0) shot.cuePot = true;
+      }
       if (b2.num === 0) {
         fouls++;
         score = Math.max(0, score - K2.score.foul);
@@ -31809,9 +31935,11 @@
         return;
       }
       pottedNum++;
+      pottedOrder.push(b2.num);
+      renderBook();
       score += K2.score.ball;
       sfx.play("bounce", { volume: 0.55, rate: 0.7 + Math.random() * 0.1 });
-      if (pottedNum >= RACK_ORDER.length) {
+      if (!duel && pottedNum >= RACK_ORDER.length) {
         score += K2.score.clear;
         needRack = true;
         sfx.play("cheer", { volume: 0.7 });
@@ -31900,6 +32028,9 @@
           c2.z += dz * over;
           const rel = (c2.vx - a2.vx) * dx + (c2.vz - a2.vz) * dz;
           if (rel >= 0) continue;
+          if (shot && shot.first < 0 && (a2 === cue || c2 === cue)) {
+            shot.first = a2 === cue ? c2.num : a2.num;
+          }
           const jimp = -(1 + PH.ballRest) * rel / 2;
           a2.vx -= dx * jimp;
           a2.vz -= dz * jimp;
@@ -32052,6 +32183,7 @@
     function strike() {
       const v = MathUtils.lerp(K2.speed[0], K2.speed[1], power);
       const pw = power;
+      shot = snapshotShot();
       cue.vx = dir.x * v;
       cue.vz = dir.y * v;
       strokes++;
@@ -32068,6 +32200,81 @@
       hideGuide();
       sfx.play("shoot", { volume: 0.45 + pw * 0.4, rate: 1.45 - v / 16 });
     }
+    function botPick() {
+      const L = legalBalls(1);
+      if (!L.length || cue.potted) return null;
+      let best2 = null;
+      for (const b2 of L) {
+        const d = Math.hypot(b2.x - cue.x, b2.z - cue.z);
+        if (!best2 || d < best2.d) best2 = { b: b2, d };
+      }
+      const lv = K2.duel.levels[duel - 1];
+      return {
+        num: best2.b.num,
+        aim: Math.atan2(best2.b.z - cue.z, best2.b.x - cue.x) + (Math.random() * 2 - 1) * lv.aim,
+        power: Math.max(0.24, Math.min(0.95, 0.3 + best2.d / 2.6 + (Math.random() * 2 - 1) * lv.pow))
+      };
+    }
+    const wrapAng = (d) => {
+      let a2 = d;
+      while (a2 > Math.PI) a2 -= Math.PI * 2;
+      while (a2 < -Math.PI) a2 += Math.PI * 2;
+      return a2;
+    };
+    function botTick(dt) {
+      if (mode === "roll") return;
+      botT += dt;
+      if (botStep === "") {
+        if (botT < K2.duel.think) return;
+        botPlan = botPick();
+        botT = 0;
+        if (!botPlan) {
+          turn = 0;
+          setInfo();
+          renderBook();
+          return;
+        }
+        if (mode !== "aim") takeOver();
+        botFrom = aimA;
+        botDelta = wrapAng(botPlan.aim - aimA);
+        botStep = "aim";
+      } else if (botStep === "aim") {
+        const k = Math.min(1, botT / K2.duel.drive), e = 1 - (1 - k) * (1 - k) * (1 - k);
+        aimA = botFrom + botDelta * e;
+        dir.set(Math.cos(aimA), Math.sin(aimA));
+        power = botPlan.power * e;
+        if (k >= 1) {
+          botStep = "hit";
+          botT = 0;
+        }
+      } else if (botStep === "hit") {
+        if (botT < 0.14) return;
+        power = botPlan.power;
+        botStep = "";
+        strike();
+      }
+    }
+    function startDuel() {
+      rack();
+      pottedOrder = [];
+      foulBy = [0, 0];
+      grp = [null, null];
+      result = "";
+      shot = null;
+      turn = 0;
+      strokes = 0;
+      pottedNum = 0;
+      score = 0;
+      fouls = 0;
+      phase = duel ? "break" : "idle";
+      needRack = false;
+      botT = 0;
+      botStep = "";
+      botPlan = null;
+      _book = null;
+      renderBook();
+      setInfo();
+    }
     function canvasLock() {
       const c2 = document.getElementById("gl");
       try {
@@ -32077,6 +32284,17 @@
       } catch (e) {
       }
     }
+    function syncModeBtn() {
+      modeEl.textContent = duel ? `\u{1F916} \u5BF9\u6218 \xB7 ${K2.duel.levels[duel - 1].name}` : "\u{1F9D8} \u81EA\u7531\u7EC3\u53F0";
+      modeEl.title = duel ? "\u70B9\u51FB\u5207\u5230\u4E0B\u4E00\u79CD\u73A9\u6CD5\uFF08\u81EA\u7531\u7EC3\u53F0 \u2192 \u8F7B\u677E \u2192 \u6807\u51C6 \u2192 \u804C\u4E1A\uFF09\uFF1B\u6362\u73A9\u6CD5\u4F1A\u91CD\u6446\u6574\u684C" : "\u70B9\u51FB\u5F00\u59CB\u4E0E\u7535\u8111\u6253 8 \u7403\uFF1A\u5148\u8FDB\u5B8C\u81EA\u5DF1\u4E00\u7EC4\uFF08\u5168\u8272/\u82B1\u8272\uFF09\u518D\u6253\u9ED1\u516B";
+    }
+    modeEl.addEventListener("click", () => {
+      duel = (duel + 1) % (K2.duel.levels.length + 1);
+      localStorage.setItem("bb.pool.duel", String(duel));
+      syncModeBtn();
+      startDuel();
+      sfx.play("ui", { volume: 0.5, rate: duel ? 1.35 : 1 });
+    });
     $2("pb-rack").addEventListener("click", () => api.rerack());
     $2("pb-exit").addEventListener("click", () => {
       if (api.onExitRequest) api.onExitRequest();
@@ -32106,10 +32324,13 @@
         player.freePitch = -0.1;
         aimT = 0;
         mode = "walk";
+        syncModeBtn();
+        _book = null;
+        renderBook();
         setInfo();
         bar.classList.remove("hidden");
         canvasLock();
-        setHint("<b>\u8D70\u8FD1\u7403\u684C</b> <b>\u5DE6\u952E</b> \u4E0A\u624B\u7784\u51C6 \xB7 \u56DE\u7403\u573A\u70B9 <b>\u{1F6AA} \u9000\u51FA\u7403\u5BA4</b>");
+        setHint(duel ? "<b>\u8D70\u8FD1\u7403\u684C</b> <b>\u5DE6\u952E</b> \u4E0A\u624B\u5F00\u7403 \xB7 \u70B9 <b>\u{1F9D8} \u81EA\u7531\u7EC3\u53F0</b> \u53EF\u5207\u56DE\u81EA\u5DF1\u7EC3" : "<b>\u8D70\u8FD1\u7403\u684C</b> <b>\u5DE6\u952E</b> \u4E0A\u624B\u7784\u51C6 \xB7 \u56DE\u7403\u573A\u70B9 <b>\u{1F6AA} \u9000\u51FA\u7403\u5BA4</b>");
       },
       exit() {
         releaseCue();
@@ -32140,14 +32361,16 @@
               rack();
               pottedNum = 0;
             }
+            settleShot();
             mode = "aim";
             power = 0;
             cueStick.visible = true;
-            sfx.play("ui", { volume: 0.25, rate: 1.35 });
+            if (mine()) sfx.play("ui", { volume: 0.25, rate: 1.35 });
           }
         } else if (mode === "aim" && charging) {
           power = Math.min(1, power + dt / K2.chargeTime);
         }
+        if (duel && turn === 1 && phase !== "over") botTick(dt);
         syncMeshes(dt);
         setBest();
         if (cueStick.visible) {
@@ -32165,8 +32388,12 @@
           camera.position.lerp(_eye, aimT);
           camera.quaternion.slerp(_q, aimT);
         }
-        setPower(mode === "aim" && charging ? power : 0);
-        if (mode === "walk") {
+        setPower(mode === "aim" && (charging || !mine()) ? power : 0);
+        if (phase === "over") {
+          setHint(`\u{1F3C1} ${result} \xB7 \u70B9 <b>\u{1F02B} \u91CD\u6446</b> \u518D\u6765\u4E00\u5C40\uFF0C\u6216 <b>\u{1F9D8} \u81EA\u7531\u7EC3\u53F0</b> \u81EA\u5DF1\u7EC3`);
+        } else if (!mine()) {
+          setHint(botPlan ? `\u{1F916} \u7535\u8111\u6B63\u5728\u7784\u51C6 <b>${botPlan.num}</b> \u53F7\u2026` : "\u{1F916} \u7535\u8111\u601D\u8003\u4E2D\u2026");
+        } else if (mode === "walk") {
           setHint(nearTable() ? "<b>\u5DE6\u952E</b> \u4E0A\u624B\u7784\u51C6 \xB7 <b>\u53F3\u952E</b> \u7EE7\u7EED\u8D70\u52A8" : "");
         } else if (mode === "aim") {
           setHint("<b>\u79FB\u52A8\u9F20\u6807</b> \u8F6C\u5BFC\u5411\u7EBF \xB7 <b>\u6309\u4F4F\u5DE6\u952E</b> \u84C4\u529B\u3001\u677E\u624B\u51FA\u6746 \xB7 <b>\u53F3\u952E</b> \u6536\u6746 \xB7 <b>E</b> \u91CD\u6446 \xB7 WASD \u8D70\u52A8");
@@ -32174,14 +32401,14 @@
           setHint("\u7403\u8FD8\u5728\u6EDA\u2026");
         }
       },
-      /** 瞄准：鼠标横向增量转导向线 */
+      /** 瞄准：鼠标横向增量转导向线（电脑回合让玩家的手闲著） */
       onLook(dx) {
-        if (mode !== "aim") return;
+        if (mode !== "aim" || !mine()) return;
         aimA += dx * K2.aim.sens;
         dir.set(Math.cos(aimA), Math.sin(aimA));
       },
       onLeftDown() {
-        if (mode === "roll") return;
+        if (mode === "roll" || !mine()) return;
         if (mode === "walk") {
           if (nearTable()) takeOver();
           return;
@@ -32190,7 +32417,7 @@
         power = 0;
       },
       onLeftUp() {
-        if (mode !== "aim" || !charging) return;
+        if (mode !== "aim" || !charging || !mine()) return;
         charging = false;
         if (power < K2.cancelCharge) {
           power = 0;
@@ -32200,18 +32427,21 @@
         strike();
       },
       onRightDown() {
-        if (mode === "aim") releaseCue();
+        if (mode === "aim" && mine()) releaseCue();
       },
       /** 瞄准时按方向键 = 收杆回走动（与影院"按 WASD 起身"同一套语言） */
       onMoveKey() {
-        if (mode === "aim") releaseCue();
+        if (mode === "aim" && mine()) releaseCue();
       },
-      /** E / 按钮：整桌重摆 */
+      /** E / 按钮：自由练台=整桌重摆；对战=开一局新的（重摆 + 规则机复位） */
       rerack() {
-        rack();
-        pottedNum = 0;
-        needRack = false;
-        setInfo();
+        if (duel) startDuel();
+        else {
+          rack();
+          pottedNum = 0;
+          needRack = false;
+          setInfo();
+        }
         sfx.play("ui", { volume: 0.5, rate: 1.2 });
       },
       /** 暂停/失焦：力度作废（松手的 mouseup 可能永远收不到） */
@@ -32231,8 +32461,40 @@
           fouls,
           cue: [+cue.x.toFixed(3), +cue.z.toFixed(3)],
           aimT: +aimT.toFixed(3),
-          power: +power.toFixed(2)
+          power: +power.toFixed(2),
+          duel,
+          turn,
+          phase,
+          grp: grp.map((g) => g ? g === "solid" ? "S" : "T" : "-").join(""),
+          fb: foulBy.join("/"),
+          book: pottedOrder.join(","),
+          result
         };
+      },
+      /** 切玩法（0=自由练台 1~3=对战难度）并重新开局：测试用，绕过按钮 */
+      debugSetDuel(v) {
+        duel = Math.max(0, Math.min(K2.duel.levels.length, Number(v) || 0));
+        syncModeBtn();
+        startDuel();
+        return this.debugPool();
+      },
+      /** 把一杆结果直接喂给规则机（跳过物理，专测定组/犯规/黑八判定）
+       *  nums=落袋的球号；opt.first=母球第一个碰到的球号；opt.cue=母球洗袋 */
+      debugRuleShot(nums, opt = {}) {
+        shot = snapshotShot();
+        if (typeof opt.first === "number") shot.first = opt.first;
+        for (const n of nums || []) {
+          const b2 = balls.find((x) => x.num === n);
+          if (b2 && !b2.potted) pot(b2);
+        }
+        if (opt.cue) pot(cue);
+        settleShot();
+        if (cue.potted) respotCue();
+        return this.debugPool();
+      },
+      /** 电脑这次的计划与所处节拍 */
+      debugBot() {
+        return { step: botStep || "-", t: +botT.toFixed(2), num: botPlan ? botPlan.num : -1, power: botPlan ? +botPlan.power.toFixed(2) : 0 };
       },
       debugGuide() {
         const g = mode === "aim" ? drawGuide() : predict();
@@ -32288,7 +32550,7 @@
     };
     return api;
   }
-  var K2, T, PH, GD, R2, TH, BX, BZ, YC, RX, RZ, CM, SM, POCKETS, RAILS, RAILS_Z, RAILS_X, HUE, RACK_ORDER;
+  var K2, T, PH, GD, R2, TH, BX, BZ, YC, RX, RZ, CM, SM, POCKETS, RAILS, RAILS_Z, RAILS_X, HUE, RACK_ORDER, CAT, GN, SIDE, ballCss;
   var init_pool = __esm({
     "src/pool.js"() {
       init_three_module();
@@ -32327,6 +32589,10 @@
       RAILS_X = RAILS.filter((r) => r.n === "x");
       HUE = [16249831, 16765470, 2054095, 14164012, 8073656, 16747038, 1541706, 9056034, 1315860];
       RACK_ORDER = [1, 2, 3, 4, 8, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15];
+      CAT = (n) => n === 0 ? "cue" : n === 8 ? "eight" : n < 8 ? "solid" : "stripe";
+      GN = { solid: "\u5168\u8272", stripe: "\u82B1\u8272" };
+      SIDE = ["\u4F60", "\u7535\u8111"];
+      ballCss = (n) => `#${(n <= 8 ? HUE[n] : HUE[n - 8]).toString(16).padStart(6, "0")}`;
     }
   });
 
@@ -34249,7 +34515,7 @@
         }
         if (demo === "wall") {
           const spk = () => document.querySelectorAll("#cc-list .cc-spk");
-          const st = () => `rows=${document.querySelectorAll("#cc-list .ccrow").length} voice=${cinema.debugRing().map((r) => r.voice).join("")} aud=${Array.from(document.querySelectorAll(".btv")).map((v) => !v.muted && v.volume > 0 ? 1 : 0).join("")} btv=${document.querySelectorAll(".btv").length}`;
+          const st2 = () => `rows=${document.querySelectorAll("#cc-list .ccrow").length} voice=${cinema.debugRing().map((r) => r.voice).join("")} aud=${Array.from(document.querySelectorAll(".btv")).map((v) => !v.muted && v.volume > 0 ? 1 : 0).join("")} btv=${document.querySelectorAll(".btv").length}`;
           setTimeout(() => {
             player.pos.set(0, 0, CFG.cinema.bed.z + 1.6);
             player.freeYaw = 0;
@@ -34267,15 +34533,15 @@
             one("add-a.mp4");
             setTimeout(() => one("add-b.mp4"), 400);
           }, 3400);
-          setTimeout(() => mark(`P1 ${st()} open=${document.getElementById("cinema-console").classList.contains("hidden") ? 0 : 1}`), 4200);
+          setTimeout(() => mark(`P1 ${st2()} open=${document.getElementById("cinema-console").classList.contains("hidden") ? 0 : 1}`), 4200);
           setTimeout(() => {
             const b2 = spk();
             b2[1].click();
             b2[2].click();
           }, 5e3);
-          setTimeout(() => mark(`P2 ${st()}`), 5600);
+          setTimeout(() => mark(`P2 ${st2()}`), 5600);
           setTimeout(() => document.querySelector("#cc-list .cc-kill").click(), 6200);
-          setTimeout(() => mark(`P3 ${st()}`), 6800);
+          setTimeout(() => mark(`P3 ${st2()}`), 6800);
           setTimeout(() => {
             document.getElementById("cc-mute").click();
             const muted = cinema.debugRing().map((r) => r.voice).join("");
@@ -34479,6 +34745,92 @@
             mark(`EXIT fired=${fired} rack=${document.getElementById("pb-rack") ? 1 : 0}`);
           }, 9800);
         }
+        if (demo === "rules") {
+          R3 = (x) => JSON.stringify(x);
+          st = () => {
+            const p = pool.debugPool();
+            return `duel=${p.duel} ph=${p.phase} turn=${p.turn} grp=${p.grp} book=[${p.book}] foul=${p.fb} \u9ED1\u516B\u6807=${document.querySelectorAll(".pbk-grp.eight").length} res=${p.result} chips=${document.querySelectorAll(".pbk-chip").length}`;
+          };
+          setTimeout(() => {
+            player.pos.set(0, 0, 1.5);
+            pool.debugSetDuel(1);
+            mark(`A \u5F00\u5C40 ${st()}`);
+          }, 2200);
+          setTimeout(() => {
+            pool.debugRuleShot([4], { first: 1 });
+            mark(`B \u5F00\u7403\u8FDB4\uFF1A\u4E0D\u5B9A\u7EC4\u3001\u7EE7\u7EED\u51FA\u6746 ${st()}`);
+          }, 2600);
+          setTimeout(() => {
+            pool.debugRuleShot([3], { first: 3 });
+            mark(`C \u5F00\u653E\u53F0\u8FDB3\uFF1A\u5B9A\u4F60=\u5168\u8272 ${st()}`);
+          }, 3e3);
+          setTimeout(() => {
+            pool.debugRuleShot([11], { first: 11 });
+            mark(`D \u5148\u78B0\u82B1\u8272\uFF1A\u72AF\u89C4\u2192\u6362\u624B ${st()}`);
+          }, 3400);
+          setTimeout(() => {
+            const s0 = pool.debugPool().strokes, b0 = pool.debugBot();
+            pool.debugSettle(2.2);
+            mark(`E \u7535\u8111\u51FA\u6746 strokes=${s0}\u2192${pool.debugPool().strokes} plan=${R3(b0)} mode=${pool.debugPool().mode}`);
+          }, 4200);
+          setTimeout(() => {
+            const s = pool.debugSettle(7);
+            mark(`F \u6574\u684C\u505C\u7A33 ph=${s.phase} turn=${s.turn} mode=${s.mode} live=${s.live}`);
+          }, 7e3);
+          setTimeout(() => {
+            pool.debugSetDuel(0);
+            const hid = document.getElementById("pb-book").classList.contains("hidden");
+            mark(`G \u5207\u56DE\u81EA\u7531\u7EC3\u53F0 ${st()} \u5165\u5E93\u6761\u9690\u85CF=${hid ? 1 : 0}`);
+          }, 9e3);
+          setTimeout(() => {
+            pool.debugSetDuel(2);
+            pool.debugRuleShot([1], { first: 1 });
+            pool.debugRuleShot([8], { first: 2 });
+            mark(`H \u672C\u7EC4\u6CA1\u6E05\u5B8C\u5C31\u8FDB\u9ED1\u516B\u2192\u5224\u8D1F ${st()}`);
+          }, 9400);
+          setTimeout(() => {
+            pool.debugSetDuel(2);
+            pool.debugRuleShot([1], { first: 1 });
+            for (const n of [2, 3, 4, 5, 6, 7]) pool.debugRuleShot([n], { first: n });
+            const mid = st();
+            pool.debugRuleShot([8], { first: 8 });
+            mark(`I \u6E05\u53F0\u540E\u4E00\u6746\u9ED1\u516B\u2192\u83B7\u80DC ${st()}\uFF5C\u6E05\u53F0\u65F6 ${mid}`);
+          }, 9800);
+          setTimeout(() => {
+            pool.debugSetDuel(3);
+            pool.debugRuleShot([9], { first: 9 });
+            const x = pool.debugRuleShot([10], { first: 10, cue: true });
+            mark(`J \u8FDB\u7403\u540C\u65F6\u6D17\u888B\uFF1A\u72AF\u89C4\u2192\u6362\u624B turn=${x.turn} book=[${x.book}] \u6BCD\u7403=${R3(pool.debugBall(0))}`);
+          }, 10200);
+          setTimeout(() => {
+            const y = pool.debugRuleShot([], { first: -1 });
+            mark(`K \u7A7A\u6746\uFF1A\u72AF\u89C4\u2192\u6362\u624B turn=${y.turn}`);
+            document.getElementById("pb-mode").click();
+            mark(`L \u6309\u94AE\u5207\u73A9\u6CD5 duel=${pool.debugPool().duel} \u6587\u6848=${document.getElementById("pb-mode").textContent}`);
+          }, 10600);
+          setTimeout(() => {
+            pool.debugSetDuel(1);
+            const z = pool.debugRuleShot([8], { first: 1 });
+            mark(`M \u5F00\u7403\u649E\u8FDB\u9ED1\u516B\uFF1A\u6446\u56DE\u7EE7\u7EED ph=${z.phase} turn=${z.turn} live=${z.live} book=[${z.book}] eight=${R3(pool.debugBall(8))}`);
+          }, 11e3);
+        }
+        if (demo === "book") {
+          setTimeout(() => {
+            player.pos.set(0, 0, 1.5);
+            pool.debugSetDuel(2);
+            pool.debugRuleShot([1], { first: 1 });
+            pool.debugRuleShot([2], { first: 2 });
+            pool.debugRuleShot([3], { first: 3 });
+            pool.debugRuleShot([12], { first: 12 });
+            pool.debugRuleShot([9], { first: 9 });
+            const r = pool.debugRuleShot([], { first: 10 });
+            mark(`BOOK turn=${r.turn} ph=${r.phase} grp=${r.grp} book=[${r.book}] foul=${r.fb}`);
+            mark(`  info=${document.getElementById("pb-info").textContent}`);
+            mark(`  \u884C1=${document.querySelectorAll(".pbk-row")[0].textContent.replace(/\s+/g, " ")}`);
+            mark(`  \u884C2=${document.querySelectorAll(".pbk-row")[1].textContent.replace(/\s+/g, " ")}`);
+            mark(`  \u5F69\u7247=${document.querySelectorAll(".pbk-chip").length} \u82B1\u8272\u7247=${document.querySelectorAll(".pbk-chip.stripe").length}`);
+          }, 2600);
+        }
         if (demo === "pause") {
           setTimeout(() => {
             mark(`lock=${document.pointerLockElement ? 1 : 0}`);
@@ -34503,6 +34855,8 @@
       }
       var marks;
       var mark;
+      var R3;
+      var st;
     }
   });
   require_main();
