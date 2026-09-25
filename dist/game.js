@@ -22280,7 +22280,9 @@
           pocket: { r: 0.078, cornerMouth: 0.105, sideMouth: 0.088 },
           // 台面物理（2D）：滚阻 = decel + drag*速度（慢球靠常数项刹住、快球多耗在空气/呢绒上），
           // 库边恢复/切向摩擦、球-球恢复、静止阈值、子步数、单杆最长解算时间
-          phys: { decel: 0.95, drag: 0.35, cushionRest: 0.72, cushionFric: 0.965, ballRest: 0.96, stop: 0.02, sub: 8, maxTime: 9 },
+          // 杆法（旋球）：follow = 高低杆在第一次吃球后沿出杆线补的速度比例（负值即拉杆回退），
+          // cush = 加塞在吃库时给切向的推量，decay = 每秒旋量衰减（走远了自己就"没转"了）
+          phys: { decel: 0.95, drag: 0.35, cushionRest: 0.72, cushionFric: 0.965, ballRest: 0.96, stop: 0.02, sub: 8, maxTime: 9, follow: 0.62, cush: 0.3, decay: 1.15 },
           speed: [0.6, 6.6],
           // 出杆初速区间（力度 0 → 1）
           chargeTime: 1,
@@ -31631,7 +31633,7 @@
       }));
       mesh.position.set(0, YC, 0);
       scene.add(mesh);
-      const b2 = { num, mesh, x: 0, z: 0, vx: 0, vz: 0, potted: false, sink: 0 };
+      const b2 = { num, mesh, x: 0, z: 0, vx: 0, vz: 0, potted: false, sink: 0, sy: 0, sw: 0, hit: false };
       balls.push(b2);
       return b2;
     }
@@ -31643,6 +31645,9 @@
         b2.sink = 0;
         b2.vx = 0;
         b2.vz = 0;
+        b2.sy = 0;
+        b2.sw = 0;
+        b2.hit = false;
         b2.mesh.visible = true;
         b2.mesh.scale.setScalar(1);
         b2.mesh.quaternion.identity();
@@ -31754,6 +31759,15 @@
     let foulBy = [0, 0];
     let result = "";
     let botT = 0, botStep = "", botPlan = null, botFrom = 0, botDelta = 0;
+    let spinX = 0;
+    let spinY = 0;
+    let hudOpen = false;
+    {
+      const s = (localStorage.getItem("bb.pool.spin") || "").split(",");
+      const c2 = (v) => Number.isFinite(Number(v)) ? MathUtils.clamp(Number(v), -1, 1) : 0;
+      spinX = c2(s[0]);
+      spinY = c2(s[1]);
+    }
     const dir = new Vector2(1, 0);
     const _eye = new Vector3(), _tgt = new Vector3(), _up = new Vector3(0, 1, 0);
     const _m = new Matrix4(), _q = new Quaternion();
@@ -31946,6 +31960,22 @@
       }
       setInfo();
     }
+    function cueAfterHit(vx, vz, nx, nz, sy) {
+      const j = (1 + PH.ballRest) * (vx * nx + vz * nz) / 2;
+      const sp = Math.hypot(vx, vz) || 1;
+      const k = sy * PH.follow * sp;
+      return { x: vx - nx * j + vx / sp * k, z: vz - nz * j + vz / sp * k };
+    }
+    function railBounce(vx, vz, nx, nz, sw) {
+      const vn = vx * nx + vz * nz;
+      const imp = Math.abs(vn);
+      const push = sw * PH.cush * imp;
+      return {
+        x: (vx - vn * nx) * PH.cushionFric - nx * vn * PH.cushionRest - nz * push,
+        z: (vz - vn * nz) * PH.cushionFric - nz * vn * PH.cushionRest + nx * push,
+        imp
+      };
+    }
     function substep(h) {
       for (const b2 of balls) {
         if (b2.potted) continue;
@@ -31955,14 +31985,20 @@
         const f = ns / sp;
         b2.vx *= f;
         b2.vz *= f;
-        const mx = b2.vx * h, mz = b2.vz * h;
-        b2.x += mx;
-        b2.z += mz;
+        b2.x += b2.vx * h;
+        b2.z += b2.vz * h;
+        if (b2.sy || b2.sw) {
+          const dk = Math.max(0, 1 - PH.decay * h);
+          b2.sy *= dk;
+          b2.sw *= dk;
+        }
         if (ns < PH.stop) {
           b2.vx = 0;
           b2.vz = 0;
+          b2.sy = 0;
+          b2.sw = 0;
         } else {
-          const d = Math.hypot(mx, mz);
+          const d = Math.hypot(b2.vx, b2.vz) * h;
           _spin.set(b2.vz, 0, -b2.vx).normalize();
           _dq.setFromAxisAngle(_spin, d / R2);
           b2.mesh.quaternion.premultiply(_dq);
@@ -31975,10 +32011,11 @@
           const pen = (b2.z - rl.s * BZ) * rl.s - R2;
           if (pen > 0) {
             b2.z -= rl.s * pen;
-            const imp = Math.abs(b2.vz);
-            b2.vz = -b2.vz * PH.cushionRest;
-            b2.vx *= PH.cushionFric;
-            if (imp > 0.3) sfx.play("rim", { volume: Math.min(0.45, imp / 8), rate: 1.35 });
+            const o = railBounce(b2.vx, b2.vz, 0, rl.s, b2.sw);
+            b2.vx = o.x;
+            b2.vz = o.z;
+            if (b2.sw) b2.sw *= -0.55;
+            if (o.imp > 0.3) sfx.play("rim", { volume: Math.min(0.45, o.imp / 8), rate: 1.35 });
           }
         }
         for (const rl of RAILS_X) {
@@ -31986,10 +32023,11 @@
           const pen = (b2.x - rl.s * BX) * rl.s - R2;
           if (pen > 0) {
             b2.x -= rl.s * pen;
-            const imp = Math.abs(b2.vx);
-            b2.vx = -b2.vx * PH.cushionRest;
-            b2.vz *= PH.cushionFric;
-            if (imp > 0.3) sfx.play("rim", { volume: Math.min(0.45, imp / 8), rate: 1.35 });
+            const o = railBounce(b2.vx, b2.vz, rl.s, 0, b2.sw);
+            b2.vx = o.x;
+            b2.vz = o.z;
+            if (b2.sw) b2.sw *= -0.55;
+            if (o.imp > 0.3) sfx.play("rim", { volume: Math.min(0.45, o.imp / 8), rate: 1.35 });
           }
         }
       }
@@ -32031,11 +32069,22 @@
           if (shot && shot.first < 0 && (a2 === cue || c2 === cue)) {
             shot.first = a2 === cue ? c2.num : a2.num;
           }
+          const cin = a2 === cue ? a2 : c2 === cue ? c2 : null;
+          const pvx = cin ? cin.vx : 0, pvz = cin ? cin.vz : 0;
           const jimp = -(1 + PH.ballRest) * rel / 2;
           a2.vx -= dx * jimp;
           a2.vz -= dz * jimp;
           c2.vx += dx * jimp;
           c2.vz += dz * jimp;
+          if (cin && !cin.hit) {
+            cin.hit = true;
+            if (cin.sy) {
+              const o = cueAfterHit(pvx, pvz, a2 === cue ? dx : -dx, a2 === cue ? dz : -dz, cin.sy);
+              cin.vx = o.x;
+              cin.vz = o.z;
+              cin.sy = 0;
+            }
+          }
           if (-rel > 0.35) sfx.play("tap", { volume: Math.min(0.65, -rel / 6), rate: 2.1 });
         }
       }
@@ -32057,7 +32106,7 @@
       }
     }
     function predict() {
-      const g = { kind: "none", ball: -1, t: 0, gx: 0, gz: 0, ox: 0, oz: 0, rl: null };
+      const g = { kind: "none", ball: -1, t: 0, gx: 0, gz: 0, ox: 0, oz: 0, cx: 0, cz: 0, rx: 0, rz: 0, rl: null };
       if (cue.potted) return g;
       let tBest = Infinity, hit = null;
       for (const b2 of balls) {
@@ -32088,12 +32137,22 @@
         g.gz = gz;
         g.ox = nx / nl;
         g.oz = nz / nl;
+        const a2 = cueAfterHit(dir.x, dir.y, g.ox, g.oz, spinY);
+        const al = Math.hypot(a2.x, a2.z);
+        if (al > 1e-4) {
+          g.cx = a2.x / al;
+          g.cz = a2.z / al;
+        }
       } else if (rail && tRail <= tEdge) {
         g.kind = "rail";
         g.t = tRail;
         g.rl = rail;
         g.gx = cue.x + dir.x * tRail;
         g.gz = cue.z + dir.y * tRail;
+        const b2 = railBounce(dir.x, dir.y, rail.n === "x" ? rail.s : 0, rail.n === "z" ? rail.s : 0, spinX);
+        const bl = Math.hypot(b2.x, b2.z) || 1;
+        g.rx = b2.x / bl;
+        g.rz = b2.z / bl;
       } else if (Number.isFinite(tEdge)) {
         g.kind = "pocket";
         g.t = tEdge;
@@ -32124,20 +32183,15 @@
         const ob = balls.find((b2) => b2.num === g.ball);
         if (ob) {
           gObj.show([{ x: ob.x, z: ob.z }, { x: ob.x + g.ox * GD.objLen, z: ob.z + g.oz * GD.objLen }]);
-          const dot = dir.x * g.ox + dir.y * g.oz;
-          const tx = dir.x - g.ox * dot, tz = dir.y - g.oz * dot;
-          const tl = Math.hypot(tx, tz);
-          if (tl > 0.08) {
-            gCue.show([{ x: g.gx, z: g.gz }, { x: g.gx + tx / tl * GD.cueLen, z: g.gz + tz / tl * GD.cueLen }]);
+          const cl = Math.hypot(g.cx, g.cz);
+          if (cl > 0.08) {
+            gCue.show([{ x: g.gx, z: g.gz }, { x: g.gx + g.cx * GD.cueLen, z: g.gz + g.cz * GD.cueLen }]);
           }
         }
       } else if (g.kind === "rail") {
-        const nx = g.rl.n === "x" ? g.rl.s : 0, nz = g.rl.n === "z" ? g.rl.s : 0;
-        const dot = dir.x * nx + dir.y * nz;
-        const rx = dir.x - 2 * dot * nx, rz = dir.y - 2 * dot * nz;
-        const t2 = rayEdge(g.gx, g.gz, rx, rz);
+        const t2 = rayEdge(g.gx, g.gz, g.rx, g.rz);
         const L = Math.min(GD.cushLen, t2 > 0 ? t2 : GD.cushLen);
-        gCush.show([{ x: g.gx, z: g.gz }, { x: g.gx + rx * L, z: g.gz + rz * L }]);
+        gCush.show([{ x: g.gx, z: g.gz }, { x: g.gx + g.rx * L, z: g.gz + g.rz * L }]);
       }
       return g;
     }
@@ -32186,6 +32240,9 @@
       shot = snapshotShot();
       cue.vx = dir.x * v;
       cue.vz = dir.y * v;
+      cue.hit = false;
+      cue.sy = spinY;
+      cue.sw = spinX;
       strokes++;
       setInfo();
       rollT = 0;
@@ -32299,6 +32356,60 @@
     $2("pool-exit").addEventListener("click", () => {
       if (api.onExitRequest) api.onExitRequest();
     });
+    const spinEl = $2("pool-spin"), dotEl = $2("pool-spin-dot"), spinNameEl = $2("pool-spin-name");
+    const SPIN_PX = 13.5;
+    let spinDrag = false, spinSaveTimer = 0;
+    const spinLabel = () => {
+      const v = Math.abs(spinY) < 0.18 ? "" : spinY > 0 ? "\u9AD8\u6746" : "\u4F4E\u6746";
+      const h = Math.abs(spinX) < 0.18 ? "" : spinX > 0 ? "\u53F3\u585E" : "\u5DE6\u585E";
+      return `${v}${h}` || "\u4E2D\u6746";
+    };
+    function paintSpin() {
+      dotEl.style.transform = `translate(${(spinX * SPIN_PX).toFixed(1)}px, ${(-spinY * SPIN_PX).toFixed(1)}px)`;
+      const nm = spinLabel();
+      spinEl.classList.toggle("mid", nm === "\u4E2D\u6746");
+      if (spinNameEl.textContent !== nm) spinNameEl.textContent = nm;
+    }
+    function saveSpin() {
+      clearTimeout(spinSaveTimer);
+      spinSaveTimer = setTimeout(() => {
+        localStorage.setItem("bb.pool.spin", `${spinX.toFixed(3)},${spinY.toFixed(3)}`);
+      }, 300);
+    }
+    function applySpin(x, y) {
+      const d = Math.hypot(x, y);
+      if (d > 0.9) {
+        x *= 0.9 / d;
+        y *= 0.9 / d;
+      }
+      spinX = x;
+      spinY = y;
+      paintSpin();
+      saveSpin();
+    }
+    function spinFromPoint(cx, cy) {
+      const r = spinEl.getBoundingClientRect();
+      applySpin((cx - r.left - r.width / 2) / SPIN_PX, -(cy - r.top - r.height / 2) / SPIN_PX);
+    }
+    spinEl.addEventListener("pointerdown", (e) => {
+      spinDrag = true;
+      try {
+        spinEl.setPointerCapture(e.pointerId);
+      } catch (err) {
+      }
+      spinFromPoint(e.clientX, e.clientY);
+      e.preventDefault();
+    });
+    spinEl.addEventListener("pointermove", (e) => {
+      if (spinDrag) spinFromPoint(e.clientX, e.clientY);
+    });
+    spinEl.addEventListener("pointerup", () => {
+      spinDrag = false;
+    });
+    spinEl.addEventListener("pointercancel", () => {
+      spinDrag = false;
+    });
+    paintSpin();
     const api = {
       scene,
       onExitRequest: null,
@@ -32394,9 +32505,9 @@
         } else if (!mine()) {
           setHint(botPlan ? `\u{1F916} \u7535\u8111\u6B63\u5728\u7784\u51C6 <b>${botPlan.num}</b> \u53F7\u2026` : "\u{1F916} \u7535\u8111\u601D\u8003\u4E2D\u2026");
         } else if (mode === "walk") {
-          setHint(nearTable() ? "<b>\u5DE6\u952E</b> \u4E0A\u624B\u7784\u51C6 \xB7 <b>\u53F3\u952E</b> \u7EE7\u7EED\u8D70\u52A8" : "");
+          setHint(nearTable() ? "<b>\u5DE6\u952E</b> \u4E0A\u624B\u7784\u51C6 \xB7 <b>\u53F3\u952E</b> \u7EE7\u7EED\u8D70\u52A8 \xB7 <b>Tab</b> \u7528\u9F20\u6807\u70B9\u7403\u5BA4\u6761" : "<b>Tab</b> \u7528\u9F20\u6807\u70B9\u7403\u5BA4\u6761");
         } else if (mode === "aim") {
-          setHint("<b>\u79FB\u52A8\u9F20\u6807</b> \u8F6C\u5BFC\u5411\u7EBF \xB7 <b>\u6309\u4F4F\u5DE6\u952E</b> \u84C4\u529B\u3001\u677E\u624B\u51FA\u6746 \xB7 <b>\u53F3\u952E</b> \u6536\u6746 \xB7 <b>E</b> \u91CD\u6446 \xB7 WASD \u8D70\u52A8");
+          setHint(hudOpen ? "\u{1F5B1} <b>\u62D6\u5C0F\u767D\u7403\u4E0A\u7684\u7EA2\u70B9</b> \u9009\u6746\u6CD5\uFF1A\u4E0B\uFF1D\u62C9\u6746\uFF08\u767D\u7403\u81EA\u5DF1\u56DE\u6765\uFF09\xB7 \u4E0A\uFF1D\u8DDF\u8FDB \xB7 \u5DE6\u53F3\uFF1D\u52A0\u585E \xB7 \u6309 <b>Tab</b> \u6216\u70B9\u7403\u53F0\u56DE\u5230\u7784\u51C6" : `<b>\u79FB\u52A8\u9F20\u6807</b> \u7784\u51C6 \xB7 <b>\u6309\u4F4F\u5DE6\u952E</b> \u84C4\u529B\u51FA\u6746 \xB7 <b>\u2191\u2193\u2190\u2192</b> \u6746\u6CD5\uFF1A<b>${spinLabel()}</b>\uFF08<b>Tab</b> \u7528\u9F20\u6807\u62D6\uFF09\xB7 <b>\u53F3\u952E</b> \u6536\u6746 \xB7 <b>E</b> \u91CD\u6446`);
         } else {
           setHint("\u7403\u8FD8\u5728\u6EDA\u2026");
         }
@@ -32429,9 +32540,28 @@
       onRightDown() {
         if (mode === "aim" && mine()) releaseCue();
       },
+      /** Tab 开合操作台：开台时先收力，免得回锁那一瞬把没松的左键当成出杆 */
+      onHud(on) {
+        hudOpen = on;
+        if (on && charging) {
+          charging = false;
+          power = 0;
+          setPower(0);
+        }
+      },
       /** 瞄准时按方向键 = 收杆回走动（与影院"按 WASD 起身"同一套语言） */
       onMoveKey() {
         if (mode === "aim" && mine()) releaseCue();
+      },
+      /** 方向键微调杆法（指针锁住时拖不动 DOM，这条路保证杆法永远够得着） */
+      nudgeSpin(dx, dy) {
+        applySpin(spinX + dx, spinY + dy);
+      },
+      resetSpin() {
+        applySpin(0, 0);
+      },
+      get spinName() {
+        return spinLabel();
       },
       /** E / 按钮：自由练台=整桌重摆；对战=开一局新的（重摆 + 规则机复位） */
       rerack() {
@@ -32498,7 +32628,25 @@
       },
       debugGuide() {
         const g = mode === "aim" ? drawGuide() : predict();
-        return { kind: g.kind, ball: g.ball, t: +g.t.toFixed(3), gx: +g.gx.toFixed(3), gz: +g.gz.toFixed(3), ox: +g.ox.toFixed(3), oz: +g.oz.toFixed(3) };
+        return {
+          kind: g.kind,
+          ball: g.ball,
+          t: +g.t.toFixed(3),
+          gx: +g.gx.toFixed(3),
+          gz: +g.gz.toFixed(3),
+          ox: +g.ox.toFixed(3),
+          oz: +g.oz.toFixed(3),
+          cue: `${g.cx.toFixed(3)},${g.cz.toFixed(3)}`,
+          rail: `${g.rx.toFixed(3)},${g.rz.toFixed(3)}`
+        };
+      },
+      /** 当前杆法（x 右塞为正 / y 高杆为正）与它的中文名 */
+      debugSpin() {
+        return { x: +spinX.toFixed(3), y: +spinY.toFixed(3), name: spinLabel(), dot: dotEl.style.transform };
+      },
+      debugSetSpin(x, y) {
+        applySpin(x, y);
+        return this.debugSpin();
       },
       /** 导向线是否真的落成了顶点（取错字段 → NaN → 整条线静默消失） */
       debugGuideLine() {
@@ -32517,6 +32665,9 @@
         b2.z = z;
         b2.vx = 0;
         b2.vz = 0;
+        b2.sy = 0;
+        b2.sw = 0;
+        b2.hit = false;
         b2.mesh.position.set(x, YC, z);
         return true;
       },
@@ -33904,6 +34055,7 @@
       }
       function exitPoolToGym() {
         fadeTo(() => {
+          setPoolHud(false);
           pool.exit();
           playerLoc = "gym";
           renderPass.scene = scene;
@@ -34009,7 +34161,8 @@
         ui.showPause(false);
         player.inputEnabled = true;
         gameState = "playing";
-        lockPointer();
+        if (poolHud) pool.onHud(true);
+        else lockPointer();
       }
       function finishSession() {
         if (gameState === "result") return;
@@ -34079,6 +34232,15 @@
       document.getElementById("set-volume").value = savedVol;
       window.BB_VOLUME = savedVol;
       var keys = player.keys;
+      var poolHud = false;
+      function setPoolHud(on) {
+        if (poolHud === on) return;
+        poolHud = on;
+        document.body.classList.toggle("pool-hud", on);
+        if (on) document.exitPointerLock?.();
+        else if (gameState === "playing" && playerLoc === "pool") lockPointer();
+        pool.onHud(on);
+      }
       addEventListener("keydown", (e) => {
         const k = e.key.toLowerCase();
         if (k === "escape" && gameState === "playing" && playerLoc === "cinema") {
@@ -34087,12 +34249,28 @@
           return;
         }
         if (k === "escape" && gameState === "playing" && playerLoc === "pool") {
-          if (pool.mode === "aim") pool.onRightDown();
+          if (poolHud) setPoolHud(false);
+          else if (pool.mode === "aim") pool.onRightDown();
           else pauseGame();
           return;
         }
         if (gameState === "playing" && playerLoc === "pool" && k === "e") {
           pool.rerack();
+          return;
+        }
+        if (gameState === "playing" && playerLoc === "pool" && k === "tab") {
+          e.preventDefault();
+          setPoolHud(!poolHud);
+          return;
+        }
+        if (gameState === "playing" && playerLoc === "pool" && (k.startsWith("arrow") || k === "0")) {
+          const S = 0.18;
+          e.preventDefault();
+          if (k === "arrowup") pool.nudgeSpin(0, S);
+          else if (k === "arrowdown") pool.nudgeSpin(0, -S);
+          else if (k === "arrowleft") pool.nudgeSpin(-S, 0);
+          else if (k === "arrowright") pool.nudgeSpin(S, 0);
+          else pool.resetSpin();
           return;
         }
         if (gameState === "playing" && playerLoc === "gym") {
@@ -34110,7 +34288,10 @@
         if (k in keys) {
           keys[k] = true;
           if (playerLoc === "cinema") cinema.onMoveKey();
-          else if (playerLoc === "pool") pool.onMoveKey();
+          else if (playerLoc === "pool") {
+            setPoolHud(false);
+            pool.onMoveKey();
+          }
         }
       });
       addEventListener("keyup", (e) => {
@@ -34146,6 +34327,8 @@
               if (!e.button) seatAim.set(e.clientX, e.clientY);
             } else if (!e.button) cinema.onLeftDown();
             else lockPointer();
+          } else if (playerLoc === "pool" && poolHud && !e.button) {
+            setPoolHud(false);
           }
           return;
         }
@@ -34176,7 +34359,7 @@
       });
       document.addEventListener("contextmenu", (e) => e.preventDefault());
       document.addEventListener("pointerlockchange", () => {
-        if (document.pointerLockElement !== canvas && gameState === "playing" && (playerLoc === "gym" || playerLoc === "pool")) pauseGame();
+        if (document.pointerLockElement !== canvas && gameState === "playing" && !poolHud && (playerLoc === "gym" || playerLoc === "pool")) pauseGame();
       });
       ballBody.addEventListener("collide", (e) => {
         const impact = Math.abs(e.contact.getImpactVelocityAlongNormal());
@@ -34716,6 +34899,11 @@
             player.freeYaw = -Math.PI / 2;
             pool.onLeftDown();
             pool.debugAimAt(1);
+            const s = (params.get("spin") || "").split(",").map(Number);
+            if (s.length === 2 && s.every(Number.isFinite)) pool.debugSetSpin(s[0], s[1]);
+            if (params.get("hud")) dispatchEvent(new KeyboardEvent("keydown", { key: "Tab", bubbles: true }));
+            const g = pool.debugGuide(), d = pool.debugSpin();
+            mark(`AIM \u6746\u6CD5=${d.name} \u7EA2\u70B9=${d.dot} kind=${g.kind} \u5206\u79BB\u7EBF=${g.cue} \u64CD\u4F5C\u53F0=${document.body.classList.contains("pool-hud") ? 1 : 0}`);
           }, 2600);
         }
         if (demo === "pool") {
@@ -34809,6 +34997,107 @@
             pool.onExitRequest = orig;
             mark(`EXIT fired=${fired} rack=${document.getElementById("pool-rack") ? 1 : 0}`);
           }, 9800);
+        }
+        if (demo === "spin") {
+          const parse = (s) => {
+            const a2 = s.split(",").map(Number);
+            return { x: a2[0], z: a2[1] };
+          };
+          const nrm = (v) => {
+            const l = Math.hypot(v.x, v.z) || 1;
+            return { x: v.x / l, z: v.z / l };
+          };
+          const dot = (a2, b2) => a2.x * b2.x + a2.z * b2.z;
+          const mv = (r) => +(r.end.x - r.at.x).toFixed(3);
+          const waitAim = () => {
+            for (let i = 0; i < 400 && pool.debugPool().mode !== "aim"; i++) pool.debugSettle(1 / 30, 1 / 30);
+          };
+          const shoot = (sx, sy, opt = {}) => {
+            waitAim();
+            pool.rerack();
+            pool.onLeftDown();
+            pool.debugPlace(0, -0.55, 0);
+            pool.debugPlace(1, -0.05, 0);
+            pool.debugAimTo(opt.tx ?? 1.2, opt.tz ?? 0);
+            pool.debugSetSpin(sx, sy);
+            const g = pool.debugGuide();
+            const m0 = pool.debugPool().mode;
+            pool.debugPower(opt.pow ?? 0.6);
+            pool.onLeftUp();
+            let at = null;
+            for (let i = 0; i < 900 && !at; i++) {
+              pool.debugSettle(1 / 240, 1 / 240);
+              const b1 = pool.debugBall(1);
+              if (Math.hypot(b1.vx, b1.vz) > 0.05) at = pool.debugBall(0);
+            }
+            pool.debugSettle(opt.watch ?? 1.8);
+            return { g, at, end: pool.debugBall(0), m0, roll: pool.debugPool().mode };
+          };
+          setTimeout(() => {
+            player.pos.set(0, 0, 1.5);
+            pool.debugSetDuel(0);
+            const s = pool.debugSpin();
+            mark(`SPIN \u5F00\u5C40 duel=${pool.debugPool().duel} \u843D\u76D8=${localStorage.getItem("bb.pool.spin")} \u6062\u590D=${s.name} x=${s.x} y=${s.y} \u7EA2\u70B9=${s.dot}`);
+          }, 2200);
+          setTimeout(() => {
+            const stun = shoot(0, 0), fol = shoot(0, 0.9), drw = shoot(0, -0.9);
+            const sv = Math.hypot(stun.at.vx, stun.at.vz);
+            mark(`STUN \u5B9A\u6746\uFF1A\u4E0A\u624B=${stun.m0}/${fol.m0}/${drw.m0} \u63A5\u89E6\u540E\u6BCD\u7403\u901F\u5EA6=${sv.toFixed(3)}\uFF08\u5E94\u22480\uFF09\u4F4D\u79FB=${mv(stun)}`);
+            mark(`FOLLOW \u9AD8\u6746\uFF1A\u4F4D\u79FB=${mv(fol)}\uFF08\u5E94>0.15\uFF09\u9884\u6D4B\u5206\u79BB=${fol.g.cue} \u5B9E\u9645=${JSON.stringify(nrm({ x: fol.at.vx, z: fol.at.vz }))}`);
+            mark(`DRAW \u4F4E\u6746\uFF1A\u4F4D\u79FB=${mv(drw)}\uFF08\u5E94<-0.15\uFF09\u9884\u6D4B\u5206\u79BB=${drw.g.cue} \u5B9E\u9645=${JSON.stringify(nrm({ x: drw.at.vx, z: drw.at.vz }))}`);
+            const pf = dot(parse(fol.g.cue), nrm({ x: fol.at.vx, z: fol.at.vz }));
+            const pd = dot(parse(drw.g.cue), nrm({ x: drw.at.vx, z: drw.at.vz }));
+            mark(`GUIDE \u9884\u6D4B==\u5B9E\u9645 \u9AD8\u6746 dot=${pf.toFixed(3)} \u4F4E\u6746 dot=${pd.toFixed(3)}\uFF08\u90FD\u8BE5\u22481\uFF09`);
+          }, 2600);
+          setTimeout(() => {
+            const rail = (sx) => {
+              waitAim();
+              pool.rerack();
+              pool.onLeftDown();
+              pool.debugPlace(0, -0.9, -0.15);
+              pool.debugAimTo(-0.4, 0.9);
+              pool.debugSetSpin(sx, 0);
+              const g = pool.debugGuide();
+              pool.debugPower(0.5);
+              pool.onLeftUp();
+              let flip = null, pz2 = 0;
+              for (let i = 0; i < 900 && !flip; i++) {
+                pool.debugSettle(1 / 240, 1 / 240);
+                const c2 = pool.debugBall(0);
+                if (pz2 > 0.05 && c2.vz < 0) flip = c2;
+                pz2 = c2.vz;
+              }
+              return { g, flip };
+            };
+            const L = rail(-0.9), M = rail(0), Rr = rail(0.9);
+            const vel = (v) => v ? { x: v.vx, z: v.vz } : null;
+            const ang = (v) => v ? Math.atan2(v.vz, v.vx).toFixed(3) : "\u672A\u51FA\u624B";
+            mark(`CUSH \u51FA\u5C04\u89D2 \u65E0\u585E=${ang(M.flip)} \u5DE6\u585E=${ang(L.flip)} \u53F3\u585E=${ang(Rr.flip)} \u5DE6\u53F3\u5939\u89D2=${(L.flip && Rr.flip ? Math.abs(Math.atan2(L.flip.vz, L.flip.vx) - Math.atan2(Rr.flip.vz, Rr.flip.vx)) : 0).toFixed(3)}rad\uFF08\u5E94>0.1\uFF09`);
+            const pred = (r) => r.flip ? dot(parse(r.g.rail), nrm(vel(r.flip))) : NaN;
+            mark(`CUSH \u9884\u6D4B==\u5B9E\u9645 \u5DE6=${pred(L).toFixed(3)} \u4E2D=${pred(M).toFixed(3)} \u53F3=${pred(Rr).toFixed(3)}\uFF08\u90FD\u8BE5\u22481\uFF09`);
+          }, 4600);
+          setTimeout(() => {
+            const tab = () => dispatchEvent(new KeyboardEvent("keydown", { key: "Tab", bubbles: true }));
+            const open = () => document.body.classList.contains("pool-hud") ? 1 : 0;
+            const h = () => document.getElementById("pool-hint").textContent.replace(/[\uD800-\uDFFF]/g, "").slice(0, 14);
+            waitAim();
+            mark(`HUD \u521D\u59CB=${open()} \u9501=${document.pointerLockElement ? 1 : 0}`);
+            tab();
+            pool.debugSettle(1 / 60, 1 / 60);
+            mark(`HUD \u5F00\u53F0=${open()} \u63D0\u793A=${h()}`);
+            pool.debugSetSpin(-0.4, -0.9);
+            mark(`HUD \u62D6\u540E=${pool.debugSpin().name} \u7EA2\u70B9=${pool.debugSpin().dot}`);
+            tab();
+            pool.debugSettle(1 / 60, 1 / 60);
+            mark(`HUD \u5173\u53F0=${open()} \u63D0\u793A=${h()}`);
+          }, 5e3);
+          setTimeout(() => {
+            pool.debugSetSpin(0.6, -0.35);
+            setTimeout(() => mark(`SAVE \u843D\u76D8=${localStorage.getItem("bb.pool.spin")} \u540D\u79F0=${pool.debugSpin().name}`), 520);
+          }, 5200);
+          setTimeout(() => {
+            console.log("DEMO_SPIN", marks.join(" | "));
+          }, 8e3);
         }
         if (demo === "rules") {
           R3 = (x) => JSON.stringify(x);

@@ -136,6 +136,7 @@ function enterPool() {
 }
 function exitPoolToGym() {
   fadeTo(() => {
+    setPoolHud(false);
     pool.exit();
     playerLoc = 'gym';
     renderPass.scene = scene;
@@ -238,7 +239,8 @@ function resumeGame() {
   ui.showPause(false);
   player.inputEnabled = true;
   gameState = 'playing';
-  lockPointer();
+  if (poolHud) pool.onHud(true);   // 操作台开着时暂停再回来：继续让鼠标归 DOM 管
+  else lockPointer();
 }
 
 /** 结算（倒计时归零 / 自由模式手动结束共用） */
@@ -303,6 +305,18 @@ window.BB_VOLUME = savedVol;
 
 /* ================= 输入 ================= */
 const keys = player.keys;
+/* 台球室「操作台」：上手时指针是锁的，DOM 一律点不动 —— Tab 临时解锁，
+   鼠标就能拖杆法红点、按球室条上的按钮；再按 Tab 或直接点球台回到瞄准。
+   （影院入座走的是同一套思路：故意解锁 + 拖拽转向兜底） */
+let poolHud = false;
+function setPoolHud(on) {
+  if (poolHud === on) return;
+  poolHud = on;
+  document.body.classList.toggle('pool-hud', on);
+  if (on) document.exitPointerLock?.();
+  else if (gameState === 'playing' && playerLoc === 'pool') lockPointer();
+  pool.onHud(on);
+}
 addEventListener('keydown', (e) => {
   const k = e.key.toLowerCase();
   if (k === 'escape' && gameState === 'playing' && playerLoc === 'cinema') {
@@ -311,11 +325,29 @@ addEventListener('keydown', (e) => {
     return;
   }
   if (k === 'escape' && gameState === 'playing' && playerLoc === 'pool') {
-    if (pool.mode === 'aim') pool.onRightDown(); else pauseGame();  // 瞄准中先收杆
+    if (poolHud) setPoolHud(false);                        // 操作台开着：ESC 先回瞄准
+    else if (pool.mode === 'aim') pool.onRightDown();      // 瞄准中先收杆
+    else pauseGame();
     return;
   }
   if (gameState === 'playing' && playerLoc === 'pool' && k === 'e') {
     pool.rerack();
+    return;
+  }
+  if (gameState === 'playing' && playerLoc === 'pool' && k === 'tab') {
+    e.preventDefault();                       // Tab 默认会跳焦点，这里它是「操作台」开关
+    setPoolHud(!poolHud);
+    return;
+  }
+  if (gameState === 'playing' && playerLoc === 'pool' && (k.startsWith('arrow') || k === '0')) {
+    // 杆法：方向键是「不开操作台」也能调的那条路（0 = 回中杆）
+    const S = 0.18;
+    e.preventDefault();
+    if (k === 'arrowup') pool.nudgeSpin(0, S);
+    else if (k === 'arrowdown') pool.nudgeSpin(0, -S);
+    else if (k === 'arrowleft') pool.nudgeSpin(-S, 0);
+    else if (k === 'arrowright') pool.nudgeSpin(S, 0);
+    else pool.resetSpin();
     return;
   }
   if (gameState === 'playing' && playerLoc === 'gym') {
@@ -331,7 +363,7 @@ addEventListener('keydown', (e) => {
   if (k in keys) {
     keys[k] = true;
     if (playerLoc === 'cinema') cinema.onMoveKey(); // 坐着按移动键 -> 起身
-    else if (playerLoc === 'pool') pool.onMoveKey(); // 瞄准按移动键 -> 收杆回走动
+    else if (playerLoc === 'pool') { setPoolHud(false); pool.onMoveKey(); } // 瞄准按移动键 -> 收杆回走动
   }
 });
 addEventListener('keyup', (e) => {
@@ -366,6 +398,8 @@ canvas.addEventListener('mousedown', (e) => {
       if (cinema.seated) { if (!e.button) seatAim.set(e.clientX, e.clientY); } // 松手时再判定是点击还是拖拽转向
       else if (!e.button) cinema.onLeftDown();
       else lockPointer();
+    } else if (playerLoc === 'pool' && poolHud && !e.button) {
+      setPoolHud(false);      // 操作台上点一下球台 = 收工回到瞄准（这一次点击不出杆）
     }
     return;
   }
@@ -394,7 +428,7 @@ addEventListener('mouseup', (e) => {
 document.addEventListener('contextmenu', (e) => e.preventDefault());
 document.addEventListener('pointerlockchange', () => {
   // 玩家按 ESC 或点击外部导致解锁 -> 自动暂停（影院入座本来就不锁，跳过）
-  if (document.pointerLockElement !== canvas && gameState === 'playing'
+  if (document.pointerLockElement !== canvas && gameState === 'playing' && !poolHud
     && (playerLoc === 'gym' || playerLoc === 'pool')) pauseGame();
 });
 
@@ -940,10 +974,16 @@ try {
   }
   if (demo === 'poolaim') {
     // 定住不出杆，专门给截图看虚线导向：站在球桌长边中段上手，正对 1 号球
+    // 加 &spin=x,y（如 &spin=0.55,-0.85）可以同时看杆法盘 + 母球分离线
     setTimeout(() => {
       player.pos.set(0, 0, 1.5); player.yaw = -Math.PI / 2; player.freeYaw = -Math.PI / 2;
       pool.onLeftDown();
       pool.debugAimAt(1);
+      const s = (params.get('spin') || '').split(',').map(Number);
+      if (s.length === 2 && s.every(Number.isFinite)) pool.debugSetSpin(s[0], s[1]);
+      if (params.get('hud')) dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }));
+      const g = pool.debugGuide(), d = pool.debugSpin();
+      mark(`AIM 杆法=${d.name} 红点=${d.dot} kind=${g.kind} 分离线=${g.cue} 操作台=${document.body.classList.contains('pool-hud') ? 1 : 0}`);
     }, 2600);
   }
   if (demo === 'pool') {
@@ -1046,6 +1086,104 @@ try {
       pool.onExitRequest = orig;
       mark(`EXIT fired=${fired} rack=${document.getElementById('pool-rack') ? 1 : 0}`);
     }, 9800);
+  }
+  if (demo === 'spin') {
+    // 杆法回归：同一杆正打，只挪红点 —— 定杆停在接触点、高杆跟进、低杆拉回；
+    // 而且「导向线画出的分离方向」必须等于积分器真跑出来的方向（这套物理的立身之本）。
+    const parse = (s) => { const a = s.split(',').map(Number); return { x: a[0], z: a[1] }; };
+    const nrm = (v) => { const l = Math.hypot(v.x, v.z) || 1; return { x: v.x / l, z: v.z / l }; };
+    const dot = (a, b) => a.x * b.x + a.z * b.z;
+    const mv = (r) => +(r.end.x - r.at.x).toFixed(3);
+    // 上一杆的球还在滚时是接不上手的（真实流程也这样），所以每杆跑完都要等回 aim 再摆下一杆
+    const waitAim = () => { for (let i = 0; i < 400 && pool.debugPool().mode !== 'aim'; i++) pool.debugSettle(1 / 30, 1 / 30); };
+    const shoot = (sx, sy, opt = {}) => {
+      waitAim();
+      pool.rerack();
+      pool.onLeftDown();                       // 先上手（takeOver 会把朝向设成玩家视线），再摆位/瞄准
+      pool.debugPlace(0, -0.55, 0);
+      pool.debugPlace(1, -0.05, 0);
+      pool.debugAimTo(opt.tx ?? 1.2, opt.tz ?? 0);
+      pool.debugSetSpin(sx, sy);
+      const g = pool.debugGuide();
+      const m0 = pool.debugPool().mode;
+      pool.debugPower(opt.pow ?? 0.6);
+      pool.onLeftUp();
+      let at = null;
+      for (let i = 0; i < 900 && !at; i++) {
+        pool.debugSettle(1 / 240, 1 / 240);
+        const b1 = pool.debugBall(1);
+        if (Math.hypot(b1.vx, b1.vz) > 0.05) at = pool.debugBall(0);
+      }
+      pool.debugSettle(opt.watch ?? 1.8);
+      return { g, at, end: pool.debugBall(0), m0, roll: pool.debugPool().mode };
+    };
+    setTimeout(() => {
+      player.pos.set(0, 0, 1.5);
+      pool.debugSetDuel(0);
+      const s = pool.debugSpin();
+      // 开局直接读一次落盘值：模块初始化就该把「上次爱打低杆」恢复进红点（下一轮的 恢复= 要与之吻合）
+      mark(`SPIN 开局 duel=${pool.debugPool().duel} 落盘=${localStorage.getItem('bb.pool.spin')} 恢复=${s.name} x=${s.x} y=${s.y} 红点=${s.dot}`);
+    }, 2200);
+    setTimeout(() => {
+      const stun = shoot(0, 0), fol = shoot(0, 0.9), drw = shoot(0, -0.9);
+      const sv = Math.hypot(stun.at.vx, stun.at.vz);
+      mark(`STUN 定杆：上手=${stun.m0}/${fol.m0}/${drw.m0} 接触后母球速度=${sv.toFixed(3)}（应≈0）位移=${mv(stun)}`);
+      mark(`FOLLOW 高杆：位移=${mv(fol)}（应>0.15）预测分离=${fol.g.cue} 实际=${JSON.stringify(nrm({ x: fol.at.vx, z: fol.at.vz }))}`);
+      mark(`DRAW 低杆：位移=${mv(drw)}（应<-0.15）预测分离=${drw.g.cue} 实际=${JSON.stringify(nrm({ x: drw.at.vx, z: drw.at.vz }))}`);
+      const pf = dot(parse(fol.g.cue), nrm({ x: fol.at.vx, z: fol.at.vz }));
+      const pd = dot(parse(drw.g.cue), nrm({ x: drw.at.vx, z: drw.at.vz }));
+      mark(`GUIDE 预测==实际 高杆 dot=${pf.toFixed(3)} 低杆 dot=${pd.toFixed(3)}（都该≈1）`);
+    }, 2600);
+    setTimeout(() => {
+      // 加塞吃库：斜打 +z 库，左塞/右塞的反射方向应不同，且各自与导向线一致
+      const rail = (sx) => {
+        waitAim();
+        pool.rerack();
+        pool.onLeftDown();
+        pool.debugPlace(0, -0.9, -0.15);       // 贴着开球区往 -x 一端的长库打，避开右侧球堆
+        pool.debugAimTo(-0.4, 0.9);
+        pool.debugSetSpin(sx, 0);
+        const g = pool.debugGuide();
+        pool.debugPower(0.5);
+        pool.onLeftUp();
+        let flip = null, pz = 0;
+        for (let i = 0; i < 900 && !flip; i++) {
+          pool.debugSettle(1 / 240, 1 / 240);
+          const c = pool.debugBall(0);
+          if (pz > 0.05 && c.vz < 0) flip = c;
+          pz = c.vz;
+        }
+        return { g, flip };
+      };
+      const L = rail(-0.9), M = rail(0), Rr = rail(0.9);
+      const vel = (v) => (v ? { x: v.vx, z: v.vz } : null);
+      const ang = (v) => (v ? Math.atan2(v.vz, v.vx).toFixed(3) : '未出手');
+      mark(`CUSH 出射角 无塞=${ang(M.flip)} 左塞=${ang(L.flip)} 右塞=${ang(Rr.flip)} 左右夹角=${(L.flip && Rr.flip ? Math.abs(Math.atan2(L.flip.vz, L.flip.vx) - Math.atan2(Rr.flip.vz, Rr.flip.vx)) : 0).toFixed(3)}rad（应>0.1）`);
+      const pred = (r) => (r.flip ? dot(parse(r.g.rail), nrm(vel(r.flip))) : NaN);
+      mark(`CUSH 预测==实际 左=${pred(L).toFixed(3)} 中=${pred(M).toFixed(3)} 右=${pred(Rr).toFixed(3)}（都该≈1）`);
+    }, 4600);
+    setTimeout(() => {
+      // 上手时指针是锁的，DOM 点不动 —— Tab 开「操作台」：解锁、球室条亮起、提示改成拖红点
+      const tab = () => dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }));
+      const open = () => document.body.classList.contains('pool-hud') ? 1 : 0;
+      const h = () => document.getElementById('pool-hint').textContent.replace(/[\uD800-\uDFFF]/g, '').slice(0, 14);
+      waitAim();                                // 等回瞄准态，提示条才走 aim 那一支
+      mark(`HUD 初始=${open()} 锁=${document.pointerLockElement ? 1 : 0}`);
+      tab();
+      pool.debugSettle(1 / 60, 1 / 60);          // 提示条是每帧刷的，走一帧再读
+      mark(`HUD 开台=${open()} 提示=${h()}`);
+      pool.debugSetSpin(-0.4, -0.9);           // 操作台上把红点拖到左下：左低杆
+      mark(`HUD 拖后=${pool.debugSpin().name} 红点=${pool.debugSpin().dot}`);
+      tab();
+      pool.debugSettle(1 / 60, 1 / 60);          // 提示条每帧才刷，走一帧再读
+      mark(`HUD 关台=${open()} 提示=${h()}`);
+    }, 5000);
+    setTimeout(() => {
+      // 拖完红点松手 → 300ms 后应把杆法写进 localStorage（下次进馆还记得你爱打低杆）
+      pool.debugSetSpin(0.6, -0.35);
+      setTimeout(() => mark(`SAVE 落盘=${localStorage.getItem('bb.pool.spin')} 名称=${pool.debugSpin().name}`), 520);
+    }, 5200);
+    setTimeout(() => { console.log('DEMO_SPIN', marks.join(' | ')); }, 8000);
   }
   if (demo === 'rules') {
     // 8 球规则机回归：跳过物理，直接把「这杆进了哪些球 / 先碰到谁 / 有没有洗袋」喂给判定，

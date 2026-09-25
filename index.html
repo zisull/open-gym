@@ -108,9 +108,14 @@
   <div id="pool-bar" class="hidden">
     <span id="pool-info">🎱</span>
     <div id="pool-power" title="按住左键的力度"><div id="pool-fill"></div></div>
-    <button class="btn" id="pool-mode" title="切换玩法：自由练台 / 与电脑打 8 球（三档难度循环）">🧘 自由练台</button>
+    <!-- 杆法：小白球上的红点=击球点。下=拉杆（白球自己回来）、上=跟进、左右=加塞吃库变向 -->
+    <div id="pool-spin" title="杆法：上手后按 Tab 开「操作台」就能拖这颗红点（方向键 ↑↓←→ 也随时能用）。下＝拉杆（撞完白球自己回来）、上＝跟进、左右＝加塞">
+      <i id="pool-spin-dot"></i>
+    </div>
+    <span id="pool-spin-name">中杆</span>
+    <button class="btn" id="pool-mode" title="切换玩法：自由练台 / 与电脑打 8 球（三档难度循环）。上手时指针是锁的，按 Tab 才能点">🧘 自由练台</button>
     <button class="btn" id="pool-rack" title="15 颗重新摆成三角（也可按 E）">🀫 重摆</button>
-    <button class="btn primary" id="pool-exit" title="离开台球室，回到篮球馆">🚪 退出球室</button>
+    <button class="btn primary" id="pool-exit" title="离开台球室，回到篮球馆（上手瞄准时先按 Tab 或右键收杆）">🚪 退出球室</button>
   </div>
   <!-- 入库记录：8 球对战时挂在正上方（不能放进 #pool-bar，那层有 transform，会锁死 fixed 定位） -->
   <div id="pool-book" class="hidden"></div>

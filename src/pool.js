@@ -224,7 +224,12 @@ export function createPool({ camera, player, sfx }) {
 
   /* ================= 球 ================= */
   const ballGeo = new THREE.SphereGeometry(R, 24, 16);
-  /** @type {{num:number,mesh:THREE.Mesh,x:number,z:number,vx:number,vz:number,potted:boolean,sink:number}[]} */
+  /**
+   * 球：位置/速度都在台面平面内（x,z）。旋球两个分量都是"每单位速度"的比例，无量纲：
+   *   sy 高低杆（+ 跟进 / − 拉杆），第一次吃到目标球时被消耗
+   *   sw 加塞（+ 右塞 / − 左塞），只在吃库时见效，每次吃库翻边并衰减
+   * @type {{num:number,mesh:THREE.Mesh,x:number,z:number,vx:number,vz:number,potted:boolean,sink:number,sy:number,sw:number,hit:boolean}[]}
+   */
   const balls = [];
   function mkBall(num) {
     const tex = makePoolBallTexture(num, num <= 8 ? HUE[num] : HUE[num - 8], num >= 9);
@@ -233,7 +238,7 @@ export function createPool({ camera, player, sfx }) {
     }));
     mesh.position.set(0, YC, 0);
     scene.add(mesh);
-    const b = { num, mesh, x: 0, z: 0, vx: 0, vz: 0, potted: false, sink: 0 };
+    const b = { num, mesh, x: 0, z: 0, vx: 0, vz: 0, potted: false, sink: 0, sy: 0, sw: 0, hit: false };
     balls.push(b);
     return b;
   }
@@ -243,7 +248,7 @@ export function createPool({ camera, player, sfx }) {
   /** 三角摆球：顶点在摆球点（+x 侧 1/4 处），逐排向后展开 */
   function rack() {
     for (const b of balls) {
-      b.potted = false; b.sink = 0; b.vx = 0; b.vz = 0;
+      b.potted = false; b.sink = 0; b.vx = 0; b.vz = 0; b.sy = 0; b.sw = 0; b.hit = false;
       b.mesh.visible = true;
       b.mesh.scale.setScalar(1);
       b.mesh.quaternion.identity();
@@ -347,6 +352,15 @@ export function createPool({ camera, player, sfx }) {
   let foulBy = [0, 0];
   let result = '';
   let botT = 0, botStep = '', botPlan = null, botFrom = 0, botDelta = 0;
+  /* ---- 杆法（旋球）：球室条上那块小白球，红点拖到哪就打哪 ---- */
+  let spinX = 0;   // −1 左塞 … +1 右塞
+  let spinY = 0;   // −1 低杆（拉杆回退）… +1 高杆（跟进）
+  let hudOpen = false;   // Tab 开的「操作台」：指针解锁中，鼠标可以拖红点、按球室条上的按钮
+  {
+    const s = (localStorage.getItem('bb.pool.spin') || '').split(',');
+    const c = (v) => (Number.isFinite(Number(v)) ? THREE.MathUtils.clamp(Number(v), -1, 1) : 0);
+    spinX = c(s[0]); spinY = c(s[1]);
+  }
   const dir = new THREE.Vector2(1, 0);
   const _eye = new THREE.Vector3(), _tgt = new THREE.Vector3(), _up = new THREE.Vector3(0, 1, 0);
   const _m = new THREE.Matrix4(), _q = new THREE.Quaternion();
@@ -541,6 +555,26 @@ export function createPool({ camera, player, sfx }) {
     setInfo();
   }
 
+  /* ================= 杆法数学：导向线与积分器共用同一份 ================= */
+  /** 母球吃到目标球后的速度：等质量冲量（法向交给目标球）+ 高低杆沿原出杆线补的一截 */
+  function cueAfterHit(vx, vz, nx, nz, sy) {
+    const j = (1 + PH.ballRest) * (vx * nx + vz * nz) / 2;
+    const sp = Math.hypot(vx, vz) || 1;
+    const k = sy * PH.follow * sp;
+    return { x: vx - nx * j + (vx / sp) * k, z: vz - nz * j + (vz / sp) * k };
+  }
+  /** 吃库后的速度：法向反弹×恢复、切向×摩擦，再按塞量沿库边推一把（sw>0=右塞） */
+  function railBounce(vx, vz, nx, nz, sw) {
+    const vn = vx * nx + vz * nz;
+    const imp = Math.abs(vn);
+    const push = sw * PH.cush * imp;
+    return {
+      x: (vx - vn * nx) * PH.cushionFric - nx * vn * PH.cushionRest - nz * push,
+      z: (vz - vn * nz) * PH.cushionFric - nz * vn * PH.cushionRest + nx * push,
+      imp,
+    };
+  }
+
   /* ================= 物理：一个子步 ================= */
   function substep(h) {
     for (const b of balls) {
@@ -551,11 +585,15 @@ export function createPool({ camera, player, sfx }) {
       const ns = Math.max(0, sp - (PH.decel + PH.drag * sp) * h);
       const f = ns / sp;
       b.vx *= f; b.vz *= f;
-      const mx = b.vx * h, mz = b.vz * h;
-      b.x += mx; b.z += mz;
-      if (ns < PH.stop) { b.vx = 0; b.vz = 0; }
+      b.x += b.vx * h; b.z += b.vz * h;
+      // 旋球会随滚动衰减：离手越远，杆法越淡（低杆打不出去就是这个道理）
+      if (b.sy || b.sw) {
+        const dk = Math.max(0, 1 - PH.decay * h);
+        b.sy *= dk; b.sw *= dk;
+      }
+      if (ns < PH.stop) { b.vx = 0; b.vz = 0; b.sy = 0; b.sw = 0; }
       else {
-        const d = Math.hypot(mx, mz);
+        const d = Math.hypot(b.vx, b.vz) * h;
         _spin.set(b.vz, 0, -b.vx).normalize();   // up × v = 纯滚动的瞬时转轴
         _dq.setFromAxisAngle(_spin, d / R);
         b.mesh.quaternion.premultiply(_dq);
@@ -569,10 +607,10 @@ export function createPool({ camera, player, sfx }) {
         const pen = (b.z - rl.s * BZ) * rl.s - R;
         if (pen > 0) {
           b.z -= rl.s * pen;
-          const imp = Math.abs(b.vz);
-          b.vz = -b.vz * PH.cushionRest;
-          b.vx *= PH.cushionFric;
-          if (imp > 0.3) sfx.play('rim', { volume: Math.min(0.45, imp / 8), rate: 1.35 });
+          const o = railBounce(b.vx, b.vz, 0, rl.s, b.sw);
+          b.vx = o.x; b.vz = o.z;
+          if (b.sw) b.sw *= -0.55;                // 塞在吃库后翻边
+          if (o.imp > 0.3) sfx.play('rim', { volume: Math.min(0.45, o.imp / 8), rate: 1.35 });
         }
       }
       for (const rl of RAILS_X) {
@@ -580,10 +618,10 @@ export function createPool({ camera, player, sfx }) {
         const pen = (b.x - rl.s * BX) * rl.s - R;
         if (pen > 0) {
           b.x -= rl.s * pen;
-          const imp = Math.abs(b.vx);
-          b.vx = -b.vx * PH.cushionRest;
-          b.vz *= PH.cushionFric;
-          if (imp > 0.3) sfx.play('rim', { volume: Math.min(0.45, imp / 8), rate: 1.35 });
+          const o = railBounce(b.vx, b.vz, rl.s, 0, b.sw);
+          b.vx = o.x; b.vz = o.z;
+          if (b.sw) b.sw *= -0.55;
+          if (o.imp > 0.3) sfx.play('rim', { volume: Math.min(0.45, o.imp / 8), rate: 1.35 });
         }
       }
     }
@@ -621,9 +659,21 @@ export function createPool({ camera, player, sfx }) {
         if (shot && shot.first < 0 && (a === cue || c === cue)) {
           shot.first = a === cue ? c.num : a.num;   // 记录母球本杆第一个真实撞击的球
         }
+        // 杆法要按"撞击前"的母球速度兑现，冲量一改就取不到了
+        const cin = a === cue ? a : c === cue ? c : null;
+        const pvx = cin ? cin.vx : 0, pvz = cin ? cin.vz : 0;
         const jimp = -(1 + PH.ballRest) * rel / 2;  // 等质量：冲量对半分
         a.vx -= dx * jimp; a.vz -= dz * jimp;
         c.vx += dx * jimp; c.vz += dz * jimp;
+        // 高低杆在本杆第一次吃到目标球的那一瞬兑现（拉杆就是把母球沿原线推回去），用掉即清
+        if (cin && !cin.hit) {
+          cin.hit = true;
+          if (cin.sy) {
+            const o = cueAfterHit(pvx, pvz, a === cue ? dx : -dx, a === cue ? dz : -dz, cin.sy);
+            cin.vx = o.x; cin.vz = o.z;
+            cin.sy = 0;
+          }
+        }
         if (-rel > 0.35) sfx.play('tap', { volume: Math.min(0.65, -rel / 6), rate: 2.1 });
       }
     }
@@ -648,7 +698,7 @@ export function createPool({ camera, player, sfx }) {
 
   /* ================= 虚线导向：与积分器同一套数学 ================= */
   function predict() {
-    const g = { kind: 'none', ball: -1, t: 0, gx: 0, gz: 0, ox: 0, oz: 0, rl: null };
+    const g = { kind: 'none', ball: -1, t: 0, gx: 0, gz: 0, ox: 0, oz: 0, cx: 0, cz: 0, rx: 0, rz: 0, rl: null };
     if (cue.potted) return g;
     let tBest = Infinity, hit = null;
     for (const b of balls) {
@@ -668,9 +718,16 @@ export function createPool({ camera, player, sfx }) {
       const nl = Math.hypot(nx, nz) || 1;
       g.kind = 'ball'; g.ball = hit.num; g.t = tBest; g.gx = gx; g.gz = gz;
       g.ox = nx / nl; g.oz = nz / nl;
+      // 母球分离线：直接喂给"撞击后速度"那份公式（含高低杆），所以画出来就是待会儿要走的路
+      const a = cueAfterHit(dir.x, dir.y, g.ox, g.oz, spinY);
+      const al = Math.hypot(a.x, a.z);
+      if (al > 1e-4) { g.cx = a.x / al; g.cz = a.z / al; }
     } else if (rail && tRail <= tEdge) {
       g.kind = 'rail'; g.t = tRail; g.rl = rail;
       g.gx = cue.x + dir.x * tRail; g.gz = cue.z + dir.y * tRail;
+      const b = railBounce(dir.x, dir.y, rail.n === 'x' ? rail.s : 0, rail.n === 'z' ? rail.s : 0, spinX);
+      const bl = Math.hypot(b.x, b.z) || 1;
+      g.rx = b.x / bl; g.rz = b.z / bl;
     } else if (Number.isFinite(tEdge)) {
       g.kind = 'pocket'; g.t = tEdge;
       g.gx = cue.x + dir.x * tEdge; g.gz = cue.z + dir.y * tEdge;
@@ -695,21 +752,16 @@ export function createPool({ camera, player, sfx }) {
       const ob = balls.find((b) => b.num === g.ball);
       if (ob) {
         gObj.show([{ x: ob.x, z: ob.z }, { x: ob.x + g.ox * GD.objLen, z: ob.z + g.oz * GD.objLen }]);
-        // 母球沿切向分离；正面对心撞就没有分离线
-        const dot = dir.x * g.ox + dir.y * g.oz;
-        const tx = dir.x - g.ox * dot, tz = dir.y - g.oz * dot;
-        const tl = Math.hypot(tx, tz);
-        if (tl > 0.08) {
-          gCue.show([{ x: g.gx, z: g.gz }, { x: g.gx + (tx / tl) * GD.cueLen, z: g.gz + (tz / tl) * GD.cueLen }]);
+        // 母球分离线（正面对心撞没有切向，但带高低杆时这条线照样有方向）
+        const cl = Math.hypot(g.cx, g.cz);
+        if (cl > 0.08) {
+          gCue.show([{ x: g.gx, z: g.gz }, { x: g.gx + g.cx * GD.cueLen, z: g.gz + g.cz * GD.cueLen }]);
         }
       }
     } else if (g.kind === 'rail') {
-      const nx = g.rl.n === 'x' ? g.rl.s : 0, nz = g.rl.n === 'z' ? g.rl.s : 0;
-      const dot = dir.x * nx + dir.y * nz;
-      const rx = dir.x - 2 * dot * nx, rz = dir.y - 2 * dot * nz;   // 镜像反射
-      const t2 = rayEdge(g.gx, g.gz, rx, rz);
+      const t2 = rayEdge(g.gx, g.gz, g.rx, g.rz);
       const L = Math.min(GD.cushLen, t2 > 0 ? t2 : GD.cushLen);
-      gCush.show([{ x: g.gx, z: g.gz }, { x: g.gx + rx * L, z: g.gz + rz * L }]);
+      gCush.show([{ x: g.gx, z: g.gz }, { x: g.gx + g.rx * L, z: g.gz + g.rz * L }]);
     }
     return g;
   }
@@ -754,6 +806,9 @@ export function createPool({ camera, player, sfx }) {
     const pw = power;
     shot = snapshotShot();               // 本杆的规则判定从这一瞬开始记账
     cue.vx = dir.x * v; cue.vz = dir.y * v;
+    cue.hit = false;                     // 本杆第一次吃到目标球时才兑现高低杆
+    cue.sy = spinY;                      // +高杆（跟进）/ −低杆（拉杆回退）
+    cue.sw = spinX;                      // +右塞 / −左塞，吃库时沿库边推一把
     strokes++;
     setInfo();
     rollT = 0;
@@ -848,6 +903,49 @@ export function createPool({ camera, player, sfx }) {
   $('pool-rack').addEventListener('click', () => api.rerack());
   $('pool-exit').addEventListener('click', () => { if (api.onExitRequest) api.onExitRequest(); });
 
+  /* ================= 杆法盘：拖红点 / 方向键，两条路写同一个状态 ================= */
+  const spinEl = $('pool-spin'), dotEl = $('pool-spin-dot'), spinNameEl = $('pool-spin-name');
+  const SPIN_PX = 13.5;   // 红点可动半径（盘半径 20 − 点半径 6.5），换算成 −1..1
+  let spinDrag = false, spinSaveTimer = 0;
+  const spinLabel = () => {
+    const v = Math.abs(spinY) < 0.18 ? '' : spinY > 0 ? '高杆' : '低杆';
+    const h = Math.abs(spinX) < 0.18 ? '' : spinX > 0 ? '右塞' : '左塞';
+    return `${v}${h}` || '中杆';
+  };
+  function paintSpin() {
+    dotEl.style.transform = `translate(${(spinX * SPIN_PX).toFixed(1)}px, ${(-spinY * SPIN_PX).toFixed(1)}px)`;
+    const nm = spinLabel();
+    spinEl.classList.toggle('mid', nm === '中杆');
+    if (spinNameEl.textContent !== nm) spinNameEl.textContent = nm;
+  }
+  function saveSpin() {
+    clearTimeout(spinSaveTimer);
+    spinSaveTimer = setTimeout(() => {
+      localStorage.setItem('bb.pool.spin', `${spinX.toFixed(3)},${spinY.toFixed(3)}`);
+    }, 300);
+  }
+  function applySpin(x, y) {
+    const d = Math.hypot(x, y);
+    if (d > 0.9) { x *= 0.9 / d; y *= 0.9 / d; }   // 别拖出白球边缘，边缘外没有意义
+    spinX = x; spinY = y;
+    paintSpin();
+    saveSpin();
+  }
+  function spinFromPoint(cx, cy) {
+    const r = spinEl.getBoundingClientRect();
+    applySpin((cx - r.left - r.width / 2) / SPIN_PX, -(cy - r.top - r.height / 2) / SPIN_PX);
+  }
+  spinEl.addEventListener('pointerdown', (e) => {
+    spinDrag = true;
+    try { spinEl.setPointerCapture(e.pointerId); } catch (err) { /* 没有 pointer id 的老浏览器：拖不动但键位照样能用 */ }
+    spinFromPoint(e.clientX, e.clientY);
+    e.preventDefault();
+  });
+  spinEl.addEventListener('pointermove', (e) => { if (spinDrag) spinFromPoint(e.clientX, e.clientY); });
+  spinEl.addEventListener('pointerup', () => { spinDrag = false; });
+  spinEl.addEventListener('pointercancel', () => { spinDrag = false; });
+  paintSpin();
+
   /* ================= 对外接口 ================= */
   const api = {
     scene,
@@ -937,9 +1035,11 @@ export function createPool({ camera, player, sfx }) {
       } else if (!mine()) {
         setHint(botPlan ? `🤖 电脑正在瞄准 <b>${botPlan.num}</b> 号…` : '🤖 电脑思考中…');
       } else if (mode === 'walk') {
-        setHint(nearTable() ? '<b>左键</b> 上手瞄准 · <b>右键</b> 继续走动' : '');
+        setHint(nearTable() ? '<b>左键</b> 上手瞄准 · <b>右键</b> 继续走动 · <b>Tab</b> 用鼠标点球室条' : '<b>Tab</b> 用鼠标点球室条');
       } else if (mode === 'aim') {
-        setHint('<b>移动鼠标</b> 转导向线 · <b>按住左键</b> 蓄力、松手出杆 · <b>右键</b> 收杆 · <b>E</b> 重摆 · WASD 走动');
+        setHint(hudOpen
+          ? '🖱 <b>拖小白球上的红点</b> 选杆法：下＝拉杆（白球自己回来）· 上＝跟进 · 左右＝加塞 · 按 <b>Tab</b> 或点球台回到瞄准'
+          : `<b>移动鼠标</b> 瞄准 · <b>按住左键</b> 蓄力出杆 · <b>↑↓←→</b> 杆法：<b>${spinLabel()}</b>（<b>Tab</b> 用鼠标拖）· <b>右键</b> 收杆 · <b>E</b> 重摆`);
       } else {
         setHint('球还在滚…');
       }
@@ -966,10 +1066,19 @@ export function createPool({ camera, player, sfx }) {
     onRightDown() {
       if (mode === 'aim' && mine()) releaseCue();
     },
+    /** Tab 开合操作台：开台时先收力，免得回锁那一瞬把没松的左键当成出杆 */
+    onHud(on) {
+      hudOpen = on;
+      if (on && charging) { charging = false; power = 0; setPower(0); }
+    },
     /** 瞄准时按方向键 = 收杆回走动（与影院"按 WASD 起身"同一套语言） */
     onMoveKey() {
       if (mode === 'aim' && mine()) releaseCue();
     },
+    /** 方向键微调杆法（指针锁住时拖不动 DOM，这条路保证杆法永远够得着） */
+    nudgeSpin(dx, dy) { applySpin(spinX + dx, spinY + dy); },
+    resetSpin() { applySpin(0, 0); },
+    get spinName() { return spinLabel(); },
     /** E / 按钮：自由练台=整桌重摆；对战=开一局新的（重摆 + 规则机复位） */
     rerack() {
       if (duel) startDuel();
@@ -1025,7 +1134,19 @@ export function createPool({ camera, player, sfx }) {
     },
     debugGuide() {
       const g = mode === 'aim' ? drawGuide() : predict();
-      return { kind: g.kind, ball: g.ball, t: +g.t.toFixed(3), gx: +g.gx.toFixed(3), gz: +g.gz.toFixed(3), ox: +g.ox.toFixed(3), oz: +g.oz.toFixed(3) };
+      return {
+        kind: g.kind, ball: g.ball, t: +g.t.toFixed(3), gx: +g.gx.toFixed(3), gz: +g.gz.toFixed(3),
+        ox: +g.ox.toFixed(3), oz: +g.oz.toFixed(3),
+        cue: `${g.cx.toFixed(3)},${g.cz.toFixed(3)}`, rail: `${g.rx.toFixed(3)},${g.rz.toFixed(3)}`,
+      };
+    },
+    /** 当前杆法（x 右塞为正 / y 高杆为正）与它的中文名 */
+    debugSpin() {
+      return { x: +spinX.toFixed(3), y: +spinY.toFixed(3), name: spinLabel(), dot: dotEl.style.transform };
+    },
+    debugSetSpin(x, y) {
+      applySpin(x, y);
+      return this.debugSpin();
     },
     /** 导向线是否真的落成了顶点（取错字段 → NaN → 整条线静默消失） */
     debugGuideLine() {
@@ -1040,7 +1161,7 @@ export function createPool({ camera, player, sfx }) {
     debugPlace(num, x, z) {
       const b = balls.find((y) => y.num === num);
       if (!b || b.potted) return false;
-      b.x = x; b.z = z; b.vx = 0; b.vz = 0;
+      b.x = x; b.z = z; b.vx = 0; b.vz = 0; b.sy = 0; b.sw = 0; b.hit = false;
       b.mesh.position.set(x, YC, z);
       return true;
     },
