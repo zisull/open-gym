@@ -31506,10 +31506,10 @@
     const $2 = (id) => document.getElementById(id);
     const bar = $2("pool-bar");
     const hintEl = $2("pool-hint");
-    const infoEl = $2("pb-info");
-    const fillEl = $2("pb-fill");
-    const bookEl = $2("pb-book");
-    const modeEl = $2("pb-mode");
+    const infoEl = $2("pool-info");
+    const fillEl = $2("pool-fill");
+    const bookEl = $2("pool-book");
+    const modeEl = $2("pool-mode");
     const RW = K2.room.halfW, RL = K2.room.halfL, RH = K2.room.height;
     const shell = new Mesh(
       new BoxGeometry(RW * 2, RH, RL * 2),
@@ -32295,8 +32295,8 @@
       startDuel();
       sfx.play("ui", { volume: 0.5, rate: duel ? 1.35 : 1 });
     });
-    $2("pb-rack").addEventListener("click", () => api.rerack());
-    $2("pb-exit").addEventListener("click", () => {
+    $2("pool-rack").addEventListener("click", () => api.rerack());
+    $2("pool-exit").addEventListener("click", () => {
       if (api.onExitRequest) api.onExitRequest();
     });
     const api = {
@@ -32667,29 +32667,38 @@
         /** 持球姿态：跟随相机右手位置，蓄力时举过头顶前倾；叠加拍球下探动画 */
         updateHeld(dt, camera, charge = 0) {
           this._heldTimer += dt;
-          const hand = this._hand.set(0.42, -0.32 + charge * 0.62, -0.72 - charge * 0.18);
+          const hand = this._hand.set(0.38, -0.26 + charge * 0.6, -0.7 - charge * 0.16);
+          let rock = 0;
+          let squash = 0;
           if (this._tapT === void 0) {
             hand.y += Math.sin(this._heldTimer * 2.4) * 0.012;
             hand.x += Math.sin(this._heldTimer * 1.7) * 8e-3;
           }
-          let squash = 0;
           if (this._tapT !== void 0) {
             this._tapT += dt;
             const u = this._tapT / CFG.tap.dur;
             if (u >= 1) {
               this._tapT = void 0;
             } else {
-              const k = Math.sin(Math.min(u, 1) * Math.PI);
-              hand.y -= k * 0.92;
-              hand.z += k * 0.1;
-              squash = k;
+              const g = 1 - Math.abs(1 - 2 * u);
+              hand.x -= g * 0.14;
+              hand.y -= g * 0.26;
+              hand.z -= g * 0.28;
+              rock = g * 1.5;
+              squash = Math.max(0, 1 - Math.abs(u - 0.5) / 0.15);
             }
           }
-          this.mesh.scale.set(1 + squash * 0.14, 1 - squash * 0.2, 1 + squash * 0.14);
+          const fwd = -hand.z;
+          if (fwd > 0.05) {
+            const lim = Math.tan(MathUtils.degToRad(Math.max(12, camera.fov * 0.5 - 9)));
+            if (-hand.y > fwd * lim) hand.y = -fwd * lim;
+            else if (hand.y > fwd * lim) hand.y = fwd * lim;
+          }
+          this.mesh.scale.set(1 + squash * 0.16, 1 - squash * 0.22, 1 + squash * 0.16);
           hand.applyQuaternion(camera.quaternion);
           this.mesh.position.copy(camera.position).add(hand);
           this.mesh.quaternion.copy(camera.quaternion);
-          this.mesh.rotateX(0.4 + charge * 0.5 + squash * 0.9);
+          this.mesh.rotateX(0.4 + charge * 0.5 + rock);
           this.mesh.rotateZ(Math.sin(this._heldTimer * 1.3) * 0.1);
           return this.mesh.position;
         }
@@ -33283,7 +33292,7 @@
             this.G.ui.setPrompt("<b>\u6309\u4F4F\u5DE6\u952E</b> \u84C4\u529B \xB7 <b>\u677E\u624B</b> \u6295\u7BEE \xB7 <b>\u7A7A\u683C</b> \u8DF3\u6295 \xB7 <b>\u53F3\u952E</b> \u53D6\u6D88 \xB7 <b>E</b> \u5F03\u7403");
             return;
           }
-          const { ball, player, sfx, scoring } = this.G;
+          const { ball, player, sfx, scoring, ui } = this.G;
           const power = this.charge;
           this.markRelease();
           const pos = ball.position.clone();
@@ -33293,7 +33302,8 @@
           this.flying = true;
           this.flightT = 0;
           this._prevY = void 0;
-          this.G.ui.setPrompt("\u597D\u7403\u8F68\u8FF9 \u2014\u2014 \u76EF\u4F4F\u529B\u5EA6\u6761\u6700\u4F73\u533A\uFF01");
+          ui.showPowerBar(false);
+          ui.setPrompt("\u597D\u7403\u8F68\u8FF9 \u2014\u2014 \u76EF\u4F4F\u529B\u5EA6\u6761\u6700\u4F73\u533A\uFF01");
         }
         onRightDown() {
           if (this.flying) return;
@@ -33614,8 +33624,8 @@
             prompt: $("hud-prompt"),
             popup: $("score-popup"),
             pbar: $("power-bar"),
-            pFill: $("pb-fill"),
-            pSweet: $("pb-sweet"),
+            pFill: $("power-fill"),
+            pSweet: $("power-sweet"),
             menu: $("menu"),
             pause: $("pause"),
             result: $("result"),
@@ -34430,6 +34440,59 @@
             console.log("DEMO_TAP", marks.join(" | "));
           }, 6400);
         }
+        if (demo === "dribble") {
+          const drive = (n, each) => {
+            for (let i = 0; i < n; i++) {
+              machine.update(0.016);
+              player.update(0.016);
+              each?.(i);
+            }
+          };
+          setTimeout(() => {
+            ball.syncFromPhysics();
+            player.pos.set(ball.position.x, 0, ball.position.z + 1);
+            machine.update(0.016);
+            machine.dispatch("onGrab");
+            mark("pickup");
+          }, 1200);
+          setTimeout(() => {
+            let lo = 9, hi = -9, lox = 9, hix = -9, loSy = 9, behind = 0;
+            drive(90, () => {
+              const v = ball.position.clone().project(camera);
+              if (v.z > 1) behind++;
+              lo = Math.min(lo, v.y);
+              hi = Math.max(hi, v.y);
+              lox = Math.min(lox, v.x);
+              hix = Math.max(hix, v.x);
+              loSy = Math.min(loSy, ball.mesh.scale.y);
+            });
+            const inFrame = lo > -1 && hi < 1 && lox > -1 && hix < 1 && behind === 0;
+            mark(`BOUNCE ndcY=[${lo.toFixed(2)},${hi.toFixed(2)}] swing=${(hi - lo).toFixed(2)} ndcX=[${lox.toFixed(2)},${hix.toFixed(2)}] squashY=${loSy.toFixed(2)} behind=${behind} taps=${scoring.taps} \u753B\u9762\u5185=${inFrame ? 1 : 0}`);
+          }, 2600);
+          if (params.get("hold") !== "low") setTimeout(() => {
+            machine.dispatch("onLeftDown");
+            const bar = document.getElementById("power-bar");
+            const fill = document.getElementById("power-fill");
+            let tall = 0;
+            drive(40, () => {
+              if (!bar.classList.contains("hidden") && fill.getBoundingClientRect().height > 2) tall = 1;
+            });
+            const ch = machine.current?.charge ?? -1;
+            mark(`POWER shown=${bar.classList.contains("hidden") ? 0 : 1} \u6709\u9AD8\u5EA6=${tall} ch=${ch.toFixed(2)} h=${fill.style.height} px=${fill.getBoundingClientRect().height.toFixed(0)} sweet=${document.getElementById("power-sweet").style.height}`);
+            machine.dispatch("onLeftUp");
+            mark(`RELEASE fly=${machine.current?.flying ? 1 : 0} \u6536\u8D77=${bar.classList.contains("hidden") ? 1 : 0}`);
+          }, 3400);
+          setTimeout(() => {
+            console.log("DEMO_DRIBBLE", marks.join(" | "));
+          }, 5200);
+          if (params.get("hold") === "low") setTimeout(() => {
+            ball._tapT = 5e5;
+            CFG.tap.dur = 1e6;
+            ball.updateHeld(0.016, camera, 0);
+            const v = ball.position.clone().project(camera);
+            mark(`PIN ndc=${v.x.toFixed(2)},${v.y.toFixed(2)} scale=${ball.mesh.scale.y.toFixed(2)} mode=${ball.mode}`);
+          }, 6e3);
+        }
         if (demo === "move") {
           const drive = (n) => {
             for (let i = 0; i < n; i++) player.update(0.016);
@@ -34686,6 +34749,8 @@
             pred = { g: pool.debugGuide(), b0: pool.debugBall(1) };
             pool.onLeftDown();
             pool.debugPower(0.55);
+            pool.debugSettle(1 / 60, 1 / 60);
+            const pw = document.getElementById("pool-fill").style.width;
             pool.onLeftUp();
             let before = null, dep = null;
             for (let i = 0; i < 600 && !dep; i++) {
@@ -34699,7 +34764,7 @@
             const raw = Math.hypot(dx, dz);
             const dot = raw > 4e-3 ? (dx / raw * pred.g.ox + dz / raw * pred.g.oz).toFixed(3) : "NA";
             const err = dep ? Math.hypot(dep.c.x - pred.g.gx, dep.c.z - pred.g.gz).toFixed(4) : "none";
-            mark(`SHOT ghostErr=${err} dir\xB7pred=${dot} cue\u505C=${JSON.stringify([before.vx, before.vz])} live=${r.live} potted=${r.potted} strokes=${r.strokes}`);
+            mark(`SHOT ghostErr=${err} dir\xB7pred=${dot} cue\u505C=${JSON.stringify([before.vx, before.vz])} live=${r.live} potted=${r.potted} strokes=${r.strokes} \u529B\u5EA6\u6761=${pw}`);
             pool.debugSettle(6);
             mark(`REST live=${P().live} mode=${P().mode}`);
           }, 3800);
@@ -34740,9 +34805,9 @@
               fired++;
               if (orig) orig();
             };
-            document.getElementById("pb-exit").click();
+            document.getElementById("pool-exit").click();
             pool.onExitRequest = orig;
-            mark(`EXIT fired=${fired} rack=${document.getElementById("pb-rack") ? 1 : 0}`);
+            mark(`EXIT fired=${fired} rack=${document.getElementById("pool-rack") ? 1 : 0}`);
           }, 9800);
         }
         if (demo === "rules") {
@@ -34779,7 +34844,7 @@
           }, 7e3);
           setTimeout(() => {
             pool.debugSetDuel(0);
-            const hid = document.getElementById("pb-book").classList.contains("hidden");
+            const hid = document.getElementById("pool-book").classList.contains("hidden");
             mark(`G \u5207\u56DE\u81EA\u7531\u7EC3\u53F0 ${st()} \u5165\u5E93\u6761\u9690\u85CF=${hid ? 1 : 0}`);
           }, 9e3);
           setTimeout(() => {
@@ -34805,8 +34870,8 @@
           setTimeout(() => {
             const y = pool.debugRuleShot([], { first: -1 });
             mark(`K \u7A7A\u6746\uFF1A\u72AF\u89C4\u2192\u6362\u624B turn=${y.turn}`);
-            document.getElementById("pb-mode").click();
-            mark(`L \u6309\u94AE\u5207\u73A9\u6CD5 duel=${pool.debugPool().duel} \u6587\u6848=${document.getElementById("pb-mode").textContent}`);
+            document.getElementById("pool-mode").click();
+            mark(`L \u6309\u94AE\u5207\u73A9\u6CD5 duel=${pool.debugPool().duel} \u6587\u6848=${document.getElementById("pool-mode").textContent}`);
           }, 10600);
           setTimeout(() => {
             pool.debugSetDuel(1);
@@ -34825,7 +34890,7 @@
             pool.debugRuleShot([9], { first: 9 });
             const r = pool.debugRuleShot([], { first: 10 });
             mark(`BOOK turn=${r.turn} ph=${r.phase} grp=${r.grp} book=[${r.book}] foul=${r.fb}`);
-            mark(`  info=${document.getElementById("pb-info").textContent}`);
+            mark(`  info=${document.getElementById("pool-info").textContent}`);
             mark(`  \u884C1=${document.querySelectorAll(".pbk-row")[0].textContent.replace(/\s+/g, " ")}`);
             mark(`  \u884C2=${document.querySelectorAll(".pbk-row")[1].textContent.replace(/\s+/g, " ")}`);
             mark(`  \u5F69\u7247=${document.querySelectorAll(".pbk-chip").length} \u82B1\u8272\u7247=${document.querySelectorAll(".pbk-chip.stripe").length}`);

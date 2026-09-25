@@ -653,6 +653,54 @@ try {
     }, 5200);
     setTimeout(() => { mark(`final taps=${scoring.taps}`); console.log('DEMO_TAP', marks.join(' | ')); }, 6400);
   }
+  if (demo === 'dribble') {
+    // 「看得见」的拍球断言：一整段自动拍球里，球心的屏幕投影必须始终在画面内、
+    // 且有明显的上下摆动（历史 bug：下探 0.92m 直接把球拍出画面下缘 → 只剩声音）。
+    // 顺带验蓄力力度条（历史 bug：与台球力度条 id 撞车，ID 选择器盖掉 height → 看着像消失）。
+    const drive = (n, each) => { for (let i = 0; i < n; i++) { machine.update(0.016); player.update(0.016); each?.(i); } };
+    setTimeout(() => {
+      ball.syncFromPhysics();
+      player.pos.set(ball.position.x, 0, ball.position.z + 1.0);
+      machine.update(0.016);
+      machine.dispatch('onGrab');
+      mark('pickup');
+    }, 1200);
+    setTimeout(() => {
+      let lo = 9, hi = -9, lox = 9, hix = -9, loSy = 9, behind = 0;
+      drive(90, () => {
+        const v = ball.position.clone().project(camera);
+        if (v.z > 1) behind++;
+        lo = Math.min(lo, v.y); hi = Math.max(hi, v.y);
+        lox = Math.min(lox, v.x); hix = Math.max(hix, v.x);
+        loSy = Math.min(loSy, ball.mesh.scale.y);
+      });
+      const inFrame = lo > -1 && hi < 1 && lox > -1 && hix < 1 && behind === 0;
+      mark(`BOUNCE ndcY=[${lo.toFixed(2)},${hi.toFixed(2)}] swing=${(hi - lo).toFixed(2)}`
+        + ` ndcX=[${lox.toFixed(2)},${hix.toFixed(2)}] squashY=${loSy.toFixed(2)}`
+        + ` behind=${behind} taps=${scoring.taps} 画面内=${inFrame ? 1 : 0}`);
+    }, 2600);
+    if (params.get('hold') !== 'low') setTimeout(() => {
+      machine.dispatch('onLeftDown'); // 进蓄力：力度条应显形、fill 长高
+      const bar = document.getElementById('power-bar');
+      const fill = document.getElementById('power-fill');
+      let tall = 0;
+      drive(40, () => { if (!bar.classList.contains('hidden') && fill.getBoundingClientRect().height > 2) tall = 1; });
+      const ch = machine.current?.charge ?? -1;
+      mark(`POWER shown=${bar.classList.contains('hidden') ? 0 : 1} 有高度=${tall}`
+        + ` ch=${ch.toFixed(2)} h=${fill.style.height} px=${fill.getBoundingClientRect().height.toFixed(0)}`
+        + ` sweet=${document.getElementById('power-sweet').style.height}`);
+      machine.dispatch('onLeftUp');
+      mark(`RELEASE fly=${machine.current?.flying ? 1 : 0} 收起=${bar.classList.contains('hidden') ? 1 : 0}`);
+    }, 3400);
+    setTimeout(() => { console.log('DEMO_DRIBBLE', marks.join(' | ')); }, 5200);
+    if (params.get('hold') === 'low') setTimeout(() => {
+      // 定帧在拍球最低点（把周期拉长到永不走完）：给截图看"球确实下来了、也没出画面"
+      ball._tapT = 5e5; CFG.tap.dur = 1e6;
+      ball.updateHeld(0.016, camera, 0);
+      const v = ball.position.clone().project(camera);
+      mark(`PIN ndc=${v.x.toFixed(2)},${v.y.toFixed(2)} scale=${ball.mesh.scale.y.toFixed(2)} mode=${ball.mode}`);
+    }, 6000);
+  }
   if (demo === 'move') {
     // 移动手感断言：起速应在 ~0.2s 内吃到顶速（旧的 accel/speed 写法随帧率漂移）、
     // 松手平滑滑行、反向刹车更快；跳跃 apex/滞空与配置吻合，落地有缓冲且回到地面。
@@ -935,6 +983,8 @@ try {
       pred = { g: pool.debugGuide(), b0: pool.debugBall(1) };
       pool.onLeftDown();
       pool.debugPower(0.55);
+      pool.debugSettle(1 / 60, 1 / 60); // 补一帧 update：台球力度条应写到自己的 DOM 节点上
+      const pw = document.getElementById('pool-fill').style.width;
       pool.onLeftUp();
       // 1/960 细步（步长=采样间隔，都是 1/960）：母球每步只走 4mm，
       // 「目标球刚起步」那一帧的母球位置才是真实接触点
@@ -950,7 +1000,7 @@ try {
       const raw = Math.hypot(dx, dz);
       const dot = raw > 0.004 ? ((dx / raw) * pred.g.ox + (dz / raw) * pred.g.oz).toFixed(3) : 'NA';
       const err = dep ? Math.hypot(dep.c.x - pred.g.gx, dep.c.z - pred.g.gz).toFixed(4) : 'none';
-      mark(`SHOT ghostErr=${err} dir·pred=${dot} cue停=${JSON.stringify([before.vx, before.vz])} live=${r.live} potted=${r.potted} strokes=${r.strokes}`);
+      mark(`SHOT ghostErr=${err} dir·pred=${dot} cue停=${JSON.stringify([before.vx, before.vz])} live=${r.live} potted=${r.potted} strokes=${r.strokes} 力度条=${pw}`);
       pool.debugSettle(6);   // 再把整桌滚停，验没有球逃出台面
       mark(`REST live=${P().live} mode=${P().mode}`);
     }, 3800);
@@ -992,9 +1042,9 @@ try {
       const orig = pool.onExitRequest;
       let fired = 0;
       pool.onExitRequest = () => { fired++; if (orig) orig(); };
-      document.getElementById('pb-exit').click();
+      document.getElementById('pool-exit').click();
       pool.onExitRequest = orig;
-      mark(`EXIT fired=${fired} rack=${document.getElementById('pb-rack') ? 1 : 0}`);
+      mark(`EXIT fired=${fired} rack=${document.getElementById('pool-rack') ? 1 : 0}`);
     }, 9800);
   }
   if (demo === 'rules') {
@@ -1018,7 +1068,7 @@ try {
     setTimeout(() => { const s = pool.debugSettle(7); mark(`F 整桌停稳 ph=${s.phase} turn=${s.turn} mode=${s.mode} live=${s.live}`); }, 7000);
     setTimeout(() => {
       pool.debugSetDuel(0);
-      const hid = document.getElementById('pb-book').classList.contains('hidden');
+      const hid = document.getElementById('pool-book').classList.contains('hidden');
       mark(`G 切回自由练台 ${st()} 入库条隐藏=${hid ? 1 : 0}`);
     }, 9000);
     setTimeout(() => {
@@ -1040,8 +1090,8 @@ try {
     setTimeout(() => {
       const y = pool.debugRuleShot([], { first: -1 });
       mark(`K 空杆：犯规→换手 turn=${y.turn}`);
-      document.getElementById('pb-mode').click();
-      mark(`L 按钮切玩法 duel=${pool.debugPool().duel} 文案=${document.getElementById('pb-mode').textContent}`);
+      document.getElementById('pool-mode').click();
+      mark(`L 按钮切玩法 duel=${pool.debugPool().duel} 文案=${document.getElementById('pool-mode').textContent}`);
     }, 10600);
     setTimeout(() => {
       pool.debugSetDuel(1);
@@ -1061,7 +1111,7 @@ try {
       pool.debugRuleShot([9], { first: 9 });     // 电脑进自己一组
       const r = pool.debugRuleShot([], { first: 10 });  // 电脑空杆 → 交回你
       mark(`BOOK turn=${r.turn} ph=${r.phase} grp=${r.grp} book=[${r.book}] foul=${r.fb}`);
-      mark(`  info=${document.getElementById('pb-info').textContent}`);
+      mark(`  info=${document.getElementById('pool-info').textContent}`);
       mark(`  行1=${document.querySelectorAll('.pbk-row')[0].textContent.replace(/\s+/g, ' ')}`);
       mark(`  行2=${document.querySelectorAll('.pbk-row')[1].textContent.replace(/\s+/g, ' ')}`);
       mark(`  彩片=${document.querySelectorAll('.pbk-chip').length} 花色片=${document.querySelectorAll('.pbk-chip.stripe').length}`);

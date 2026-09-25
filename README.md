@@ -323,7 +323,9 @@ npm run videos       # 重新打包 video/ 片源
 > 音频同理以 base64 内嵌进 `assets/audio/sfx.js`。
 > 调试入口：`index.html?mode=free&loc=cinema` 直接跳进电影院，
 > `loc=pool` 跳进台球室；再加 `&demo=pool` 跑台球物理回归、`&demo=rules` 跑 8 球规则回归、
-> `&demo=poolaim` 定住出杆视角截图、`&demo=book` 定住拍入库记录。
+> `&demo=poolaim` 定住出杆视角截图、`&demo=book` 定住拍入库记录；
+> 篮球侧 `&mode=free&demo=dribble` 断言自动拍球「球在画面里且在摆动」+ 蓄力力度条真的长高
+> （加 `&hold=low` 定帧在拍球最低点供截图）。
 
 ## 性能选项
 
@@ -335,6 +337,11 @@ Bloom 泛光固定开启（强度低），进球瞬间自动增强。
 
 **HUD/提示全部脏检查**：数值不变不写 DOM；历史最高分缓存在内存，
 不再逐帧读 localStorage；影院换片/删片会释放旧本地片源的 blob URL 防内存泄漏。
+
+**DOM 命名空间**：篮球的节点一律 `power-*`（`power-bar/power-fill/power-sweet`），
+台球自己的节点一律 `pool-*`（`pool-bar/pool-fill/pool-book/…`），影院是 `cb-*`/`cc-*`。
+以前两处都叫 `pb-fill`，`#id` 规则互相覆盖，导致篮球蓄力条"看着消失"、
+台球力度条同时也不动——同名 id 是这类幽灵 bug 的温床，新增 UI 请带场景前缀。
 
 地板闪烁已**结构性根治**（此前调偏置无效）：真正原因是球馆壳体盒子的底面
 与地板平面完全共面（都在 y=0），逐像素深度比较来回翻转产生 z-fighting。

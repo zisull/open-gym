@@ -122,30 +122,30 @@ body {
   position: absolute; right: 54px; top: 50%; transform: translateY(-50%);
   display: flex; gap: 10px; align-items: center; z-index: 7; pointer-events: none;
 }
-.pb-label { font-size: 13px; color: var(--dim); writing-mode: vertical-lr; letter-spacing: 4px; }
-.pb-track {
+.pw-label { font-size: 13px; color: var(--dim); writing-mode: vertical-lr; letter-spacing: 4px; }
+.pw-track {
   position: relative; width: 26px; height: 300px; border-radius: 13px;
   background: linear-gradient(90deg, rgba(14, 18, 26, 0.9), rgba(20, 26, 36, 0.9));
   border: 1px solid var(--glass-line); overflow: hidden;
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5);
 }
-.pb-fill {
+.pw-fill {
   position: absolute; left: 0; right: 0; bottom: 0; height: 0%;
   background: linear-gradient(180deg, #ffd27a, var(--orange) 60%, #e04f0a);
   border-top: 2px solid #fff;
   box-shadow: 0 0 14px rgba(255, 140, 60, 0.7);
 }
-.pb-sweet {
+.pw-sweet {
   position: absolute; left: 0; right: 0; height: 0; bottom: 0;
   border-top: 2px solid var(--good);
   border-bottom: 2px solid var(--good);
   background: rgba(53, 208, 127, 0.22);
 }
-.pb-sweet span {
+.pw-sweet span {
   position: absolute; right: 32px; top: 50%; transform: translateY(-50%);
   font-size: 11px; color: var(--good); white-space: nowrap; opacity: 0.9;
 }
-#power-bar.maxed .pb-fill { animation: max-pulse 0.4s infinite alternate; }
+#power-bar.maxed .pw-fill { animation: max-pulse 0.4s infinite alternate; }
 @keyframes max-pulse { to { filter: brightness(1.5); } }
 
 /* ---------------- 主菜单 ---------------- */
@@ -395,14 +395,14 @@ body.big-screen #cinema-bar { z-index: 62; }
 }
 #pool-bar .btn { padding: 6px 12px; font-size: 14px; white-space: nowrap; }
 /* 入库记录：8 球对战时显示双方各自一组的进球（按落袋顺序排成彩片） */
-#pb-book {
+#pool-book {
   position: fixed; top: 14px; left: 50%; transform: translateX(-50%); z-index: 61;
   display: flex; flex-direction: column; gap: 5px;
   padding: 8px 14px;
   background: rgba(10, 16, 13, 0.82); border: 1px solid var(--glass-line);
   border-radius: 12px; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
 }
-#pb-book.hidden { display: none; }
+#pool-book.hidden { display: none; }
 .pbk-row { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--dim); white-space: nowrap; }
 .pbk-row.me { color: var(--text); }
 .pbk-name { min-width: 32px; font-weight: 600; }
@@ -422,12 +422,12 @@ body.big-screen #cinema-bar { z-index: 62; }
 .pbk-chip.eight { background: #141414; color: #f3efe2; }
 .pbk-cnt { font-size: 11px; opacity: 0.8; }
 .pbk-way { font-size: 11px; color: #ffd166; }
-#pb-info { font-size: 13px; color: var(--dim); white-space: nowrap; }
-#pb-power {
+#pool-info { font-size: 13px; color: var(--dim); white-space: nowrap; }
+#pool-power {
   position: relative; width: 132px; height: 10px; border-radius: 6px; overflow: hidden;
   background: rgba(255, 255, 255, 0.09); border: 1px solid var(--glass-line);
 }
-#pb-fill {
+#pool-fill {
   position: absolute; left: 0; top: 0; bottom: 0; width: 0;
   background: linear-gradient(90deg, #4fd08a, #ffd166 62%, #ff6b57);
   transition: width 0.04s linear;

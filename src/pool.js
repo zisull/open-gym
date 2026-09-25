@@ -103,10 +103,10 @@ export function createPool({ camera, player, sfx }) {
   const $ = (id) => document.getElementById(id);
   const bar = $('pool-bar');
   const hintEl = $('pool-hint');
-  const infoEl = $('pb-info');
-  const fillEl = $('pb-fill');
-  const bookEl = $('pb-book');
-  const modeEl = $('pb-mode');
+  const infoEl = $('pool-info');
+  const fillEl = $('pool-fill');
+  const bookEl = $('pool-book');
+  const modeEl = $('pool-mode');
 
   /* ================= 房间（黑匣子 + 暖木） ================= */
   const RW = K.room.halfW, RL = K.room.halfL, RH = K.room.height;
@@ -845,8 +845,8 @@ export function createPool({ camera, player, sfx }) {
     startDuel();
     sfx.play('ui', { volume: 0.5, rate: duel ? 1.35 : 1 });
   });
-  $('pb-rack').addEventListener('click', () => api.rerack());
-  $('pb-exit').addEventListener('click', () => { if (api.onExitRequest) api.onExitRequest(); });
+  $('pool-rack').addEventListener('click', () => api.rerack());
+  $('pool-exit').addEventListener('click', () => { if (api.onExitRequest) api.onExitRequest(); });
 
   /* ================= 对外接口 ================= */
   const api = {

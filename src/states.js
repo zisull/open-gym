@@ -293,7 +293,7 @@ export class ShotState extends State {
       this.G.ui.setPrompt('<b>按住左键</b> 蓄力 · <b>松手</b> 投篮 · <b>空格</b> 跳投 · <b>右键</b> 取消 · <b>E</b> 弃球');
       return;
     }
-    const { ball, player, sfx, scoring } = this.G;
+    const { ball, player, sfx, scoring, ui } = this.G;
     const power = this.charge;
     this.markRelease(); // 记录出手点（2/3 分判定）
     const pos = ball.position.clone();
@@ -303,7 +303,8 @@ export class ShotState extends State {
     this.flying = true;
     this.flightT = 0;
     this._prevY = undefined; // 重置穿越判定基线，从飞行首帧开始采样
-    this.G.ui.setPrompt('好球轨迹 —— 盯住力度条最佳区！');
+    ui.showPowerBar(false); // 球已出手，力度条当场退场（不用等状态退出）
+    ui.setPrompt('好球轨迹 —— 盯住力度条最佳区！');
   }
   onRightDown() {
     if (this.flying) return;

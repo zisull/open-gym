@@ -76,33 +76,43 @@ export class GameBall {
   /** 持球姿态：跟随相机右手位置，蓄力时举过头顶前倾；叠加拍球下探动画 */
   updateHeld(dt, camera, charge = 0) {
     this._heldTimer += dt;
-    // 基准手部偏移（相机局部系）：右下前方（复用向量，避免每帧分配）
-    const hand = this._hand.set(0.42, -0.32 + charge * 0.62, -0.72 - charge * 0.18);
+    // 基准手部偏移（相机局部系）：右下前方腰部位置
+    const hand = this._hand.set(0.38, -0.26 + charge * 0.60, -0.70 - charge * 0.16);
     // 轻微呼吸浮动（拍球时冻结，避免抢戏）
+    let rock = 0;     // 拍球时缝线前后摆动（贴图转起来才看得见"在运球"）
+    let squash = 0;   // 触底挤压
     if (this._tapT === undefined) {
       hand.y += Math.sin(this._heldTimer * 2.4) * 0.012;
       hand.x += Math.sin(this._heldTimer * 1.7) * 0.008;
     }
-    // 拍球：正弦下探回手 + 触底挤压（squash & stretch）
-    let squash = 0;
+    // 拍球：三角波下压—触底—回手（匀速下探、到底立刻反向往上，就是那一下弹）
     if (this._tapT !== undefined) {
       this._tapT += dt;
       const u = this._tapT / CFG.tap.dur;
       if (u >= 1) {
         this._tapT = undefined;
       } else {
-        const k = Math.sin(Math.min(u, 1) * Math.PI);
-        hand.y -= k * 0.92;         // 向下拍至膝下
-        hand.z += k * 0.10;         // 略向前，贴近"原地拍球"手感
-        squash = k;                 // 触底峰值形变
+        const g = 1 - Math.abs(1 - 2 * u);
+        hand.x -= g * 0.14;           // 下落时往身体中线收，像真正在身前拍
+        hand.y -= g * 0.26;
+        hand.z -= g * 0.28;           // 同时往前推：画面里就是一路往下砸
+        rock = g * 1.5;
+        squash = Math.max(0, 1 - Math.abs(u - 0.5) / 0.15); // 只在触底那小段挤压
       }
     }
-    this.mesh.scale.set(1 + squash * 0.14, 1 - squash * 0.2, 1 + squash * 0.14);
+    // 兜底：球永远不许掉出画面下缘，否则拍球又变成"只有声音没动画"
+    const fwd = -hand.z;
+    if (fwd > 0.05) {
+      const lim = Math.tan(THREE.MathUtils.degToRad(Math.max(12, camera.fov * 0.5 - 9)));
+      if (-hand.y > fwd * lim) hand.y = -fwd * lim;
+      else if (hand.y > fwd * lim) hand.y = fwd * lim;
+    }
+    this.mesh.scale.set(1 + squash * 0.16, 1 - squash * 0.22, 1 + squash * 0.16);
     hand.applyQuaternion(camera.quaternion);
     this.mesh.position.copy(camera.position).add(hand);
     // 持球自转缓慢朝向镜头
     this.mesh.quaternion.copy(camera.quaternion);
-    this.mesh.rotateX(0.4 + charge * 0.5 + squash * 0.9);
+    this.mesh.rotateX(0.4 + charge * 0.5 + rock);
     this.mesh.rotateZ(Math.sin(this._heldTimer * 1.3) * 0.1);
     return this.mesh.position;
   }

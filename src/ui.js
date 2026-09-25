@@ -14,7 +14,7 @@ export class UI {
       timerBox: $('hud-timer'), timerText: $('timer-text'), timerFill: $('timer-fill'),
       chipS: $('chip-s'), comboS: $('combo-s'), mulS: $('mul-s'),
       prompt: $('hud-prompt'), popup: $('score-popup'),
-      pbar: $('power-bar'), pFill: $('pb-fill'), pSweet: $('pb-sweet'),
+      pbar: $('power-bar'), pFill: $('power-fill'), pSweet: $('power-sweet'),
       menu: $('menu'), pause: $('pause'), result: $('result'),
       badgeNew: $('badge-new'), resTitle: $('res-title'), resScore: $('res-score'),
       resScoreLabel: $('res-score-label'), resLines: $('res-lines'), resShare: $('res-share'),
