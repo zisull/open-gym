@@ -12,7 +12,7 @@ export function loadRecord(modeId) {
   try { return Number(localStorage.getItem(CFG.MODES[modeId].recordKey)) || 0; }
   catch { return 0; }
 }
-export function saveRecord(modeId, score) {
+function saveRecord(modeId, score) {
   try { localStorage.setItem(CFG.MODES[modeId].recordKey, String(score)); } catch { /* 隐私模式忽略 */ }
 }
 export function loadSetting(key, dft) {

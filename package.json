@@ -9,6 +9,8 @@
     "audio": "node tools/gen_audio.js",
     "walls": "node tools/gen_wall_manifest.js",
     "videos": "node tools/gen_video_manifest.js",
+    "regress": "node tools/regress.js",
+    "audit": "node tools/audit_cfg.js && node tools/audit_exports.js",
     "shot": "node tools/shot.js"
   },
   "license": "ISC",

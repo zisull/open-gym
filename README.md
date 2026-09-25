@@ -379,11 +379,15 @@ npm run watch        # 监听源码自动打包
 npm run audio        # 重新合成 assets/audio 音效
 npm run walls        # 重新打包 imgs/wall 墙贴画
 npm run videos       # 重新打包 video/ 片源
+npm run regress      # 全量回归：19 个 demo 一次跑完（篮球/影院/台球/主页/过场）
+npm run audit        # 两条收口审计：未被引用的 config 键 + 未被 import 的导出
 ```
 
 > 为什么打包成普通脚本：浏览器在 `file://` 下禁止 `<script type="module">` 与
 > fetch 本地文件，因此源码用 ES Module 组织、发布时 esbuild 打成 IIFE；
 > 音频同理以 base64 内嵌进 `assets/audio/sfx.js`。
+> 两条收口审计（都该输出 0）：`node tools/audit_cfg.js` 扫未被引用的 config 键，
+> `node tools/audit_exports.js` 扫没被任何文件 import 的导出。
 > 调试入口：`index.html?mode=free&loc=cinema` 直接跳进电影院，
 > `loc=pool` 跳进台球室；再加 `&demo=pool` 跑台球物理回归、`&demo=rules` 跑 8 球规则回归、
 > `&demo=spin` 跑杆法回归（定杆/跟进/拉杆 + 加塞吃库 + Tab 操作台 + 落盘）、

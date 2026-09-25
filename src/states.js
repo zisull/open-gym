@@ -18,7 +18,7 @@ import { RIM_POS } from './court.js';
  * 固定仰角 elevAngle，已知水平距离 d 与高度差 dy：
  *   v^2 = g*d^2 / (2*cos^2(a) * (d*tan(a) - dy))
  */
-export function idealPower(releasePos) {
+function idealPower(releasePos) {
   const g = CFG.player.gravity, a = CFG.shot.elevAngle;
   const d = Math.hypot(RIM_POS.x - releasePos.x, RIM_POS.z - releasePos.z);
   const dy = RIM_POS.y - releasePos.y;
