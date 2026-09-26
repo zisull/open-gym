@@ -49,22 +49,21 @@ function shotVelocity(releasePos, power, player) {
 }
 
 /**
- * 随机投篮站位（投篮挑战用）：以圈心为极坐标原点，
- * 距离 ∈ [randomSpotMin, randomSpotMax]，扇形朝半场内侧（z 更大方向），
- * 并保证落在场内与投篮触发区内。
+ * 投篮挑战的「这一球」：只定距离，不定位置。
+ * r = 本球固定距离（也就是倍率），a = 出生角；之后沿这条弧随便走，
+ * 因为同一个距离下总有能出手的角度 —— 老写法把点钉死在 (x,z)，
+ * 撞上篮板侧翼那种特殊角度就只能干等倒计时。
+ * 出生角收在弧位的六成以内，免得刚落地就贴着走不动的弧端。
  */
 export function randomShotSpot() {
-  const S = CFG.shot, C = CFG.court;
-  for (let i = 0; i < 24; i++) {
-    const r = THREE.MathUtils.lerp(S.randomSpotMin, S.randomSpotMax, Math.random());
-    const a = (Math.random() * 2 - 1) * 1.15; // ±66°，面向半场
-    const x = RIM_POS.x + Math.sin(a) * r;
-    const z = RIM_POS.z + Math.cos(a) * r;
-    if (Math.abs(x) > C.halfW - 0.6) continue;
-    if (z > S.zoneMaxZ - 0.3) continue;      // 留出边界余量，避免贴线抖动
-    return { x, z };
-  }
-  return { x: 0, z: RIM_POS.z + 4.6 }; // 兜底：正面罚球位
+  const S = CFG.shot;
+  const r = THREE.MathUtils.lerp(S.randomSpotMin, S.randomSpotMax, Math.random());
+  return { r, a: (Math.random() * 2 - 1) * S.spotArc * 0.6 };
+}
+
+/** 本球极坐标（相对圈心）-> 场地坐标 */
+export function shotSpotXZ({ r, a }) {
+  return { x: RIM_POS.x + Math.sin(a) * r, z: RIM_POS.z + Math.cos(a) * r };
 }
 
 /* ================= 基类 ================= */
@@ -171,8 +170,8 @@ export class HoldState extends State {
 /* ================= 3. 投篮蓄力 ================= */
 export class ShotState extends State {
   enter() {
-    const { player, ui, modeDef } = this.G;
-    // 挑战模式：点位周围小圈自由走位；自由模式：慢速微调
+    const { player, ui, modeDef, scoring } = this.G;
+    // 挑战模式：沿本球弧线走位；自由模式：慢速微调
     player.speed = modeDef.id === 'shot' ? CFG.shot.adjustSpeed : CFG.player.speedShot;
     player.enterShotAim();
     this.charge = 0;
@@ -186,7 +185,10 @@ export class ShotState extends State {
     this.flightT = 0;
     this._prevY = undefined; // 飞行阶段首帧采样基线（出手时再置，保证穿越判定完整）
     ui.showPowerBar(true);
-    ui.setPrompt('<b>按住左键</b> 蓄力 · <b>松手</b> 投篮 · <b>空格</b> 跳投（空中也能出手）· <b>右键</b> 取消 · <b>E</b> 弃球');
+    // 挑战模式说清楚"为什么走不到篮下"：这一球锁的是距离，能挑的只有角度
+    const ring = modeDef.id === 'shot' && scoring.currentSpot
+      ? `🎯 本球锁 <b>${scoring.currentSpot.r.toFixed(1)}m</b> · 沿弧线走位挑角度 · ` : '';
+    ui.setPrompt(`${ring}<b>按住左键</b> 蓄力 · <b>松手</b> 投篮 · <b>空格</b> 跳投（空中也能出手）· <b>右键</b> 取消 · <b>E</b> 弃球`);
   }
   exit() {
     const { player, ui } = this.G;
@@ -194,24 +196,33 @@ export class ShotState extends State {
     ui.showPowerBar(false);
   }
 
-  /** 挑战模式：把玩家钳制在随机点位中心周围的小圈内（可自由走位调整视角） */
-  clampToSpot() {
+  /**
+   * 挑战模式：只锁距离、不锁角度 —— 把玩家钉在这一球的投篮弧上。
+   * 沿切向（斜着走 / A、D）自由挑角度，径向分量直接削掉，所以近不了也退不了；
+   * 撞到弧端时把往外顶的那半也削掉，免得贴着墙原地晃头。
+   */
+  clampToRing() {
     const { player, scoring } = this.G;
     const spot = scoring.currentSpot;
     if (!spot) return;
-    const dx = player.pos.x - spot.x, dz = player.pos.z - spot.z;
-    const d = Math.hypot(dx, dz);
-    const R = CFG.shot.spotRadius;
-    if (d > R) {
-      player.pos.x = spot.x + (dx / d) * R;
-      player.pos.z = spot.z + (dz / d) * R;
-    }
+    const A = CFG.shot.spotArc;
+    const dx = player.pos.x - RIM_POS.x, dz = player.pos.z - RIM_POS.z;
+    const raw = Math.atan2(dx, dz);                     // 相对半场正面的偏角
+    const a = THREE.MathUtils.clamp(raw, -A, A);
+    const ux = Math.sin(a), uz = Math.cos(a);           // 径向单位向量
+    const tx = uz, tz = -ux;                            // 切向（偏角增大方向）
+    player.pos.x = RIM_POS.x + ux * spot.r;
+    player.pos.z = RIM_POS.z + uz * spot.r;
+    let vt = player.vel.x * tx + player.vel.z * tz;
+    if (a !== raw && Math.sign(vt) === Math.sign(raw)) vt = 0;
+    player.vel.x = tx * vt;
+    player.vel.z = tz * vt;
   }
 
   update(dt) {
     const { player, ball, camera, ui, scoring, modeDef } = this.G;
 
-    if (modeDef.id === 'shot') this.clampToSpot();
+    if (modeDef.id === 'shot') this.clampToRing();
 
     if (!this.flying) {
       /* ---- 持球瞄准阶段 ---- */
@@ -270,12 +281,13 @@ export class ShotState extends State {
     const { scoring, player, ui, modeDef } = this.G;
     if (this.scored && modeDef.id === 'shot') {
       const spot = randomShotSpot();
-      player.pos.set(spot.x, 0, spot.z);
+      const p = shotSpotXZ(spot);
+      player.pos.set(p.x, 0, p.z);
       player.vel.set(0, 0, 0);
       scoring.currentSpot = spot;
       scoring.spots++;
       this.G.sfx.play('combo', { volume: 0.55 });
-      ui.showScorePopup(0, '🎲 命中！传送至新投篮点');
+      ui.showScorePopup(0, `🎯 命中！下一球换 ${spot.r.toFixed(1)}m`);
       this.G.machine.set('shot'); // 重进投篮状态：在新点位重新架起瞄准
       return;
     }

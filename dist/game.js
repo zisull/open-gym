@@ -22207,11 +22207,11 @@
           // 连击倍数上限
           comboMul: [1, 1, 2, 3],
           // 连击 n 的倍数（索引=连击数，3+ 封顶）
-          // 投篮挑战：随机站位（距圈心 2.6~6.4m）+ 点位周围小圈自由走位微调
+          // 投篮挑战：每一球只定**距离**（2.6~6.4m，决定倍率），角度沿弧自由走位；命中后换距离
           randomSpotMin: 2.6,
           randomSpotMax: 6.4,
-          spotRadius: 1.5,
-          // 允许离开随机点的最大半径（米）
+          spotArc: 1.4,
+          // 允许偏离半场正面的最大角度（±80°）：两侧再就贴着篮板平行线了
           adjustSpeed: 2.4
           // 挑战模式站位微调移速
         },
@@ -33640,17 +33640,12 @@
     ).multiplyScalar(v);
   }
   function randomShotSpot() {
-    const S = CFG.shot, C = CFG.court;
-    for (let i = 0; i < 24; i++) {
-      const r = MathUtils.lerp(S.randomSpotMin, S.randomSpotMax, Math.random());
-      const a2 = (Math.random() * 2 - 1) * 1.15;
-      const x = RIM_POS.x + Math.sin(a2) * r;
-      const z = RIM_POS.z + Math.cos(a2) * r;
-      if (Math.abs(x) > C.halfW - 0.6) continue;
-      if (z > S.zoneMaxZ - 0.3) continue;
-      return { x, z };
-    }
-    return { x: 0, z: RIM_POS.z + 4.6 };
+    const S = CFG.shot;
+    const r = MathUtils.lerp(S.randomSpotMin, S.randomSpotMax, Math.random());
+    return { r, a: (Math.random() * 2 - 1) * S.spotArc * 0.6 };
+  }
+  function shotSpotXZ({ r, a: a2 }) {
+    return { x: RIM_POS.x + Math.sin(a2) * r, z: RIM_POS.z + Math.cos(a2) * r };
   }
   function discardBall(G) {
     const { ball, machine, sfx, ui } = G;
@@ -33752,7 +33747,7 @@
       };
       ShotState = class extends State {
         enter() {
-          const { player, ui, modeDef } = this.G;
+          const { player, ui, modeDef, scoring } = this.G;
           player.speed = modeDef.id === "shot" ? CFG.shot.adjustSpeed : CFG.player.speedShot;
           player.enterShotAim();
           this.charge = 0;
@@ -33765,29 +33760,39 @@
           this.flightT = 0;
           this._prevY = void 0;
           ui.showPowerBar(true);
-          ui.setPrompt("<b>\u6309\u4F4F\u5DE6\u952E</b> \u84C4\u529B \xB7 <b>\u677E\u624B</b> \u6295\u7BEE \xB7 <b>\u7A7A\u683C</b> \u8DF3\u6295\uFF08\u7A7A\u4E2D\u4E5F\u80FD\u51FA\u624B\uFF09\xB7 <b>\u53F3\u952E</b> \u53D6\u6D88 \xB7 <b>E</b> \u5F03\u7403");
+          const ring = modeDef.id === "shot" && scoring.currentSpot ? `\u{1F3AF} \u672C\u7403\u9501 <b>${scoring.currentSpot.r.toFixed(1)}m</b> \xB7 \u6CBF\u5F27\u7EBF\u8D70\u4F4D\u6311\u89D2\u5EA6 \xB7 ` : "";
+          ui.setPrompt(`${ring}<b>\u6309\u4F4F\u5DE6\u952E</b> \u84C4\u529B \xB7 <b>\u677E\u624B</b> \u6295\u7BEE \xB7 <b>\u7A7A\u683C</b> \u8DF3\u6295\uFF08\u7A7A\u4E2D\u4E5F\u80FD\u51FA\u624B\uFF09\xB7 <b>\u53F3\u952E</b> \u53D6\u6D88 \xB7 <b>E</b> \u5F03\u7403`);
         }
         exit() {
           const { player, ui } = this.G;
           player.exitShotAim();
           ui.showPowerBar(false);
         }
-        /** 挑战模式：把玩家钳制在随机点位中心周围的小圈内（可自由走位调整视角） */
-        clampToSpot() {
+        /**
+         * 挑战模式：只锁距离、不锁角度 —— 把玩家钉在这一球的投篮弧上。
+         * 沿切向（斜着走 / A、D）自由挑角度，径向分量直接削掉，所以近不了也退不了；
+         * 撞到弧端时把往外顶的那半也削掉，免得贴着墙原地晃头。
+         */
+        clampToRing() {
           const { player, scoring } = this.G;
           const spot = scoring.currentSpot;
           if (!spot) return;
-          const dx = player.pos.x - spot.x, dz = player.pos.z - spot.z;
-          const d = Math.hypot(dx, dz);
-          const R3 = CFG.shot.spotRadius;
-          if (d > R3) {
-            player.pos.x = spot.x + dx / d * R3;
-            player.pos.z = spot.z + dz / d * R3;
-          }
+          const A = CFG.shot.spotArc;
+          const dx = player.pos.x - RIM_POS.x, dz = player.pos.z - RIM_POS.z;
+          const raw = Math.atan2(dx, dz);
+          const a2 = MathUtils.clamp(raw, -A, A);
+          const ux = Math.sin(a2), uz = Math.cos(a2);
+          const tx = uz, tz = -ux;
+          player.pos.x = RIM_POS.x + ux * spot.r;
+          player.pos.z = RIM_POS.z + uz * spot.r;
+          let vt = player.vel.x * tx + player.vel.z * tz;
+          if (a2 !== raw && Math.sign(vt) === Math.sign(raw)) vt = 0;
+          player.vel.x = tx * vt;
+          player.vel.z = tz * vt;
         }
         update(dt) {
           const { player, ball, camera, ui, scoring, modeDef } = this.G;
-          if (modeDef.id === "shot") this.clampToSpot();
+          if (modeDef.id === "shot") this.clampToRing();
           if (!this.flying) {
             const raised = ball.updateHeld(dt, camera, this.charge * 0.9);
             if (this.charging) this.charge = Math.min(1, this.charge + dt / CFG.shot.chargeTime);
@@ -33836,12 +33841,13 @@
           const { scoring, player, ui, modeDef } = this.G;
           if (this.scored && modeDef.id === "shot") {
             const spot = randomShotSpot();
-            player.pos.set(spot.x, 0, spot.z);
+            const p = shotSpotXZ(spot);
+            player.pos.set(p.x, 0, p.z);
             player.vel.set(0, 0, 0);
             scoring.currentSpot = spot;
             scoring.spots++;
             this.G.sfx.play("combo", { volume: 0.55 });
-            ui.showScorePopup(0, "\u{1F3B2} \u547D\u4E2D\uFF01\u4F20\u9001\u81F3\u65B0\u6295\u7BEE\u70B9");
+            ui.showScorePopup(0, `\u{1F3AF} \u547D\u4E2D\uFF01\u4E0B\u4E00\u7403\u6362 ${spot.r.toFixed(1)}m`);
             this.G.machine.set("shot");
             return;
           }
@@ -34260,7 +34266,8 @@
         player.blend = 0;
         if (id === "shot") {
           const spot = randomShotSpot();
-          player.pos.set(spot.x, 0, spot.z);
+          const p = shotSpotXZ(spot);
+          player.pos.set(p.x, 0, p.z);
           scoring.currentSpot = spot;
           ball.startHeld();
           machine.set("shot");
@@ -34270,6 +34277,7 @@
           machine.set("noBall");
         }
         gameState = "playing";
+        player.inputEnabled = true;
         lastSecond = -1;
         ui.showHud(G.modeDef.name, G.modeDef.timed);
         ui.hideResult();
@@ -35393,6 +35401,52 @@
             dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
           }, 1800);
           setTimeout(() => mark(`RES Enter\u540E \u9762\u677F=${document.getElementById("result").classList.contains("hidden") ? 0 : 1} state=${GAME.state}`), 2600);
+        }
+        if (demo === "input") {
+          const tap = (k) => dispatchEvent(new KeyboardEvent("keydown", { key: k, bubbles: true }));
+          const lift = (k) => dispatchEvent(new KeyboardEvent("keyup", { key: k, bubbles: true }));
+          const walk = (tag) => {
+            player.pos.set(0, 0, 6);
+            player.vel.set(0, 0, 0);
+            tap("w");
+            for (let i = 0; i < 30; i++) player.update(0.016);
+            lift("w");
+            mark(`${tag} \u524D\u8FDB=${(6 - player.pos.z).toFixed(2)}m \u8F93\u5165\u5F00\u5173=${player.inputEnabled ? 1 : 0}`);
+          };
+          setTimeout(() => {
+            startMode("free");
+            walk("A1 \u9996\u5C40");
+          }, 1e3);
+          setTimeout(() => finishSession(), 1600);
+          setTimeout(() => {
+            document.getElementById("btn-again").click();
+            walk("A2 \u7ED3\u7B97\u540E\u518D\u6765\u4E00\u5C40");
+          }, 2100);
+          setTimeout(() => {
+            player.inputEnabled = false;
+            walk("A3 \u5BF9\u7167\xB7\u5F00\u5173\u5173\u6389");
+            player.inputEnabled = true;
+          }, 2400);
+          setTimeout(() => mark(`END state=${GAME.state} loc=${GAME.location}`), 2800);
+        }
+        if (demo === "spot") {
+          const rd = () => Math.hypot(player.pos.x - RIM_POS.x, player.pos.z - RIM_POS.z);
+          const ang = () => Math.atan2(player.pos.x - RIM_POS.x, player.pos.z - RIM_POS.z);
+          const r0 = () => scoring.currentSpot.r;
+          setTimeout(() => {
+            startMode("shot");
+            mark(`S0 r=${r0().toFixed(2)} \u843D\u70B9d=${rd().toFixed(2)}`);
+          }, 1e3);
+          setTimeout(() => GAME.teleport(RIM_POS.x + Math.sin(2.9) * 9.5, RIM_POS.z + Math.cos(2.9) * 9.5), 1500);
+          setTimeout(() => mark(`S1 \u5438\u56DE d=${rd().toFixed(2)} \u504F\u89D2=${ang().toFixed(2)}\uFF08\u5F27\u4E0A\u9650=${CFG.shot.spotArc}\uFF09`), 2100);
+          setTimeout(() => GAME.teleport(RIM_POS.x + Math.sin(0.9) * r0(), RIM_POS.z + Math.cos(0.9) * r0()), 2300);
+          setTimeout(() => mark(`S2 \u540C\u8DDD\u79BB\u6362\u89D2\u5EA6 d=${rd().toFixed(2)} \u504F\u89D2=${ang().toFixed(2)}\uFF08\u5E94\u22480.90\uFF09`), 2900);
+          setTimeout(() => {
+            const before = r0();
+            machine.current.scored = true;
+            machine.current.relocateAndContinue();
+            mark(`S3 \u547D\u4E2D\u540E r=${before.toFixed(2)}\u2192${r0().toFixed(2)} \u843D\u70B9d=${rd().toFixed(2)} \u6362\u8DDD\u79BB=${before === r0() ? "\u5426" : "\u662F"}`);
+          }, 3100);
         }
       } catch {
       }

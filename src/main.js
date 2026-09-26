@@ -18,7 +18,7 @@ import { createPool } from './pool.js';
 import { GameBall } from './ball.js';
 import { Player } from './player.js';
 import { Effects } from './effects.js';
-import { StateMachine, NoBallState, HoldState, ShotState, randomShotSpot } from './states.js';
+import { StateMachine, NoBallState, HoldState, ShotState, randomShotSpot, shotSpotXZ } from './states.js';
 import { ScoreManager, loadRecord, loadSetting, saveSetting, loadNumberSetting, LS_SHADOW, LS_VOLUME } from './scoring.js';
 import { Sfx } from './audio.js';
 import { UI, lockPointer } from './ui.js';
@@ -219,9 +219,10 @@ function startMode(id) {
   player.exitShotAim();
   player.mode = 'free'; player.blend = 0;
   if (id === 'shot') {
-    // 投篮挑战：直接空投到随机投篮点，球已在手（周围 1.5m 小圈可自由走位）
+    // 投篮挑战：空投到本球那条弧上（距离锁死、角度随你走），球已在手
     const spot = randomShotSpot();
-    player.pos.set(spot.x, 0, spot.z);
+    const p = shotSpotXZ(spot);
+    player.pos.set(p.x, 0, p.z);
     scoring.currentSpot = spot;
     ball.startHeld();
     machine.set('shot');
@@ -231,6 +232,7 @@ function startMode(id) {
     machine.set('noBall');
   }
   gameState = 'playing';
+  player.inputEnabled = true;   // 结算/暂停都会关掉它：不在这统一还回来，新一局就钉在原地动不了
   lastSecond = -1;
   ui.showHud(G.modeDef.name, G.modeDef.timed);
   ui.hideResult();
@@ -1343,5 +1345,43 @@ try {
       dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
     }, 1800);
     setTimeout(() => mark(`RES Enter后 面板=${document.getElementById('result').classList.contains('hidden') ? 0 : 1} state=${GAME.state}`), 2600);
+  }
+  if (demo === 'input') {
+    // 真键盘链路（keydown -> player.keys -> 位移），并且专测「结算后再开一局」：
+    // finishSession 会关掉 inputEnabled，startMode 若不还回来，人就钉在原地动不了。
+    const tap = (k) => dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true }));
+    const lift = (k) => dispatchEvent(new KeyboardEvent('keyup', { key: k, bubbles: true }));
+    const walk = (tag) => {
+      player.pos.set(0, 0, 6); player.vel.set(0, 0, 0);
+      tap('w');
+      for (let i = 0; i < 30; i++) player.update(0.016);   // 0.48s，手动步进免得受 rAF 节流影响
+      lift('w');
+      mark(`${tag} 前进=${(6 - player.pos.z).toFixed(2)}m 输入开关=${player.inputEnabled ? 1 : 0}`);
+    };
+    setTimeout(() => { startMode('free'); walk('A1 首局'); }, 1000);
+    setTimeout(() => finishSession(), 1600);
+    setTimeout(() => { document.getElementById('btn-again').click(); walk('A2 结算后再来一局'); }, 2100);
+    // 负对照：同一个量法显式把开关关掉，必须读 0 —— 不然说明这条断言根本不敏感，
+    // A2 的 2.22m 只是碰巧来自别处。（测试自带对照，就不用去临时改生产代码验干了）
+    setTimeout(() => { player.inputEnabled = false; walk('A3 对照·开关关掉'); player.inputEnabled = true; }, 2400);
+    setTimeout(() => mark(`END state=${GAME.state} loc=${GAME.location}`), 2800);
+  }
+  if (demo === 'spot') {
+    // 投篮挑战：只锁距离、不锁角度。甩到非法位置应被吸回本球那条弧；
+    // 弧内换个角度则原样保留（老写法钉在点上，特殊角度就只能干等倒计时）；命中之后才换距离。
+    const rd = () => Math.hypot(player.pos.x - RIM_POS.x, player.pos.z - RIM_POS.z);
+    const ang = () => Math.atan2(player.pos.x - RIM_POS.x, player.pos.z - RIM_POS.z);
+    const r0 = () => scoring.currentSpot.r;
+    setTimeout(() => { startMode('shot'); mark(`S0 r=${r0().toFixed(2)} 落点d=${rd().toFixed(2)}`); }, 1000);
+    setTimeout(() => GAME.teleport(RIM_POS.x + Math.sin(2.9) * 9.5, RIM_POS.z + Math.cos(2.9) * 9.5), 1500);
+    setTimeout(() => mark(`S1 吸回 d=${rd().toFixed(2)} 偏角=${ang().toFixed(2)}（弧上限=${CFG.shot.spotArc}）`), 2100);
+    setTimeout(() => GAME.teleport(RIM_POS.x + Math.sin(0.9) * r0(), RIM_POS.z + Math.cos(0.9) * r0()), 2300);
+    setTimeout(() => mark(`S2 同距离换角度 d=${rd().toFixed(2)} 偏角=${ang().toFixed(2)}（应≈0.90）`), 2900);
+    setTimeout(() => {
+      const before = r0();
+      machine.current.scored = true;
+      machine.current.relocateAndContinue();   // 命中后走的就是这段，不碰物理直接验
+      mark(`S3 命中后 r=${before.toFixed(2)}→${r0().toFixed(2)} 落点d=${rd().toFixed(2)} 换距离=${before === r0() ? '否' : '是'}`);
+    }, 3100);
   }
 } catch { /* 生产环境忽略 */ }

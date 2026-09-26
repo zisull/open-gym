@@ -38,7 +38,7 @@ tools/gen_walls.bat   墙贴画打包器（双击 或 npm run walls）
 tools/gen_video_manifest.js / gen_videos.bat  视频打包器（双击 或 npm run videos）
 tools/setup.js        一键装环境的实际逻辑（.bat 只是纯 ASCII 外壳，见下）
 tools/pw.js           解析 playwright-core 位置，供无头脚本共用
-tools/regress.js      全量回归：19 个 demo 一次跑完
+tools/regress.js      全量回归：21 个 demo 一次跑完
 tools/shot.js         无头 Edge 验证：截图 + 回读页面状态（node tools/shot.js "<url>" 宽 高 等待ms 输出名）
 tools/audit_cfg.js / audit_exports.js  两条收口审计
 ```
@@ -63,9 +63,10 @@ tools/audit_cfg.js / audit_exports.js  两条收口审计
   按住左键原地起投（镜头自动瞄准篮筐），走入三分区则自动切入瞄准视角；
   拍球完全自动（站着慢拍、跑动快拍），纯氛围也照样计分，手不用分给键位。
   蓄力不足 0.06s 的误触左键会自动取消。按 E 弃球后球落在中圈，走过去再按 E 捡回来即可。
-- **投篮限时挑战（90s）**：开局空投到随机投篮点（距篮 2.6–6.4m）、球已在手，
-  点位周围 **1.5m 小圈内可自由走位**调整视角节奏。**每进一球立即随机传送**
-  到新投篮点，未中则原地再来；连续 3 不中连击清零；球落地自动回手。
+- **投篮限时挑战（90s）**：每一球**只锁距离、不锁角度**——开局空投到距篮 2.6–6.4m
+  的那条弧上（球已在手），沿弧走位随便挑角度，但走近/退后不行（这个距离就是本球倍率）。
+  **每进一球立刻换一条新距离**，未中则留在原弧上再来；连续 3 不中连击清零；球落地自动回手。
+  这样就不会有"某个特殊角度压根投不了"：同一个距离下总能挪到一个能出手的角度。
 - **计分**：投篮得分 = 基础 20 × **距离倍率** × 连击倍数（1/1/2/3 封顶）。
   距离倍率从 3m 处 ×1.0 线性涨到 25m 处 ×3.0 封顶——球场之内最远也就 ×3，
   远投值钱但不离谱；HUD 实时显示当前站位的距离倍率。
@@ -403,11 +404,11 @@ npm run watch        # 监听源码自动打包
 npm run audio        # 重新合成 assets/audio 音效
 npm run walls        # 重新打包 imgs/wall 墙贴画
 npm run videos       # 重新打包 video/ 片源
-npm run regress      # 全量回归：19 个 demo 一次跑完（篮球/影院/台球/主页/过场）
+npm run regress      # 全量回归：21 个 demo 一次跑完（篮球/影院/台球/主页/过场）
 npm run audit        # 两条收口审计：未被引用的 config 键 + 未被 import 的导出
 ```
 
-> `npm run regress` 的 19 个用例**不读本机素材**：干净克隆（`video/`、`imgs/wall/` 里
+> `npm run regress` 的 21 个用例**不读本机素材**：干净克隆（`video/`、`imgs/wall/` 里
 > 没有你自己的文件）跑出来的断言输出与本机逐字一致，已实测。
 
 > 为什么打包成普通脚本：浏览器在 `file://` 下禁止 `<script type="module">` 与
@@ -427,6 +428,13 @@ npm run audit        # 两条收口审计：未被引用的 config 键 + 未被 
 > `?demo=fade` 断言「黑幕没落地就开新局」：进台球室的 420ms 过场中途 `startMode`，
 > 期望 `FADE end loc=gym hud=1`（去掉 `forceGym` 里的 `cancelFade()` 立刻变成 `loc=pool hud=0`）。
 > `?demo=result` 顺带断言结算面板弹出后 `taps=0` 不再增长（拍球声/+2 不许盖在结算上）。
+> `?demo=input` 走**真键盘链路**（`keydown` → `player.keys` → 位移），专测结算后点「再来一局」
+> 还动得了吗：`A1 首局 前进=2.22m | A2 结算后再来一局 前进=2.22m | A3 对照·开关关掉 前进=0.00m`。
+> A3 是**负对照**（显式把 `inputEnabled` 关掉），没有它这条断言只是"碰巧不为零"。
+> 曾经 `finishSession()` 关了输入开关而 `startMode()` 没还回来，A2 就是 0.00m——用户报的"无法移动"。
+> `?demo=spot` 断言投篮挑战"只锁距离不锁角度"：`S1` 甩到 9.5m/100° 的非法位置应被吸回本球弧线
+> （`d=5.71 偏角=1.40`＝弧上限），`S2` 同一距离换个角度必须原样保留（`偏角=0.90`），
+> `S3` 命中后 `r=5.71→4.83 换距离=是`。
 
 ## 性能选项
 

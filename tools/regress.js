@@ -16,6 +16,8 @@ const CASES = [
   ['tap', '?mode=free&demo=tap', 6000],
   ['shot', '?mode=free&demo=shot', 5000],
   ['move', '?mode=free&demo=move', 6000],
+  ['input', '?demo=input', 5000],
+  ['spot', '?demo=spot', 5000],
   ['result', '?mode=free&demo=result', 6000],
   ['pause', '?mode=free&demo=pause', 5000],
   // —— 主页 / 过场 ——
