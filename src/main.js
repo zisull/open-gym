@@ -1413,56 +1413,54 @@ try {
     }, 3100);
   }
   if (demo === 'arch') {
-    // 射箭：一条命根子不变量 —— **虚线落在哪，箭就落在哪**（导向与飞行是同一段定步长积分）。
-    // 顺带验：拉不满真的够不着靶、点一下就松手不记出手、上靶按环值×靶距×连击计分、球不在手。
+    // 射箭：**这里没有弹道辅助线**（有落点圈指着就是点名，玩家报的"难度太低"正是它），
+    // 所以这一组断言全部读**真飞行**的结果：两成弓够不着靶面、半弓就能上靶（＝旧满弓的力度）、
+    // 满弓平视正中黄心；外加"轻点松手不记出手"与换局清靶。
     const st = () => machine.current;
-    const F = 1, W = 0.3;   // 满弓 / 三成力度（平射射程 < 靶距）
+    /** 拉到位 c 就松手，手动推帧跑到落定，返回这一箭结算 */
+    const fire = (c) => {
+      const s = st();
+      s.charge = c; s.update(0.016);
+      s.charging = true; s.onLeftUp();
+      for (let i = 0; i < 14 && st().flying; i++) st().update(0.05);
+      const h = archery.debugHits();
+      const p = h[h.length - 1];
+      return { kind: archery.lastKind, fly: st().flying ? 1 : 0, pt: p ? `${p.x.toFixed(2)},${p.y.toFixed(2)}` : '-' };
+    };
     setTimeout(() => {
       startMode('arch');
       player.pos.set(0, 0, 0);                       // 半场正中，正对 +z 端那座草靶（12.72m）
       player.freeYaw = Math.PI; player.yaw = Math.PI;
-      player.freePitch = 0; player.pitch = 0;        // 完全平视：落点全靠弓拉多满
+      player.freePitch = 0; player.pitch = 0;        // 完全平视：能不能上靶全看拉多满
       for (let i = 0; i < 40; i++) player.update(0.016);   // 无头 rAF 被限流，阻尼得手动推帧才收敛
-      const s = st(); s.charge = W; s.update(0.016);
-      const g = archery.debugGuide();
       // 篮圈只该剩一只可计分的（+z 端那座换成了射箭靶）：按篮圈管的半径数，篮网那几圈半径不同
       let rims = 0;
       scene.traverse((o) => {
         if (o.geometry && o.geometry.type === 'TorusGeometry' && o.geometry.parameters.radius === CFG.hoop.rimRadius) rims++;
       });
-      mark(`A0 靶距=${targetDist(player.pos.x, player.pos.z).toFixed(2)} 篮圈数=${rims} 球可见=${ball.mesh.visible ? 1 : 0} 持球=${ball.mode === 'held' ? 1 : 0}`
+      mark(`A0 靶距=${targetDist(player.pos.x, player.pos.z).toFixed(2)} 靶宽=${(CFG.arch.faceR * 2).toFixed(2)} 篮圈数=${rims}`
+        + ` 球可见=${ball.mesh.visible ? 1 : 0} 持球=${ball.mode === 'held' ? 1 : 0}`
         + ` 状态=${machine.name} 力度条=${document.getElementById('power-bar').classList.contains('hidden') ? 0 : 1}`);
-      // A1 弱弓：预测直接落在地上（kind=drop），线也画不到靶子那一头
-      mark(`A1 三成弓 预测=${g.kind} 末点y=${g.last ? g.last.y.toFixed(2) : '-'} 线长=${archery.debugLineLen()} 出手数=${scoring.shotTaken}`);
+      // A1 两成弓：射程根本到不了靶距，箭落在靶子前面（靶上不许有箭）
+      const a1 = fire(0.2);
+      mark(`A1 两成弓 落点=${a1.kind} 命中=${a1.pt} 插靶=${archery.debugStuck()} 出手数=${scoring.shotTaken}`);
     }, 1200);
     // A2 轻点就松手 = 收弓：一箭没出、出手数也不许涨（和投篮那点按取消同一条规矩）
     setTimeout(() => {
       const s = st(); s.charging = true; s.charge = 0.05; s.onLeftUp();
       mark(`A2 收弓 在飞=${s.flying ? 1 : 0} 出手数=${scoring.shotTaken} 插靶=${archery.debugStuck()}`);
     }, 2000);
-    // A3 满弓：先记下虚线末点，再真放一箭，比对命中点 —— 这两个数必须一致
+    // A3 半弓＝旧满弓的力度：平视也够得到靶面（"最高档挪到半弓"就断言在这一行）
     setTimeout(() => {
-      const s = st(); s.charge = F; s.update(0.016);
-      const g = archery.debugGuide();
-      s.charging = true; s.onLeftUp();               // 松手：这一发吃的就是刚才 aim(F) 算出的力
-      const shotFrom = { x: g.last.x, y: g.last.y, z: g.last.z };
-      for (let i = 0; i < 12 && st().flying; i++) st().update(0.05);
-      const h = archery.debugHits();
-      const hit = h[h.length - 1];
-      mark(`A3 满弓 预测=${g.kind} 末点=${shotFrom.x.toFixed(2)},${shotFrom.y.toFixed(2)},${shotFrom.z.toFixed(2)}`
-        + ` 命中=${hit ? `${hit.x.toFixed(2)},${hit.y.toFixed(2)},${hit.z.toFixed(2)}` : '无'}`
-        + ` 误差=${hit ? Math.hypot(hit.x - shotFrom.x, hit.y - shotFrom.y).toFixed(3) : '-'}m`
-        + ` 在飞=${st().flying ? 1 : 0} 环=${scoring.bestRing} 分=${scoring.displayScore}`);
+      const a = fire(0.5);
+      mark(`A3 半弓 落点=${a.kind} 命中=${a.pt} 环=${scoring.bestRing} 分=${scoring.displayScore} 插靶=${archery.debugStuck()}`);
     }, 2600);
-    // A4 计分口径：上靶 1/1、连击 1、分数 = 环值×ringBase×靶距倍率（不是拍球那种固定 +2）
+    // A4 满弓：12.7m 平射只掉 0.14m → 黄心；计分 = 环值×ringBase×靶距倍率×连击倍率
     setTimeout(() => {
-      mark(`A4 计分 上靶=${scoring.shotMade}/${scoring.shotTaken} 连击=${scoring.shotCombo} 黄心=${scoring.bulls}`
+      const a = fire(1);
+      mark(`A4 满弓 落点=${a.kind} 命中=${a.pt} 在飞=${a.fly} 黄心=${scoring.bulls} 上靶=${scoring.shotMade}/${scoring.shotTaken}`
         + ` 分=${scoring.displayScore} 芯片=${document.getElementById('combo-label').textContent}`
-        + ` 插靶=${archery.debugStuck()} 副标题=${document.getElementById('hud-sub').textContent}`);
-      // A4b 满弓静瞄（截图就截这一刻）：虚线从弓上起笔、往前收拢到准星、再坠向靶面
-      st().charge = F; st().update(0.016);
-      const gg = archery.debugGuide();
-      mark(`A4b 满弓静瞄 预测=${gg.kind} 末点=${gg.last ? `${gg.last.x.toFixed(2)},${gg.last.y.toFixed(2)},${gg.last.z.toFixed(2)}` : '-'} 落点圈=${gg.marker}`);
+        + ` 副标题=${document.getElementById('hud-sub').textContent}`);
     }, 3200);
     // A5 换局：回篮球模式球要重新露面、弓和力度条当场退场；再开一局射箭则先把靶上的箭清干净
     setTimeout(() => {
@@ -1471,8 +1469,8 @@ try {
         + ` 插靶=${archery.debugStuck()}`);
       startMode('arch');
       for (let i = 0; i < 10; i++) player.update(0.016);
-      st().charge = F; st().update(0.016);
-      mark(`END 新局 插靶=${archery.debugStuck()} 预测=${archery.debugGuide().kind} 分=${scoring.displayScore} 球可见=${ball.mesh.visible ? 1 : 0}`);
+      const a = fire(1);
+      mark(`END 新局 插靶=${archery.debugStuck()} 落点=${a.kind} 分=${scoring.displayScore} 球可见=${ball.mesh.visible ? 1 : 0}`);
     }, 3900);
   }
 } catch { /* 生产环境忽略 */ }

@@ -7097,7 +7097,7 @@
       }
     }
   }
-  var REVISION, CullFaceNone, CullFaceBack, CullFaceFront, PCFShadowMap, PCFSoftShadowMap, VSMShadowMap, FrontSide, BackSide, DoubleSide, NoBlending, NormalBlending, AdditiveBlending, SubtractiveBlending, MultiplyBlending, CustomBlending, AddEquation, SubtractEquation, ReverseSubtractEquation, MinEquation, MaxEquation, ZeroFactor, OneFactor, SrcColorFactor, OneMinusSrcColorFactor, SrcAlphaFactor, OneMinusSrcAlphaFactor, DstAlphaFactor, OneMinusDstAlphaFactor, DstColorFactor, OneMinusDstColorFactor, SrcAlphaSaturateFactor, ConstantColorFactor, OneMinusConstantColorFactor, ConstantAlphaFactor, OneMinusConstantAlphaFactor, NeverDepth, AlwaysDepth, LessDepth, LessEqualDepth, EqualDepth, GreaterEqualDepth, GreaterDepth, NotEqualDepth, MultiplyOperation, MixOperation, AddOperation, NoToneMapping, LinearToneMapping, ReinhardToneMapping, CineonToneMapping, ACESFilmicToneMapping, CustomToneMapping, AgXToneMapping, UVMapping, CubeReflectionMapping, CubeRefractionMapping, EquirectangularReflectionMapping, EquirectangularRefractionMapping, CubeUVReflectionMapping, RepeatWrapping, ClampToEdgeWrapping, MirroredRepeatWrapping, NearestFilter, NearestMipmapNearestFilter, NearestMipmapLinearFilter, LinearFilter, LinearMipmapNearestFilter, LinearMipmapLinearFilter, UnsignedByteType, ByteType, ShortType, UnsignedShortType, IntType, UnsignedIntType, FloatType, HalfFloatType, UnsignedShort4444Type, UnsignedShort5551Type, UnsignedInt248Type, AlphaFormat, RGBAFormat, LuminanceFormat, LuminanceAlphaFormat, DepthFormat, DepthStencilFormat, RedFormat, RedIntegerFormat, RGFormat, RGIntegerFormat, RGBAIntegerFormat, RGB_S3TC_DXT1_Format, RGBA_S3TC_DXT1_Format, RGBA_S3TC_DXT3_Format, RGBA_S3TC_DXT5_Format, RGB_PVRTC_4BPPV1_Format, RGB_PVRTC_2BPPV1_Format, RGBA_PVRTC_4BPPV1_Format, RGBA_PVRTC_2BPPV1_Format, RGB_ETC1_Format, RGB_ETC2_Format, RGBA_ETC2_EAC_Format, RGBA_ASTC_4x4_Format, RGBA_ASTC_5x4_Format, RGBA_ASTC_5x5_Format, RGBA_ASTC_6x5_Format, RGBA_ASTC_6x6_Format, RGBA_ASTC_8x5_Format, RGBA_ASTC_8x6_Format, RGBA_ASTC_8x8_Format, RGBA_ASTC_10x5_Format, RGBA_ASTC_10x6_Format, RGBA_ASTC_10x8_Format, RGBA_ASTC_10x10_Format, RGBA_ASTC_12x10_Format, RGBA_ASTC_12x12_Format, RGBA_BPTC_Format, RGB_BPTC_SIGNED_Format, RGB_BPTC_UNSIGNED_Format, RED_RGTC1_Format, SIGNED_RED_RGTC1_Format, RED_GREEN_RGTC2_Format, SIGNED_RED_GREEN_RGTC2_Format, InterpolateDiscrete, InterpolateLinear, InterpolateSmooth, ZeroCurvatureEnding, ZeroSlopeEnding, WrapAroundEnding, LinearEncoding, sRGBEncoding, BasicDepthPacking, RGBADepthPacking, TangentSpaceNormalMap, ObjectSpaceNormalMap, NoColorSpace, SRGBColorSpace, LinearSRGBColorSpace, DisplayP3ColorSpace, LinearDisplayP3ColorSpace, LinearTransfer, SRGBTransfer, Rec709Primaries, P3Primaries, KeepStencilOp, AlwaysStencilFunc, NeverCompare, LessCompare, EqualCompare, LessEqualCompare, GreaterCompare, NotEqualCompare, GreaterEqualCompare, AlwaysCompare, StaticDrawUsage, GLSL3, _SRGBAFormat, WebGLCoordinateSystem, WebGPUCoordinateSystem, EventDispatcher, _lut, _seed, DEG2RAD, RAD2DEG, MathUtils, Vector2, Matrix3, _m3, _cache, LINEAR_SRGB_TO_LINEAR_DISPLAY_P3, LINEAR_DISPLAY_P3_TO_LINEAR_SRGB, COLOR_SPACES, SUPPORTED_WORKING_COLOR_SPACES, ColorManagement, _canvas, ImageUtils, _sourceId, Source, _textureId, Texture, Vector4, RenderTarget, WebGLRenderTarget, DataArrayTexture, Data3DTexture, Quaternion, Vector3, _vector$c, _quaternion$4, Box3, _points, _vector$b, _box$4, _v0$2, _v1$7, _v2$4, _f0, _f1, _f2, _center, _extents, _triangleNormal, _testAxis, _box$3, _v1$6, _v2$3, Sphere, _vector$a, _segCenter, _segDir, _diff, _edge1, _edge2, _normal$1, Ray, Matrix4, _v1$5, _m1$2, _zero, _one, _x, _y, _z, _matrix$1, _quaternion$3, Euler, Layers, _object3DId, _v1$4, _q1, _m1$1, _target, _position$3, _scale$2, _quaternion$2, _xAxis, _yAxis, _zAxis, _addedEvent, _removedEvent, Object3D, _v0$1, _v1$3, _v2$2, _v3$1, _vab, _vac, _vbc, _vap, _vbp, _vcp, warnedGetUV, Triangle, _colorKeywords, _hslA, _hslB, Color, _color, _materialId, Material, MeshBasicMaterial, _vector$9, _vector2$1, BufferAttribute, Uint16BufferAttribute, Uint32BufferAttribute, Float32BufferAttribute, _id$2, _m1, _obj, _offset, _box$2, _boxMorphTargets, _vector$8, BufferGeometry, _inverseMatrix$3, _ray$3, _sphere$6, _sphereHitAt, _vA$1, _vB$1, _vC$1, _tempA, _morphA, _uvA$1, _uvB$1, _uvC$1, _normalA, _normalB, _normalC, _intersectionPoint, _intersectionPointWorld, Mesh, BoxGeometry, UniformsUtils, default_vertex, default_fragment, ShaderMaterial, Camera, PerspectiveCamera, fov, aspect, CubeCamera, CubeTexture, WebGLCubeRenderTarget, _vector1, _vector2, _normalMatrix, Plane, _sphere$5, _vector$7, Frustum, PlaneGeometry, alphahash_fragment, alphahash_pars_fragment, alphamap_fragment, alphamap_pars_fragment, alphatest_fragment, alphatest_pars_fragment, aomap_fragment, aomap_pars_fragment, batching_pars_vertex, batching_vertex, begin_vertex, beginnormal_vertex, bsdfs, iridescence_fragment, bumpmap_pars_fragment, clipping_planes_fragment, clipping_planes_pars_fragment, clipping_planes_pars_vertex, clipping_planes_vertex, color_fragment, color_pars_fragment, color_pars_vertex, color_vertex, common, cube_uv_reflection_fragment, defaultnormal_vertex, displacementmap_pars_vertex, displacementmap_vertex, emissivemap_fragment, emissivemap_pars_fragment, colorspace_fragment, colorspace_pars_fragment, envmap_fragment, envmap_common_pars_fragment, envmap_pars_fragment, envmap_pars_vertex, envmap_vertex, fog_vertex, fog_pars_vertex, fog_fragment, fog_pars_fragment, gradientmap_pars_fragment, lightmap_fragment, lightmap_pars_fragment, lights_lambert_fragment, lights_lambert_pars_fragment, lights_pars_begin, envmap_physical_pars_fragment, lights_toon_fragment, lights_toon_pars_fragment, lights_phong_fragment, lights_phong_pars_fragment, lights_physical_fragment, lights_physical_pars_fragment, lights_fragment_begin, lights_fragment_maps, lights_fragment_end, logdepthbuf_fragment, logdepthbuf_pars_fragment, logdepthbuf_pars_vertex, logdepthbuf_vertex, map_fragment, map_pars_fragment, map_particle_fragment, map_particle_pars_fragment, metalnessmap_fragment, metalnessmap_pars_fragment, morphcolor_vertex, morphnormal_vertex, morphtarget_pars_vertex, morphtarget_vertex, normal_fragment_begin, normal_fragment_maps, normal_pars_fragment, normal_pars_vertex, normal_vertex, normalmap_pars_fragment, clearcoat_normal_fragment_begin, clearcoat_normal_fragment_maps, clearcoat_pars_fragment, iridescence_pars_fragment, opaque_fragment, packing, premultiplied_alpha_fragment, project_vertex, dithering_fragment, dithering_pars_fragment, roughnessmap_fragment, roughnessmap_pars_fragment, shadowmap_pars_fragment, shadowmap_pars_vertex, shadowmap_vertex, shadowmask_pars_fragment, skinbase_vertex, skinning_pars_vertex, skinning_vertex, skinnormal_vertex, specularmap_fragment, specularmap_pars_fragment, tonemapping_fragment, tonemapping_pars_fragment, transmission_fragment, transmission_pars_fragment, uv_pars_fragment, uv_pars_vertex, uv_vertex, worldpos_vertex, vertex$h, fragment$h, vertex$g, fragment$g, vertex$f, fragment$f, vertex$e, fragment$e, vertex$d, fragment$d, vertex$c, fragment$c, vertex$b, fragment$b, vertex$a, fragment$a, vertex$9, fragment$9, vertex$8, fragment$8, vertex$7, fragment$7, vertex$6, fragment$6, vertex$5, fragment$5, vertex$4, fragment$4, vertex$3, fragment$3, vertex$2, fragment$2, vertex$1, fragment$1, ShaderChunk, UniformsLib, ShaderLib, _rgb, OrthographicCamera, LOD_MIN, EXTRA_LOD_SIGMA, MAX_SAMPLES, _flatCamera, _clearColor, _oldTarget, _oldActiveCubeFace, _oldActiveMipmapLevel, PHI, INV_PHI, _axisDirections, PMREMGenerator, DepthTexture, emptyTexture, emptyShadowTexture, emptyArrayTexture, empty3dTexture, emptyCubeTexture, arrayCacheF32, arrayCacheI32, mat4array, mat3array, mat2array, SingleUniform, PureArrayUniform, StructuredUniform, RePathPart, WebGLUniforms, COMPLETION_STATUS_KHR, programIdCount, includePattern, shaderChunkMap, unrollLoopPattern, _id$1, WebGLShaderCache, WebGLShaderStage, nextVersion, MeshDepthMaterial, MeshDistanceMaterial, vertex, fragment, ArrayCamera, Group, _moveEvent, WebXRController, WebXRManager, WebGLRenderer, WebGL1Renderer, Fog, Scene, InstancedBufferAttribute, _instanceLocalMatrix, _instanceWorldMatrix, _instanceIntersects, _box3, _identity, _mesh$1, _sphere$3, InstancedMesh, LineBasicMaterial, _start$1, _end$1, _inverseMatrix$1, _ray$1, _sphere$1, Line, PointsMaterial, _inverseMatrix, _ray, _sphere, _position$2, Points, VideoTexture, CanvasTexture, Curve, EllipseCurve, ArcCurve, tmp, px, py, pz, CatmullRomCurve3, CubicBezierCurve, CubicBezierCurve3, LineCurve, LineCurve3, QuadraticBezierCurve, QuadraticBezierCurve3, SplineCurve, Curves, CircleGeometry, CylinderGeometry, ConeGeometry, RingGeometry, SphereGeometry, TorusGeometry, TubeGeometry, RawShaderMaterial, MeshStandardMaterial, MeshPhysicalMaterial, LineDashedMaterial, Interpolant, CubicInterpolant, LinearInterpolant, DiscreteInterpolant, KeyframeTrack, BooleanKeyframeTrack, ColorKeyframeTrack, NumberKeyframeTrack, QuaternionLinearInterpolant, QuaternionKeyframeTrack, StringKeyframeTrack, VectorKeyframeTrack, Cache, LoadingManager, DefaultLoadingManager, Loader, ImageLoader, TextureLoader, Light, HemisphereLight, _projScreenMatrix$1, _lightPositionWorld$1, _lookTarget$1, LightShadow, _projScreenMatrix, _lightPositionWorld, _lookTarget, PointLightShadow, PointLight, DirectionalLightShadow, DirectionalLight, Clock, _RESERVED_CHARS_RE, _reservedRe, _wordChar, _wordCharOrDot, _directoryRe, _nodeRe, _objectRe, _propertyRe, _trackRe, _supportedObjectNames, Composite, PropertyBinding, _controlInterpolantsResultBuffer, Raycaster;
+  var REVISION, CullFaceNone, CullFaceBack, CullFaceFront, PCFShadowMap, PCFSoftShadowMap, VSMShadowMap, FrontSide, BackSide, DoubleSide, NoBlending, NormalBlending, AdditiveBlending, SubtractiveBlending, MultiplyBlending, CustomBlending, AddEquation, SubtractEquation, ReverseSubtractEquation, MinEquation, MaxEquation, ZeroFactor, OneFactor, SrcColorFactor, OneMinusSrcColorFactor, SrcAlphaFactor, OneMinusSrcAlphaFactor, DstAlphaFactor, OneMinusDstAlphaFactor, DstColorFactor, OneMinusDstColorFactor, SrcAlphaSaturateFactor, ConstantColorFactor, OneMinusConstantColorFactor, ConstantAlphaFactor, OneMinusConstantAlphaFactor, NeverDepth, AlwaysDepth, LessDepth, LessEqualDepth, EqualDepth, GreaterEqualDepth, GreaterDepth, NotEqualDepth, MultiplyOperation, MixOperation, AddOperation, NoToneMapping, LinearToneMapping, ReinhardToneMapping, CineonToneMapping, ACESFilmicToneMapping, CustomToneMapping, AgXToneMapping, UVMapping, CubeReflectionMapping, CubeRefractionMapping, EquirectangularReflectionMapping, EquirectangularRefractionMapping, CubeUVReflectionMapping, RepeatWrapping, ClampToEdgeWrapping, MirroredRepeatWrapping, NearestFilter, NearestMipmapNearestFilter, NearestMipmapLinearFilter, LinearFilter, LinearMipmapNearestFilter, LinearMipmapLinearFilter, UnsignedByteType, ByteType, ShortType, UnsignedShortType, IntType, UnsignedIntType, FloatType, HalfFloatType, UnsignedShort4444Type, UnsignedShort5551Type, UnsignedInt248Type, AlphaFormat, RGBAFormat, LuminanceFormat, LuminanceAlphaFormat, DepthFormat, DepthStencilFormat, RedFormat, RedIntegerFormat, RGFormat, RGIntegerFormat, RGBAIntegerFormat, RGB_S3TC_DXT1_Format, RGBA_S3TC_DXT1_Format, RGBA_S3TC_DXT3_Format, RGBA_S3TC_DXT5_Format, RGB_PVRTC_4BPPV1_Format, RGB_PVRTC_2BPPV1_Format, RGBA_PVRTC_4BPPV1_Format, RGBA_PVRTC_2BPPV1_Format, RGB_ETC1_Format, RGB_ETC2_Format, RGBA_ETC2_EAC_Format, RGBA_ASTC_4x4_Format, RGBA_ASTC_5x4_Format, RGBA_ASTC_5x5_Format, RGBA_ASTC_6x5_Format, RGBA_ASTC_6x6_Format, RGBA_ASTC_8x5_Format, RGBA_ASTC_8x6_Format, RGBA_ASTC_8x8_Format, RGBA_ASTC_10x5_Format, RGBA_ASTC_10x6_Format, RGBA_ASTC_10x8_Format, RGBA_ASTC_10x10_Format, RGBA_ASTC_12x10_Format, RGBA_ASTC_12x12_Format, RGBA_BPTC_Format, RGB_BPTC_SIGNED_Format, RGB_BPTC_UNSIGNED_Format, RED_RGTC1_Format, SIGNED_RED_RGTC1_Format, RED_GREEN_RGTC2_Format, SIGNED_RED_GREEN_RGTC2_Format, InterpolateDiscrete, InterpolateLinear, InterpolateSmooth, ZeroCurvatureEnding, ZeroSlopeEnding, WrapAroundEnding, LinearEncoding, sRGBEncoding, BasicDepthPacking, RGBADepthPacking, TangentSpaceNormalMap, ObjectSpaceNormalMap, NoColorSpace, SRGBColorSpace, LinearSRGBColorSpace, DisplayP3ColorSpace, LinearDisplayP3ColorSpace, LinearTransfer, SRGBTransfer, Rec709Primaries, P3Primaries, KeepStencilOp, AlwaysStencilFunc, NeverCompare, LessCompare, EqualCompare, LessEqualCompare, GreaterCompare, NotEqualCompare, GreaterEqualCompare, AlwaysCompare, StaticDrawUsage, GLSL3, _SRGBAFormat, WebGLCoordinateSystem, WebGPUCoordinateSystem, EventDispatcher, _lut, _seed, DEG2RAD, RAD2DEG, MathUtils, Vector2, Matrix3, _m3, _cache, LINEAR_SRGB_TO_LINEAR_DISPLAY_P3, LINEAR_DISPLAY_P3_TO_LINEAR_SRGB, COLOR_SPACES, SUPPORTED_WORKING_COLOR_SPACES, ColorManagement, _canvas, ImageUtils, _sourceId, Source, _textureId, Texture, Vector4, RenderTarget, WebGLRenderTarget, DataArrayTexture, Data3DTexture, Quaternion, Vector3, _vector$c, _quaternion$4, Box3, _points, _vector$b, _box$4, _v0$2, _v1$7, _v2$4, _f0, _f1, _f2, _center, _extents, _triangleNormal, _testAxis, _box$3, _v1$6, _v2$3, Sphere, _vector$a, _segCenter, _segDir, _diff, _edge1, _edge2, _normal$1, Ray, Matrix4, _v1$5, _m1$2, _zero, _one, _x, _y, _z, _matrix$1, _quaternion$3, Euler, Layers, _object3DId, _v1$4, _q1, _m1$1, _target, _position$3, _scale$2, _quaternion$2, _xAxis, _yAxis, _zAxis, _addedEvent, _removedEvent, Object3D, _v0$1, _v1$3, _v2$2, _v3$1, _vab, _vac, _vbc, _vap, _vbp, _vcp, warnedGetUV, Triangle, _colorKeywords, _hslA, _hslB, Color, _color, _materialId, Material, MeshBasicMaterial, _vector$9, _vector2$1, BufferAttribute, Uint16BufferAttribute, Uint32BufferAttribute, Float32BufferAttribute, _id$2, _m1, _obj, _offset, _box$2, _boxMorphTargets, _vector$8, BufferGeometry, _inverseMatrix$3, _ray$3, _sphere$6, _sphereHitAt, _vA$1, _vB$1, _vC$1, _tempA, _morphA, _uvA$1, _uvB$1, _uvC$1, _normalA, _normalB, _normalC, _intersectionPoint, _intersectionPointWorld, Mesh, BoxGeometry, UniformsUtils, default_vertex, default_fragment, ShaderMaterial, Camera, PerspectiveCamera, fov, aspect, CubeCamera, CubeTexture, WebGLCubeRenderTarget, _vector1, _vector2, _normalMatrix, Plane, _sphere$5, _vector$7, Frustum, PlaneGeometry, alphahash_fragment, alphahash_pars_fragment, alphamap_fragment, alphamap_pars_fragment, alphatest_fragment, alphatest_pars_fragment, aomap_fragment, aomap_pars_fragment, batching_pars_vertex, batching_vertex, begin_vertex, beginnormal_vertex, bsdfs, iridescence_fragment, bumpmap_pars_fragment, clipping_planes_fragment, clipping_planes_pars_fragment, clipping_planes_pars_vertex, clipping_planes_vertex, color_fragment, color_pars_fragment, color_pars_vertex, color_vertex, common, cube_uv_reflection_fragment, defaultnormal_vertex, displacementmap_pars_vertex, displacementmap_vertex, emissivemap_fragment, emissivemap_pars_fragment, colorspace_fragment, colorspace_pars_fragment, envmap_fragment, envmap_common_pars_fragment, envmap_pars_fragment, envmap_pars_vertex, envmap_vertex, fog_vertex, fog_pars_vertex, fog_fragment, fog_pars_fragment, gradientmap_pars_fragment, lightmap_fragment, lightmap_pars_fragment, lights_lambert_fragment, lights_lambert_pars_fragment, lights_pars_begin, envmap_physical_pars_fragment, lights_toon_fragment, lights_toon_pars_fragment, lights_phong_fragment, lights_phong_pars_fragment, lights_physical_fragment, lights_physical_pars_fragment, lights_fragment_begin, lights_fragment_maps, lights_fragment_end, logdepthbuf_fragment, logdepthbuf_pars_fragment, logdepthbuf_pars_vertex, logdepthbuf_vertex, map_fragment, map_pars_fragment, map_particle_fragment, map_particle_pars_fragment, metalnessmap_fragment, metalnessmap_pars_fragment, morphcolor_vertex, morphnormal_vertex, morphtarget_pars_vertex, morphtarget_vertex, normal_fragment_begin, normal_fragment_maps, normal_pars_fragment, normal_pars_vertex, normal_vertex, normalmap_pars_fragment, clearcoat_normal_fragment_begin, clearcoat_normal_fragment_maps, clearcoat_pars_fragment, iridescence_pars_fragment, opaque_fragment, packing, premultiplied_alpha_fragment, project_vertex, dithering_fragment, dithering_pars_fragment, roughnessmap_fragment, roughnessmap_pars_fragment, shadowmap_pars_fragment, shadowmap_pars_vertex, shadowmap_vertex, shadowmask_pars_fragment, skinbase_vertex, skinning_pars_vertex, skinning_vertex, skinnormal_vertex, specularmap_fragment, specularmap_pars_fragment, tonemapping_fragment, tonemapping_pars_fragment, transmission_fragment, transmission_pars_fragment, uv_pars_fragment, uv_pars_vertex, uv_vertex, worldpos_vertex, vertex$h, fragment$h, vertex$g, fragment$g, vertex$f, fragment$f, vertex$e, fragment$e, vertex$d, fragment$d, vertex$c, fragment$c, vertex$b, fragment$b, vertex$a, fragment$a, vertex$9, fragment$9, vertex$8, fragment$8, vertex$7, fragment$7, vertex$6, fragment$6, vertex$5, fragment$5, vertex$4, fragment$4, vertex$3, fragment$3, vertex$2, fragment$2, vertex$1, fragment$1, ShaderChunk, UniformsLib, ShaderLib, _rgb, OrthographicCamera, LOD_MIN, EXTRA_LOD_SIGMA, MAX_SAMPLES, _flatCamera, _clearColor, _oldTarget, _oldActiveCubeFace, _oldActiveMipmapLevel, PHI, INV_PHI, _axisDirections, PMREMGenerator, DepthTexture, emptyTexture, emptyShadowTexture, emptyArrayTexture, empty3dTexture, emptyCubeTexture, arrayCacheF32, arrayCacheI32, mat4array, mat3array, mat2array, SingleUniform, PureArrayUniform, StructuredUniform, RePathPart, WebGLUniforms, COMPLETION_STATUS_KHR, programIdCount, includePattern, shaderChunkMap, unrollLoopPattern, _id$1, WebGLShaderCache, WebGLShaderStage, nextVersion, MeshDepthMaterial, MeshDistanceMaterial, vertex, fragment, ArrayCamera, Group, _moveEvent, WebXRController, WebXRManager, WebGLRenderer, WebGL1Renderer, Fog, Scene, InstancedBufferAttribute, _instanceLocalMatrix, _instanceWorldMatrix, _instanceIntersects, _box3, _identity, _mesh$1, _sphere$3, InstancedMesh, LineBasicMaterial, _start$1, _end$1, _inverseMatrix$1, _ray$1, _sphere$1, Line, PointsMaterial, _inverseMatrix, _ray, _sphere, _position$2, Points, VideoTexture, CanvasTexture, Curve, EllipseCurve, ArcCurve, tmp, px, py, pz, CatmullRomCurve3, CubicBezierCurve, CubicBezierCurve3, LineCurve, LineCurve3, QuadraticBezierCurve, QuadraticBezierCurve3, SplineCurve, Curves, CircleGeometry, CylinderGeometry, ConeGeometry, SphereGeometry, TorusGeometry, TubeGeometry, RawShaderMaterial, MeshStandardMaterial, MeshPhysicalMaterial, LineDashedMaterial, Interpolant, CubicInterpolant, LinearInterpolant, DiscreteInterpolant, KeyframeTrack, BooleanKeyframeTrack, ColorKeyframeTrack, NumberKeyframeTrack, QuaternionLinearInterpolant, QuaternionKeyframeTrack, StringKeyframeTrack, VectorKeyframeTrack, Cache, LoadingManager, DefaultLoadingManager, Loader, ImageLoader, TextureLoader, Light, HemisphereLight, _projScreenMatrix$1, _lightPositionWorld$1, _lookTarget$1, LightShadow, _projScreenMatrix, _lightPositionWorld, _lookTarget, PointLightShadow, PointLight, DirectionalLightShadow, DirectionalLight, Clock, _RESERVED_CHARS_RE, _reservedRe, _wordChar, _wordCharOrDot, _directoryRe, _nodeRe, _objectRe, _propertyRe, _trackRe, _supportedObjectNames, Composite, PropertyBinding, _controlInterpolantsResultBuffer, Raycaster;
   var init_three_module = __esm({
     "node_modules/three/build/three.module.js"() {
       REVISION = "160";
@@ -19288,67 +19288,6 @@
           return new _ConeGeometry(data.radius, data.height, data.radialSegments, data.heightSegments, data.openEnded, data.thetaStart, data.thetaLength);
         }
       };
-      RingGeometry = class _RingGeometry extends BufferGeometry {
-        constructor(innerRadius = 0.5, outerRadius = 1, thetaSegments = 32, phiSegments = 1, thetaStart = 0, thetaLength = Math.PI * 2) {
-          super();
-          this.type = "RingGeometry";
-          this.parameters = {
-            innerRadius,
-            outerRadius,
-            thetaSegments,
-            phiSegments,
-            thetaStart,
-            thetaLength
-          };
-          thetaSegments = Math.max(3, thetaSegments);
-          phiSegments = Math.max(1, phiSegments);
-          const indices = [];
-          const vertices = [];
-          const normals = [];
-          const uvs = [];
-          let radius = innerRadius;
-          const radiusStep = (outerRadius - innerRadius) / phiSegments;
-          const vertex2 = new Vector3();
-          const uv = new Vector2();
-          for (let j = 0; j <= phiSegments; j++) {
-            for (let i = 0; i <= thetaSegments; i++) {
-              const segment = thetaStart + i / thetaSegments * thetaLength;
-              vertex2.x = radius * Math.cos(segment);
-              vertex2.y = radius * Math.sin(segment);
-              vertices.push(vertex2.x, vertex2.y, vertex2.z);
-              normals.push(0, 0, 1);
-              uv.x = (vertex2.x / outerRadius + 1) / 2;
-              uv.y = (vertex2.y / outerRadius + 1) / 2;
-              uvs.push(uv.x, uv.y);
-            }
-            radius += radiusStep;
-          }
-          for (let j = 0; j < phiSegments; j++) {
-            const thetaSegmentLevel = j * (thetaSegments + 1);
-            for (let i = 0; i < thetaSegments; i++) {
-              const segment = i + thetaSegmentLevel;
-              const a2 = segment;
-              const b2 = segment + thetaSegments + 1;
-              const c2 = segment + thetaSegments + 2;
-              const d = segment + 1;
-              indices.push(a2, b2, d);
-              indices.push(b2, c2, d);
-            }
-          }
-          this.setIndex(indices);
-          this.setAttribute("position", new Float32BufferAttribute(vertices, 3));
-          this.setAttribute("normal", new Float32BufferAttribute(normals, 3));
-          this.setAttribute("uv", new Float32BufferAttribute(uvs, 2));
-        }
-        copy(source) {
-          super.copy(source);
-          this.parameters = Object.assign({}, source.parameters);
-          return this;
-        }
-        static fromJSON(data) {
-          return new _RingGeometry(data.innerRadius, data.outerRadius, data.thetaSegments, data.phiSegments, data.thetaStart, data.thetaLength);
-        }
-      };
       SphereGeometry = class _SphereGeometry extends BufferGeometry {
         constructor(radius = 1, widthSegments = 32, heightSegments = 16, phiStart = 0, phiLength = Math.PI * 2, thetaStart = 0, thetaLength = Math.PI) {
           super();
@@ -22290,27 +22229,23 @@
           // 靶心：高度取视高附近，站着平视就是黄心那条水平线
           targetY: 1.6,
           targetZ: 12.72,
-          faceR: 0.5,
-          boardHalf: 0.62,
+          faceR: 0.75,
+          boardHalf: 0.92,
           // 环值由内向外（r 用米，与靶面贴图同一份表）。计分 = 环值 × ringBase × 距离倍率 × 连击倍率
-          rings: [{ r: 0.1, v: 10 }, { r: 0.2, v: 8 }, { r: 0.3, v: 6 }, { r: 0.4, v: 4 }, { r: 0.5, v: 2 }],
+          rings: [{ r: 0.15, v: 10 }, { r: 0.3, v: 8 }, { r: 0.45, v: 6 }, { r: 0.6, v: 4 }, { r: 0.75, v: 2 }],
           ringBase: 2,
           chargeTime: 1.05,
           // 拉弓 0→满（与投篮蓄力同一套操作语言）
           cancelDraw: 0.08,
           // 低于这个拉距松手 = 收弓，不放箭也不记出手
+          // 箭速：没有弹道辅助线，力度全靠力度条读 —— 下坠是真的，瞄点必须自己抬。
+          // 半弓（0.5）≈ 旧满弓：12.7m 平射掉 0.45m；满弓掉 0.14m，远端 25m 也要抬 1.1m 才够得着。
           speedMin: 9,
-          // 箭速：力度 0 → 满；能射多远由 v²≥g·d 决定，拉不满就落在靶前
-          speedMax: 42,
-          // 满弓：12.7m（开场站位）平射只掉 0.45m，正好落在靶面里 —— 差一档力度就差一环
+          speedMax: 75,
           stepT: 1 / 240,
-          // 定步长积分：导向线与真飞行走同一条，虚线画在哪箭就落在哪
+          // 定步长积分：与命中平面的插值求解配套，步长再大也不漏判
           maxFlight: 4,
           // 保底：超时还没落就判脱靶（卡墙缝之类）
-          guideEvery: 6,
-          // 虚线每隔几个积分步取一个顶点
-          guideCap: 96,
-          // 虚线顶点上限
           stickMax: 10,
           // 靶上最多留几支箭，超了回收最老的那支
           looseMax: 12
@@ -33313,7 +33248,7 @@
     g.add(back);
     const butt = new Mesh(new CylinderGeometry(A.faceR + 0.035, A.faceR + 0.035, 0.12, 44), straw);
     butt.rotation.x = Math.PI / 2;
-    butt.position.set(0, A.targetY, 5e-3);
+    butt.position.set(0, A.targetY, 0.03);
     g.add(butt);
     const face = new Mesh(
       new CircleGeometry(A.faceR, 44),
@@ -33377,27 +33312,6 @@
     rig.add(nocked);
     rig.visible = false;
     camera.add(rig);
-    const guideGeo = new BufferGeometry();
-    guideGeo.setAttribute("position", new BufferAttribute(new Float32Array(A.guideCap * 3), 3));
-    guideGeo.setDrawRange(0, 0);
-    const guide = new Line(guideGeo, new LineDashedMaterial({
-      color: 16765066,
-      dashSize: 0.16,
-      gapSize: 0.13,
-      transparent: true,
-      opacity: 0.9,
-      depthWrite: false
-    }));
-    guide.frustumCulled = false;
-    guide.renderOrder = 4;
-    scene.add(guide);
-    const marker = new Mesh(
-      new RingGeometry(0.045, 0.075, 24),
-      new MeshBasicMaterial({ color: 16765066, transparent: true, opacity: 0.9, side: DoubleSide, depthWrite: false })
-    );
-    marker.visible = false;
-    marker.renderOrder = 4;
-    scene.add(marker);
     const fly = { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, t: 0, mesh: null };
     const stuck = [];
     const hits = [];
@@ -33412,10 +33326,7 @@
     const _ld = new Vector3();
     const _lr = new Vector3();
     const _lu = new Vector3();
-    const _st = { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, t: 0 };
-    const _fc = { n: 0, ev: null, x: 0, y: 0, z: 0 };
     const _ev = { kind: "", ring: 0, dist: 0, x: 0, y: 0, z: 0 };
-    const _path = Array.from({ length: A.guideCap }, () => new Vector3());
     function makeArrowMesh() {
       const g = new Group();
       const shaft = new Mesh(
@@ -33488,40 +33399,6 @@
       }
       return null;
     }
-    function forecast(x, y, z, dir, speed) {
-      const s = _st;
-      s.x = x;
-      s.y = y;
-      s.z = z;
-      s.vx = dir.x * speed;
-      s.vy = dir.y * speed;
-      s.vz = dir.z * speed;
-      s.t = 0;
-      _fc.n = 0;
-      _fc.ev = null;
-      const maxSteps = A.maxFlight / A.stepT;
-      for (let i = 0; !_fc.ev && i < maxSteps; i++) {
-        _fc.ev = stepOne(s);
-        if (i % A.guideEvery === 0 && _fc.n < A.guideCap) _path[_fc.n++].set(s.x, s.y, s.z);
-      }
-      if (_fc.n < A.guideCap && _fc.ev) _path[_fc.n++].set(s.x, s.y, s.z);
-      _fc.x = s.x;
-      _fc.y = s.y;
-      _fc.z = s.z;
-      return _fc;
-    }
-    function showGuide(n) {
-      if (n < 2) {
-        guideGeo.setDrawRange(0, 0);
-        marker.visible = false;
-        return;
-      }
-      const at = guideGeo.attributes.position;
-      for (let i = 0; i < n; i++) at.setXYZ(i, _path[i].x, _path[i].y, _path[i].z);
-      at.needsUpdate = true;
-      guideGeo.setDrawRange(0, n);
-      guide.computeLineDistances();
-    }
     function launchState() {
       const q = camera.quaternion;
       _ld.set(0, 0, -1).applyQuaternion(q);
@@ -33565,35 +33442,18 @@
       if (loose.length > A.looseMax) recycle(loose.shift());
     }
     const api = {
-      /** 力度 0~1 -> 箭速（虚线与出手共用） */
+      /** 力度 0~1 -> 箭速 */
       speedOf(charge) {
         return A.speedMin + charge * (A.speedMax - A.speedMin);
       },
       showRig(on) {
         rig.visible = on;
-        if (!on) {
-          showGuide(0);
-          marker.visible = false;
-        }
       },
-      /**
-       * 瞄准中每帧调用：摆弓、画虚线，返回「这一箭会落在哪」（复用槽，调用方当场读完）。
-       * 出手方向 = 相机朝向，准星指哪打哪，唯一的补偿是真实下坠（所以要看虚线）。
-       */
+      /** 瞄准中每帧调用：只摆弓。没有落点预测 —— 下坠多少全看力度条与准星抬多高 */
       aim(charge) {
-        launchState();
-        const r = forecast(_lp.x, _lp.y, _lp.z, _ld, api.speedOf(charge));
-        showGuide(r.n);
-        if (r.n) {
-          marker.position.copy(_path[r.n - 1]);
-          marker.quaternion.copy(camera.quaternion);
-          marker.scale.setScalar(MathUtils.clamp(marker.position.distanceTo(camera.position) * 0.2, 1, 3.5));
-          marker.visible = true;
-        } else marker.visible = false;
         poseBow(charge);
-        return r.ev;
       },
-      /** 放箭：真箭用同一个 forecast 的第一步起步，所以预测==飞行 */
+      /** 放箭 */
       shoot() {
         launchState();
         const speed = api.speedOf(api.lastCharge);
@@ -33609,8 +33469,7 @@
         fly.mesh.position.set(fly.x, fly.y, fly.z);
         acc = 0;
         recoil = 1;
-        showGuide(0);
-        marker.visible = false;
+        api.lastKind = "";
         sfx.play("shoot", { rate: 1.35, volume: 0.85 });
       },
       /** 飞行推进：固定步长吃真实 dt，撞靶/落地/撞墙/超时都返回事件 */
@@ -33635,18 +33494,19 @@
         fly.mesh.position.set(fly.x, fly.y, fly.z);
         _dir.set(fly.vx, fly.vy, fly.vz).normalize();
         fly.mesh.quaternion.setFromUnitVectors(_up, _dir);
-        if (ev) stick(ev, fly);
+        if (ev) {
+          api.lastKind = ev.kind;
+          stick(ev, fly);
+        }
         return ev;
       },
-      /** 收弓 / 换局：撤掉在飞的箭与虚线 */
+      /** 收弓 / 换局：撤掉在飞的箭 */
       reset() {
         if (fly.mesh) {
           recycle(fly.mesh);
           fly.mesh = null;
         }
         acc = 0;
-        showGuide(0);
-        marker.visible = false;
       },
       clearStuck() {
         hits.length = 0;
@@ -33654,31 +33514,6 @@
         while (loose.length) recycle(loose.shift());
       },
       /* ---------- 无头断言用 ---------- */
-      debugGuide() {
-        const at = guideGeo.attributes.position;
-        const n = guideGeo.drawRange.count;
-        const last = n ? { x: at.getX(n - 1), y: at.getY(n - 1), z: at.getZ(n - 1) } : null;
-        return {
-          n,
-          last,
-          land: { x: _fc.x, y: _fc.y, z: _fc.z },
-          kind: _fc.ev ? _fc.ev.kind : "",
-          speed: api.speedOf(api.lastCharge || 0),
-          marker: marker.visible ? 1 : 0
-        };
-      },
-      debugLineLen() {
-        const at = guideGeo.attributes.position;
-        const n = Math.min(guideGeo.drawRange.count, A.guideCap);
-        if (n < 2) return 0;
-        let L = 0;
-        for (let i = 1; i < n; i++) {
-          const dx = at.getX(i) - at.getX(i - 1), dy = at.getY(i) - at.getY(i - 1), dz = at.getZ(i) - at.getZ(i - 1);
-          if (!Number.isFinite(dx) || !Number.isFinite(dy) || !Number.isFinite(dz)) return -1;
-          L += Math.hypot(dx, dy, dz);
-        }
-        return +L.toFixed(3);
-      },
       debugStuck() {
         return stuck.length;
       },
@@ -33687,6 +33522,7 @@
       }
     };
     api.lastCharge = 0;
+    api.lastKind = "";
     function poseBow(charge) {
       api.lastCharge = charge;
       const pull = charge * 0.28 + recoil * 0.06;
@@ -33893,8 +33729,8 @@
           this.blockers = [
             { x: 0, z: CFG.hoop.boardFaceZ - 0.95, r: 0.9 },
             // 篮架立柱
-            { x: 0, z: CFG.arch.targetZ + 0.34, r: 0.8 }
-            // 靶架：别直接从正面走进靶子里
+            { x: 0, z: CFG.arch.targetZ + 0.34, r: 1.15 }
+            // 靶架：别直接从正面走进靶子里（靶宽 1.84m）
           ];
         }
         /** 鼠标移动输入：dx/dy 为像素增量 */
@@ -34514,7 +34350,7 @@
           this.releaseDist = 0;
           archery.showRig(true);
           ui.showPowerBar(true);
-          ui.setPrompt("WASD \u8D70\u4F4D\u6311\u9776\u8DDD \xB7 <b>\u6309\u4F4F\u5DE6\u952E</b> \u62C9\u5F13 \xB7 <b>\u677E\u624B</b> \u653E\u7BAD \xB7 \u865A\u7EBF\u672B\u7AEF\u5C31\u662F\u843D\u70B9 \xB7 <b>\u53F3\u952E</b> \u6536\u5F13");
+          ui.setPrompt("WASD \u8D70\u4F4D\u6311\u9776\u8DDD \xB7 <b>\u6309\u4F4F\u5DE6\u952E</b> \u62C9\u5F13 \xB7 <b>\u677E\u624B</b> \u653E\u7BAD \xB7 \u7BAD\u4F1A\u4E0B\u5760\uFF0C\u62C9\u5F97\u8D8A\u6EE1\u8D8A\u5E73\u76F4 \xB7 <b>\u53F3\u952E</b> \u6536\u5F13");
         }
         exit() {
           this.G.archery.showRig(false);
@@ -34574,7 +34410,7 @@
           }
           const comboReset = scoring.addShotMiss();
           sfx.play(ev.kind === "board" ? "rim" : "bounce", { volume: 0.5, rate: 0.85 });
-          ui.showScorePopup(0, ev.kind === "board" ? "\u64E6\u5230\u9776\u67B6\uFF0C\u6CA1\u4E0A\u9776\u9762" : comboReset ? "\u8FDE\u51FB\u6E05\u96F6\u2026 \u76EF\u865A\u7EBF\u672B\u7AEF\u62AC\u4E00\u70B9" : "\u6CA1\u4E0A\u9776 \xB7 \u770B\u865A\u7EBF\u843D\u70B9\u518D\u7784");
+          ui.showScorePopup(0, ev.kind === "board" ? "\u64E6\u5230\u9776\u67B6\uFF0C\u6CA1\u4E0A\u9776\u9762" : comboReset ? "\u8FDE\u51FB\u6E05\u96F6\u2026 \u62C9\u6EE1\u5F13\u3001\u51C6\u661F\u62AC\u9AD8\u4E00\u6863" : "\u6CA1\u4E0A\u9776 \xB7 \u7BAD\u5728\u5F80\u4E0B\u6389\uFF0C\u7784\u9AD8\u4E00\u70B9");
         }
       };
       StateMachine = class {
@@ -36122,7 +35958,17 @@
         }
         if (demo === "arch") {
           const st2 = () => machine.current;
-          const F = 1, W = 0.3;
+          const fire = (c2) => {
+            const s = st2();
+            s.charge = c2;
+            s.update(0.016);
+            s.charging = true;
+            s.onLeftUp();
+            for (let i = 0; i < 14 && st2().flying; i++) st2().update(0.05);
+            const h = archery.debugHits();
+            const p = h[h.length - 1];
+            return { kind: archery.lastKind, fly: st2().flying ? 1 : 0, pt: p ? `${p.x.toFixed(2)},${p.y.toFixed(2)}` : "-" };
+          };
           setTimeout(() => {
             startMode("arch");
             player.pos.set(0, 0, 0);
@@ -36131,16 +35977,13 @@
             player.freePitch = 0;
             player.pitch = 0;
             for (let i = 0; i < 40; i++) player.update(0.016);
-            const s = st2();
-            s.charge = W;
-            s.update(0.016);
-            const g = archery.debugGuide();
             let rims = 0;
             scene.traverse((o) => {
               if (o.geometry && o.geometry.type === "TorusGeometry" && o.geometry.parameters.radius === CFG.hoop.rimRadius) rims++;
             });
-            mark(`A0 \u9776\u8DDD=${targetDist(player.pos.x, player.pos.z).toFixed(2)} \u7BEE\u5708\u6570=${rims} \u7403\u53EF\u89C1=${ball.mesh.visible ? 1 : 0} \u6301\u7403=${ball.mode === "held" ? 1 : 0} \u72B6\u6001=${machine.name} \u529B\u5EA6\u6761=${document.getElementById("power-bar").classList.contains("hidden") ? 0 : 1}`);
-            mark(`A1 \u4E09\u6210\u5F13 \u9884\u6D4B=${g.kind} \u672B\u70B9y=${g.last ? g.last.y.toFixed(2) : "-"} \u7EBF\u957F=${archery.debugLineLen()} \u51FA\u624B\u6570=${scoring.shotTaken}`);
+            mark(`A0 \u9776\u8DDD=${targetDist(player.pos.x, player.pos.z).toFixed(2)} \u9776\u5BBD=${(CFG.arch.faceR * 2).toFixed(2)} \u7BEE\u5708\u6570=${rims} \u7403\u53EF\u89C1=${ball.mesh.visible ? 1 : 0} \u6301\u7403=${ball.mode === "held" ? 1 : 0} \u72B6\u6001=${machine.name} \u529B\u5EA6\u6761=${document.getElementById("power-bar").classList.contains("hidden") ? 0 : 1}`);
+            const a1 = fire(0.2);
+            mark(`A1 \u4E24\u6210\u5F13 \u843D\u70B9=${a1.kind} \u547D\u4E2D=${a1.pt} \u63D2\u9776=${archery.debugStuck()} \u51FA\u624B\u6570=${scoring.shotTaken}`);
           }, 1200);
           setTimeout(() => {
             const s = st2();
@@ -36150,33 +35993,20 @@
             mark(`A2 \u6536\u5F13 \u5728\u98DE=${s.flying ? 1 : 0} \u51FA\u624B\u6570=${scoring.shotTaken} \u63D2\u9776=${archery.debugStuck()}`);
           }, 2e3);
           setTimeout(() => {
-            const s = st2();
-            s.charge = F;
-            s.update(0.016);
-            const g = archery.debugGuide();
-            s.charging = true;
-            s.onLeftUp();
-            const shotFrom = { x: g.last.x, y: g.last.y, z: g.last.z };
-            for (let i = 0; i < 12 && st2().flying; i++) st2().update(0.05);
-            const h = archery.debugHits();
-            const hit = h[h.length - 1];
-            mark(`A3 \u6EE1\u5F13 \u9884\u6D4B=${g.kind} \u672B\u70B9=${shotFrom.x.toFixed(2)},${shotFrom.y.toFixed(2)},${shotFrom.z.toFixed(2)} \u547D\u4E2D=${hit ? `${hit.x.toFixed(2)},${hit.y.toFixed(2)},${hit.z.toFixed(2)}` : "\u65E0"} \u8BEF\u5DEE=${hit ? Math.hypot(hit.x - shotFrom.x, hit.y - shotFrom.y).toFixed(3) : "-"}m \u5728\u98DE=${st2().flying ? 1 : 0} \u73AF=${scoring.bestRing} \u5206=${scoring.displayScore}`);
+            const a2 = fire(0.5);
+            mark(`A3 \u534A\u5F13 \u843D\u70B9=${a2.kind} \u547D\u4E2D=${a2.pt} \u73AF=${scoring.bestRing} \u5206=${scoring.displayScore} \u63D2\u9776=${archery.debugStuck()}`);
           }, 2600);
           setTimeout(() => {
-            mark(`A4 \u8BA1\u5206 \u4E0A\u9776=${scoring.shotMade}/${scoring.shotTaken} \u8FDE\u51FB=${scoring.shotCombo} \u9EC4\u5FC3=${scoring.bulls} \u5206=${scoring.displayScore} \u82AF\u7247=${document.getElementById("combo-label").textContent} \u63D2\u9776=${archery.debugStuck()} \u526F\u6807\u9898=${document.getElementById("hud-sub").textContent}`);
-            st2().charge = F;
-            st2().update(0.016);
-            const gg = archery.debugGuide();
-            mark(`A4b \u6EE1\u5F13\u9759\u7784 \u9884\u6D4B=${gg.kind} \u672B\u70B9=${gg.last ? `${gg.last.x.toFixed(2)},${gg.last.y.toFixed(2)},${gg.last.z.toFixed(2)}` : "-"} \u843D\u70B9\u5708=${gg.marker}`);
+            const a2 = fire(1);
+            mark(`A4 \u6EE1\u5F13 \u843D\u70B9=${a2.kind} \u547D\u4E2D=${a2.pt} \u5728\u98DE=${a2.fly} \u9EC4\u5FC3=${scoring.bulls} \u4E0A\u9776=${scoring.shotMade}/${scoring.shotTaken} \u5206=${scoring.displayScore} \u82AF\u7247=${document.getElementById("combo-label").textContent} \u526F\u6807\u9898=${document.getElementById("hud-sub").textContent}`);
           }, 3200);
           setTimeout(() => {
             startMode("free");
             mark(`A5 \u6362\u5C40 \u7403\u53EF\u89C1=${ball.mesh.visible ? 1 : 0} \u72B6\u6001=${machine.name} \u529B\u5EA6\u6761=${document.getElementById("power-bar").classList.contains("hidden") ? 0 : 1} \u63D2\u9776=${archery.debugStuck()}`);
             startMode("arch");
             for (let i = 0; i < 10; i++) player.update(0.016);
-            st2().charge = F;
-            st2().update(0.016);
-            mark(`END \u65B0\u5C40 \u63D2\u9776=${archery.debugStuck()} \u9884\u6D4B=${archery.debugGuide().kind} \u5206=${scoring.displayScore} \u7403\u53EF\u89C1=${ball.mesh.visible ? 1 : 0}`);
+            const a2 = fire(1);
+            mark(`END \u65B0\u5C40 \u63D2\u9776=${archery.debugStuck()} \u843D\u70B9=${a2.kind} \u5206=${scoring.displayScore} \u7403\u53EF\u89C1=${ball.mesh.visible ? 1 : 0}`);
           }, 3900);
         }
       } catch {

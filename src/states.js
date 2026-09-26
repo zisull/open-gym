@@ -381,8 +381,8 @@ export class ShotState extends State {
 
 /* ================= 4. 射箭（手上是弓，没有球） =================
    操作语言与投篮一致：按住左键蓄力、松手出手、右键取消。
-   区别只有两件 —— 距离自己走位挑（没有锁弧），以及有一条**说真话的弹道虚线**：
-   虚线与这一发走的是同一段定步长积分，所以虚线末端落在哪、箭就扎在哪。 */
+   台球室那条说真话的弹道虚线**这里刻意不给**：有落点圈指着，射箭就退化成点名，
+   玩家报的"难度太低"正是它。现在唯一的瞄具是准星 + 力度条，下坠自己补。 */
 const _hitPos = new THREE.Vector3();
 
 export class ArchState extends State {
@@ -395,7 +395,7 @@ export class ArchState extends State {
     this.releaseDist = 0;
     archery.showRig(true);
     ui.showPowerBar(true);
-    ui.setPrompt('WASD 走位挑靶距 · <b>按住左键</b> 拉弓 · <b>松手</b> 放箭 · 虚线末端就是落点 · <b>右键</b> 收弓');
+    ui.setPrompt('WASD 走位挑靶距 · <b>按住左键</b> 拉弓 · <b>松手</b> 放箭 · 箭会下坠，拉得越满越平直 · <b>右键</b> 收弓');
   }
   exit() {
     this.G.archery.showRig(false);
@@ -409,7 +409,7 @@ export class ArchState extends State {
       if (ev) this.resolve(ev);
       return;
     }
-    archery.aim(this.charge);      // 未拉弓也画：这条线就是准星之外唯一的瞄具
+    archery.aim(this.charge);      // 只摆弓（拉距 + 扣弦那支箭跟着力度走）
     ui.updatePowerBar(this.charge, null);
   }
   onLeftDown() { if (!this.flying) this.charging = true; }
@@ -452,7 +452,7 @@ export class ArchState extends State {
     const comboReset = scoring.addShotMiss();
     sfx.play(ev.kind === 'board' ? 'rim' : 'bounce', { volume: 0.5, rate: 0.85 });
     ui.showScorePopup(0, ev.kind === 'board' ? '擦到靶架，没上靶面'
-      : (comboReset ? '连击清零… 盯虚线末端抬一点' : '没上靶 · 看虚线落点再瞄'));
+      : (comboReset ? '连击清零… 拉满弓、准星抬高一档' : '没上靶 · 箭在往下掉，瞄高一点'));
   }
 }
 

@@ -57,7 +57,7 @@ export class Player {
     };
     this.blockers = [
       { x: 0, z: CFG.hoop.boardFaceZ - 0.95, r: 0.9 },  // 篮架立柱
-      { x: 0, z: CFG.arch.targetZ + 0.34, r: 0.8 },     // 靶架：别直接从正面走进靶子里
+      { x: 0, z: CFG.arch.targetZ + 0.34, r: 1.15 },     // 靶架：别直接从正面走进靶子里（靶宽 1.84m）
     ];
   }
 
