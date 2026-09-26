@@ -15,10 +15,11 @@ import { createPhysics } from './physics.js';
 import { buildCourt, setupLights, applyBackground, addWallArt, RIM_POS } from './court.js';
 import { createCinema } from './cinema.js';
 import { createPool } from './pool.js';
+import { buildRange, createArchery, targetDist } from './archery.js';
 import { GameBall } from './ball.js';
 import { Player } from './player.js';
 import { Effects } from './effects.js';
-import { StateMachine, NoBallState, HoldState, ShotState, randomShotSpot, shotSpotXZ } from './states.js';
+import { StateMachine, NoBallState, HoldState, ShotState, ArchState, randomShotSpot, shotSpotXZ } from './states.js';
 import { ScoreManager, loadRecord, loadSetting, saveSetting, loadNumberSetting, LS_SHADOW, LS_VOLUME } from './scoring.js';
 import { Sfx } from './audio.js';
 import { UI, lockPointer } from './ui.js';
@@ -60,6 +61,7 @@ composer.addPass(new OutputPass());
 
 /* ================= 世界搭建 ================= */
 const courtRefs = buildCourt(scene);
+const archRange = buildRange(scene);   // +z 端那座射箭靶（原第二只篮筐的位置）
 addWallArt(scene);              // imgs/wall 二次元墙贴画（自动生成清单）
 const lights = setupLights(scene);
 const { world, ballBody, matRim, matBoard } = createPhysics();
@@ -70,6 +72,7 @@ const fx = new Effects(scene, camera);
 const scoring = new ScoreManager();
 const sfx = new Sfx();
 const ui = new UI();
+const archery = createArchery({ scene, camera, player, sfx, range: archRange.group });
 player.onLand = () => sfx.play('bounce', { volume: 0.3, rate: 0.72 });
 
 /* ================= 电影院 / 台球室（各自独立场景 + 过场切换） ================= */
@@ -156,7 +159,7 @@ function exitRoomToGym(id) {
     player.vel.set(0, 0, 0);
     player.freeYaw = Math.atan2(D.x, player.pos.z); // 面向场地中心（yaw=atan2(-dx,-dz) 化简）
     player.freePitch = 0;
-    ui.showHud(G.modeDef.name, G.modeDef.timed);
+    ui.showHud(G.modeDef);
   });
 }
 cinema.onExitRequest = () => exitRoomToGym('cinema');
@@ -176,7 +179,7 @@ function forceGym() {
 /* ================= 状态机装配 ================= */
 const netSway = { t: 0 };
 const G = {
-  camera, player, ball, scoring, sfx, fx, ui, doorHint,
+  camera, player, ball, scoring, sfx, fx, ui, doorHint, archery,
   modeDef: CFG.MODES.free,
   netSway: () => { netSway.t = 1; },
 };
@@ -184,6 +187,7 @@ const machine = new StateMachine();
 machine.register('noBall', new NoBallState(G));
 machine.register('hold', new HoldState(G));
 machine.register('shot', new ShotState(G));
+machine.register('arch', new ArchState(G));
 G.machine = machine;
 
 /* ================= 游戏流程状态：menu | playing | paused | result ================= */
@@ -193,14 +197,15 @@ let menuCamAngle = 0;
 let lastSecond = -1;
 let bestCache = 0; // 当前模式纪录缓存：避免逐帧读 localStorage
 // 副标题文案的复用槽：只有里面的数字变了才重新拼字符串（见 tick 的 HUD 段）
-const hudRef = { free: null, mul10: -1, n1: -1, made: -1, taken: -1, live: '' };
+const hudRef = { free: null, bow: null, mul10: -1, n1: -1, made: -1, taken: -1, live: '' };
 
 function refreshMenu() {
   forceGym();
   gameState = 'menu';
   machine.set('noBall');
+  ball.stash(false);   // 射箭局退回来：球重新露面，否则主菜单背景里少一颗球
   ball.startPhysics(new THREE.Vector3(1.4, 1, 0.5), null);
-  ui.showMenu({ free: loadRecord('free'), shot: loadRecord('shot') });
+  ui.showMenu({ free: loadRecord('free'), shot: loadRecord('shot'), arch: loadRecord('arch') });
   ui.setShadowChecked(shadowOn);
   document.exitPointerLock?.();
 }
@@ -218,6 +223,7 @@ function startMode(id) {
   player.yaw = 0; player.pitch = 0;
   player.exitShotAim();
   player.mode = 'free'; player.blend = 0;
+  ball.stash(!!G.modeDef.bow);   // 射箭局手上是弓：球收进包里别让它在地上滚；换回篮球模式又露面
   if (id === 'shot') {
     // 投篮挑战：空投到本球那条弧上（距离锁死、角度随你走），球已在手
     const spot = randomShotSpot();
@@ -226,6 +232,12 @@ function startMode(id) {
     scoring.currentSpot = spot;
     ball.startHeld();
     machine.set('shot');
+  } else if (id === 'arch') {
+    // 射箭：人站在半场正中、转身正对 +z 端那座草靶（距离与角度全靠自己走位挑）
+    archery.clearStuck();          // 上一局插在靶上的箭清掉，靶面不会越射越糊
+    player.pos.set(0, 0, 0);
+    player.freeYaw = Math.PI; player.yaw = Math.PI;
+    machine.set('arch');
   } else {
     player.pos.set(0.6, 0, 1.5);
     ball.startPhysics(new THREE.Vector3(1.2, 0.8, 0.4), null);
@@ -234,7 +246,7 @@ function startMode(id) {
   gameState = 'playing';
   player.inputEnabled = true;   // 结算/暂停都会关掉它：不在这统一还回来，新一局就钉在原地动不了
   lastSecond = -1;
-  ui.showHud(G.modeDef.name, G.modeDef.timed);
+  ui.showHud(G.modeDef);
   ui.hideResult();
   ui.showPause(false);
   lockPointer();
@@ -271,11 +283,14 @@ function finishSession() {
   if (fin.isNew) bestCache = fin.best;
   sfx.play('buzzer', { volume: 0.8 });
   const m = scoring.mode;
-  const scoreLabel = m.id === 'free' ? '总分（拍球+投篮）' : '投篮得分';
+  const scoreLabel = m.id === 'free' ? '总分（拍球+投篮）' : m.id === 'arch' ? '射箭得分' : '投篮得分';
   const stats = [];
-  stats.push(`👋 拍球 <b>${scoring.taps}</b> 次（+${scoring.tapScore} 分）`);
-  if (m.shotScore) {
-    const pct = scoring.shotTaken ? Math.round((scoring.shotMade / scoring.shotTaken) * 100) : 0;
+  const pct = scoring.shotTaken ? Math.round((scoring.shotMade / scoring.shotTaken) * 100) : 0;
+  if (m.tapScore) stats.push(`👋 拍球 <b>${scoring.taps}</b> 次（+${scoring.tapScore} 分）`);
+  if (m.bow) {
+    stats.push(`🏹 上靶 <b>${scoring.shotMade}</b> / <b>${scoring.shotTaken}</b>（<b>${pct}%</b>）· 黄心 <b>${scoring.bulls}</b> 次 · 单箭最高 <b>${scoring.bestRing}</b> 环`);
+    stats.push(`🎯 连击 <b>${scoring.shotComboMax}</b> 手（靶面 10/8/6/4/2 环，分数还吃靶距与连击倍率）`);
+  } else if (m.shotScore) {
     stats.push(`🎯 投篮 <b>${scoring.shotMade}</b> / <b>${scoring.shotTaken}</b> 中（命中率 <b>${pct}%</b>）· 最高连击 <b>${scoring.shotComboMax}</b>`);
   }
   if (m.id === 'shot') stats.push(`🎲 命中换位 <b>${scoring.spots}</b> 次`);
@@ -395,8 +410,7 @@ addEventListener('keyup', (e) => {
 // 按住方向键切走窗口（Alt+Tab）时 keyup 根本不会送到，键就卡在按下态：人自己往前走、
 // 还停不下来。失焦一律当松手处理。
 addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
-/* 沙发上（未锁指针）区分「点击选屏」与「拖拽转向」：按下记起点，累计位移小于 6px 才算点击 */
-const seatAim = { x: 0, y: 0, t: 0, moved: 0, set(x, y) { this.x = x; this.y = y; this.t = performance.now(); this.moved = 0; } };
+/* 影院入座时故意不锁指针（要点放映条），转向走下面按住左键拖拽那一路 */
 document.addEventListener('mousemove', (e) => {
   if (gameState !== 'playing') return;
   if (document.pointerLockElement === canvas) {
@@ -406,7 +420,6 @@ document.addEventListener('mousemove', (e) => {
   } else if (playerLoc === 'cinema' && cinema.seated && (e.buttons & 1) && e.target === canvas) {
     // 沙发上未锁指针：按住左键拖拽转向（任意角度环视环墙银幕）
     player.look(e.movementX, e.movementY);
-    if (seatAim.t) seatAim.moved += Math.abs(e.movementX) + Math.abs(e.movementY);
   }
 });
 /* 入座后滚轮 = 变焦（拉近/拉远巨幕）；未入座时一律不拦，页面自身不滚动 */
@@ -420,9 +433,7 @@ canvas.addEventListener('mousedown', (e) => {
   if (document.pointerLockElement !== canvas) {
     // 影院入座时故意解锁；走动中丢了锁 -> 点画面找回
     if (playerLoc === 'cinema') {
-      if (cinema.seated) { if (!e.button) seatAim.set(e.clientX, e.clientY); } // 松手时再判定是点击还是拖拽转向
-      else if (!e.button) cinema.onLeftDown();
-      else lockPointer();
+      if (!cinema.seated) { if (!e.button) cinema.onLeftDown(); else lockPointer(); }
     } else if (playerLoc === 'pool' && poolHud && !e.button) {
       setPoolHud(false);      // 操作台上点一下球台 = 收工回到瞄准（这一次点击不出杆）
     }
@@ -445,10 +456,6 @@ addEventListener('mouseup', (e) => {
   if (gameState !== 'playing') return;
   if (e.button === 0 && playerLoc === 'pool') { pool.onLeftUp(); return; }
   if (e.button === 0 && playerLoc === 'gym') machine.dispatch('onLeftUp');
-  if (e.button === 0 && playerLoc === 'cinema' && cinema.seated && seatAim.t) {
-    if (seatAim.moved < 6) cinema.onClick(e.clientX, e.clientY); // 没拖动 = 点击那块银幕（切出声/暂停）
-    seatAim.t = 0;
-  }
 });
 document.addEventListener('contextmenu', (e) => e.preventDefault());
 document.addEventListener('pointerlockchange', () => {
@@ -544,18 +551,23 @@ function tick() {
     }
 
     /* ---- HUD：数字真变了才重建文案（逐帧拼字符串 + toFixed 是白付的分配） ---- */
-    const curDist = Math.hypot(player.pos.x - RIM_POS.x, player.pos.z - RIM_POS.z);
+    const bow = !!scoring.mode.bow;
+    // 倍率口径：篮球算篮距、射箭算靶距，都跟着人走位实时展示（计分吃的是出手那一瞬的值）
+    const curDist = bow ? targetDist(player.pos.x, player.pos.z)
+      : Math.hypot(player.pos.x - RIM_POS.x, player.pos.z - RIM_POS.z);
     const mul10 = Math.round(ScoreManager.distanceMultiplier(curDist) * 10);
     const free = scoring.mode.id === 'free';
-    const n1 = free ? scoring.taps : scoring.spots;
-    if (free !== hudRef.free || mul10 !== hudRef.mul10 ||
+    const n1 = free ? scoring.taps : (bow ? scoring.bestRing : scoring.spots);
+    if (free !== hudRef.free || bow !== hudRef.bow || mul10 !== hudRef.mul10 ||
       n1 !== hudRef.n1 || scoring.shotMade !== hudRef.made || scoring.shotTaken !== hudRef.taken) {
-      hudRef.free = free; hudRef.mul10 = mul10; hudRef.n1 = n1;
+      hudRef.free = free; hudRef.bow = bow; hudRef.mul10 = mul10; hudRef.n1 = n1;
       hudRef.made = scoring.shotMade; hudRef.taken = scoring.shotTaken;
       const dMul = (mul10 / 10).toFixed(1);
       hudRef.live = free
         ? `拍球 ${scoring.taps} 次 · 投篮 ${scoring.shotMade}/${scoring.shotTaken} · 当前距离×${dMul}`
-        : `进 ${scoring.shotMade} · 换位 ${scoring.spots} 次 · 当前距离×${dMul}`;
+        : bow
+          ? `上靶 ${scoring.shotMade}/${scoring.shotTaken} · 黄心 ${scoring.bulls} 次 · 最高 ${scoring.bestRing} 环 · 当前靶距×${dMul}`
+          : `进 ${scoring.shotMade} · 换位 ${scoring.spots} 次 · 当前距离×${dMul}`;
     }
     ui.setScore(
       scoring.displayScore,
@@ -813,19 +825,23 @@ try {
     }, 2000);
   }
   if (demo === 'sit' || demo === 'grid') {
-    var hoverHint = '';   // 入座前准星扫到银幕的提示文字（下面第二个 setTimeout 里一并回读）
+    var hoverHint = '';   // 入座前的一对准星提示断言（银幕无提示 / 圆床报入座），见下面第一个 setTimeout
     // 公共：走到圆床边 + 左键入座（可选再开大屏墙），供两种演示复用
     addEventListener('error', (e) => {
       const el = document.getElementById('dbg-out');
       if (el) el.textContent = `ERR ${e.message} @${e.filename?.split('/').pop()}:${e.lineno}`;
     });
     setTimeout(() => {
-      // 入座前先验准星射线还认得银幕（点屏切换出声的链路全靠这张目标表）：
-      // 站得离圆床够远（>床半径+0.6），提示就该从「入座」翻成「播放/暂停」
+      // 出声只归控制台管：银幕不再吃点击，所以准星对着幕也不该冒任何提示；
+      // 而对着圆床必须还报「入座」—— 这一对合起来才证明射线链路是活的、只是少了银幕。
       player.pos.set(0, 0, CFG.cinema.bed.r + 1.2);
       player.freeYaw = 0; player.yaw = 0;
       cinema.update(0.016);
-      hoverHint = document.getElementById('cinema-hint').textContent.replace(/<[^>]+>/g, '').slice(0, 10);
+      const hint = () => document.getElementById('cinema-hint').textContent.replace(/<[^>]+>/g, '').slice(0, 8);
+      hoverHint = `屏=${hint() || '无'}`;
+      player.pos.set(0, 0, CFG.cinema.bed.r + 0.4);
+      cinema.update(0.016);
+      hoverHint += ` 床=${hint() || '无'}`;
       player.pos.set(0, 0, CFG.cinema.bed.z + 1.6);
       cinema.onLeftDown();
       if (demo === 'grid') document.getElementById('cb-big').click();
@@ -1395,5 +1411,68 @@ try {
       machine.current.relocateAndContinue();   // 命中后走的就是这段，不碰物理直接验
       mark(`S3 命中后 r=${before.toFixed(2)}→${r0().toFixed(2)} 落点d=${rd().toFixed(2)} 换距离=${before === r0() ? '否' : '是'}`);
     }, 3100);
+  }
+  if (demo === 'arch') {
+    // 射箭：一条命根子不变量 —— **虚线落在哪，箭就落在哪**（导向与飞行是同一段定步长积分）。
+    // 顺带验：拉不满真的够不着靶、点一下就松手不记出手、上靶按环值×靶距×连击计分、球不在手。
+    const st = () => machine.current;
+    const F = 1, W = 0.3;   // 满弓 / 三成力度（平射射程 < 靶距）
+    setTimeout(() => {
+      startMode('arch');
+      player.pos.set(0, 0, 0);                       // 半场正中，正对 +z 端那座草靶（12.72m）
+      player.freeYaw = Math.PI; player.yaw = Math.PI;
+      player.freePitch = 0; player.pitch = 0;        // 完全平视：落点全靠弓拉多满
+      for (let i = 0; i < 40; i++) player.update(0.016);   // 无头 rAF 被限流，阻尼得手动推帧才收敛
+      const s = st(); s.charge = W; s.update(0.016);
+      const g = archery.debugGuide();
+      // 篮圈只该剩一只可计分的（+z 端那座换成了射箭靶）：按篮圈管的半径数，篮网那几圈半径不同
+      let rims = 0;
+      scene.traverse((o) => {
+        if (o.geometry && o.geometry.type === 'TorusGeometry' && o.geometry.parameters.radius === CFG.hoop.rimRadius) rims++;
+      });
+      mark(`A0 靶距=${targetDist(player.pos.x, player.pos.z).toFixed(2)} 篮圈数=${rims} 球可见=${ball.mesh.visible ? 1 : 0} 持球=${ball.mode === 'held' ? 1 : 0}`
+        + ` 状态=${machine.name} 力度条=${document.getElementById('power-bar').classList.contains('hidden') ? 0 : 1}`);
+      // A1 弱弓：预测直接落在地上（kind=drop），线也画不到靶子那一头
+      mark(`A1 三成弓 预测=${g.kind} 末点y=${g.last ? g.last.y.toFixed(2) : '-'} 线长=${archery.debugLineLen()} 出手数=${scoring.shotTaken}`);
+    }, 1200);
+    // A2 轻点就松手 = 收弓：一箭没出、出手数也不许涨（和投篮那点按取消同一条规矩）
+    setTimeout(() => {
+      const s = st(); s.charging = true; s.charge = 0.05; s.onLeftUp();
+      mark(`A2 收弓 在飞=${s.flying ? 1 : 0} 出手数=${scoring.shotTaken} 插靶=${archery.debugStuck()}`);
+    }, 2000);
+    // A3 满弓：先记下虚线末点，再真放一箭，比对命中点 —— 这两个数必须一致
+    setTimeout(() => {
+      const s = st(); s.charge = F; s.update(0.016);
+      const g = archery.debugGuide();
+      s.charging = true; s.onLeftUp();               // 松手：这一发吃的就是刚才 aim(F) 算出的力
+      const shotFrom = { x: g.last.x, y: g.last.y, z: g.last.z };
+      for (let i = 0; i < 12 && st().flying; i++) st().update(0.05);
+      const h = archery.debugHits();
+      const hit = h[h.length - 1];
+      mark(`A3 满弓 预测=${g.kind} 末点=${shotFrom.x.toFixed(2)},${shotFrom.y.toFixed(2)},${shotFrom.z.toFixed(2)}`
+        + ` 命中=${hit ? `${hit.x.toFixed(2)},${hit.y.toFixed(2)},${hit.z.toFixed(2)}` : '无'}`
+        + ` 误差=${hit ? Math.hypot(hit.x - shotFrom.x, hit.y - shotFrom.y).toFixed(3) : '-'}m`
+        + ` 在飞=${st().flying ? 1 : 0} 环=${scoring.bestRing} 分=${scoring.displayScore}`);
+    }, 2600);
+    // A4 计分口径：上靶 1/1、连击 1、分数 = 环值×ringBase×靶距倍率（不是拍球那种固定 +2）
+    setTimeout(() => {
+      mark(`A4 计分 上靶=${scoring.shotMade}/${scoring.shotTaken} 连击=${scoring.shotCombo} 黄心=${scoring.bulls}`
+        + ` 分=${scoring.displayScore} 芯片=${document.getElementById('combo-label').textContent}`
+        + ` 插靶=${archery.debugStuck()} 副标题=${document.getElementById('hud-sub').textContent}`);
+      // A4b 满弓静瞄（截图就截这一刻）：虚线从弓上起笔、往前收拢到准星、再坠向靶面
+      st().charge = F; st().update(0.016);
+      const gg = archery.debugGuide();
+      mark(`A4b 满弓静瞄 预测=${gg.kind} 末点=${gg.last ? `${gg.last.x.toFixed(2)},${gg.last.y.toFixed(2)},${gg.last.z.toFixed(2)}` : '-'} 落点圈=${gg.marker}`);
+    }, 3200);
+    // A5 换局：回篮球模式球要重新露面、弓和力度条当场退场；再开一局射箭则先把靶上的箭清干净
+    setTimeout(() => {
+      startMode('free');
+      mark(`A5 换局 球可见=${ball.mesh.visible ? 1 : 0} 状态=${machine.name} 力度条=${document.getElementById('power-bar').classList.contains('hidden') ? 0 : 1}`
+        + ` 插靶=${archery.debugStuck()}`);
+      startMode('arch');
+      for (let i = 0; i < 10; i++) player.update(0.016);
+      st().charge = F; st().update(0.016);
+      mark(`END 新局 插靶=${archery.debugStuck()} 预测=${archery.debugGuide().kind} 分=${scoring.displayScore} 球可见=${ball.mesh.visible ? 1 : 0}`);
+    }, 3900);
   }
 } catch { /* 生产环境忽略 */ }

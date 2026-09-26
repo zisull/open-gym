@@ -1,7 +1,8 @@
 /**
  * court.js —— 室内篮球馆场景搭建（纯程序化几何体，无外部模型文件）
- * 包含：木地板标线、进攻端篮板/篮圈/篮网、远端装饰筐、观众座椅看台、
+ * 包含：木地板标线、进攻端篮板/篮圈/篮网、观众座椅看台、
  *       场边围栏、墙体、顶棚灯带、光照与阴影。
+ * 只有一只可计分篮筐；+z 端那座是射箭靶，见 archery.js。
  */
 import * as THREE from 'three';
 import { CFG } from './config.js';
@@ -173,12 +174,9 @@ export function buildCourt(scene) {
   }
   hoopGroup.add(netGroup);
 
-  /* ================= 远端装饰筐（整体绕 Y 旋转 180° 镜像到 +z 端） ================= */
-  const far = hoopGroup.clone(true);
-  far.rotation.y = Math.PI;
-  // 远端装饰在阴影相机范围外：若继续投影会在其边缘产生生硬闪烁切边
-  far.traverse((o) => { if (o.isMesh) o.castShadow = false; });
-  scene.add(far);
+  /* ================= 远端不放第二只筐 =================
+     +z 端原来是同一套篮架的镜像装饰，视觉上像"有两个投篮的地方"；
+     现在那位置让给射箭靶（archery.js 的 buildRange 在主循环里建）。 */
 
   /* ================= 看台座椅（+x 侧，楔形阶梯紧贴右墙） ================= */
   const bleacher = new THREE.Group();

@@ -84,15 +84,36 @@ export const CFG = {
     dur: 0.42,           // 单次拍球动画时长（秒）
     every: [0.62, 0.4],  // 自动拍球间隔：站着慢拍 → 全速快拍
   },
+  /* ---------- 射箭（+z 端那座草靶；原来第二只篮筐的位置） ---------- */
+  arch: {
+    // 靶心：高度取视高附近，站着平视就是黄心那条水平线
+    targetY: 1.6, targetZ: 12.72, faceR: 0.5, boardHalf: 0.62,
+    // 环值由内向外（r 用米，与靶面贴图同一份表）。计分 = 环值 × ringBase × 距离倍率 × 连击倍率
+    rings: [{ r: 0.1, v: 10 }, { r: 0.2, v: 8 }, { r: 0.3, v: 6 }, { r: 0.4, v: 4 }, { r: 0.5, v: 2 }],
+    ringBase: 2,
+    chargeTime: 1.05,    // 拉弓 0→满（与投篮蓄力同一套操作语言）
+    cancelDraw: 0.08,    // 低于这个拉距松手 = 收弓，不放箭也不记出手
+    speedMin: 9,         // 箭速：力度 0 → 满；能射多远由 v²≥g·d 决定，拉不满就落在靶前
+    speedMax: 42,        // 满弓：12.7m（开场站位）平射只掉 0.45m，正好落在靶面里 —— 差一档力度就差一环
+    stepT: 1 / 240,      // 定步长积分：导向线与真飞行走同一条，虚线画在哪箭就落在哪
+    maxFlight: 4,        // 保底：超时还没落就判脱靶（卡墙缝之类）
+    guideEvery: 6,       // 虚线每隔几个积分步取一个顶点
+    guideCap: 96,        // 虚线顶点上限
+    stickMax: 10,        // 靶上最多留几支箭，超了回收最老的那支
+    looseMax: 12,        // 落地/撞墙的箭最多留几支当痕迹
+  },
   /* ---------- 挑战模式 ---------- */
   challenge: {
     duration: 90,        // 倒计时秒数
     lastSecondTick: 10,  // 最后 N 秒每秒滴答
   },
-  /* ---------- 计分模式枚举 ---------- */
+  /* ---------- 计分模式枚举 ----------
+     tapScore/shotScore = 该模式是否计入这项得分；bow = 手上拿的是弓不是球
+     （决定结算要不要收球、HUD 读靶距还是篮距、球体要不要藏起来） */
   MODES: {
     free: { id: 'free', name: '自由模式', recordKey: 'fpbb.record.free', timed: false, tapScore: true, shotScore: true },
     shot: { id: 'shot', name: '投篮限时挑战', recordKey: 'fpbb.record.shot', timed: true, tapScore: false, shotScore: true },
+    arch: { id: 'arch', name: '射箭限时挑战', recordKey: 'fpbb.record.arch', timed: true, tapScore: false, shotScore: false, bow: true },
   },
   /* ---------- 视觉 ---------- */
   fx: {

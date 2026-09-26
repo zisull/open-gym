@@ -18,6 +18,7 @@ const CASES = [
   ['move', '?mode=free&demo=move', 6000],
   ['input', '?demo=input', 5000],
   ['spot', '?demo=spot', 5000],
+  ['arch', '?demo=arch', 6000],
   ['result', '?mode=free&demo=result', 6000],
   ['pause', '?mode=free&demo=pause', 5000],
   // —— 主页 / 过场 ——
@@ -27,7 +28,7 @@ const CASES = [
   ['sit', '?mode=free&loc=cinema&demo=sit', 9000],
   ['grid', '?mode=free&loc=cinema&demo=grid', 9000],
   ['import', '?mode=free&loc=cinema&demo=import', 9000],
-  ['wall', '?mode=free&loc=cinema&demo=wall', 9000],
+  ['wall', '?mode=free&loc=cinema&demo=wall', 14000],
   ['ring', '?mode=free&loc=cinema&demo=ring', 9000],
   ['exit', '?mode=free&loc=cinema&demo=exit', 10000],
   ['save', '?mode=free&loc=cinema&demo=save', 9000],

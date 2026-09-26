@@ -685,3 +685,45 @@ export function makeSkyTexture() {
   tex.colorSpace = THREE.SRGBColorSpace;
   return tex;
 }
+
+/**
+ * 射箭靶面：世界箭联配色，由外向内白→黑→蓝→红→黄，环边界半径严格取 `edges`（米）。
+ * 命中判定用的是同一份半径表（见 archery.ringValue），所以画出来的圈边就是能得分的圈边。
+ */
+export function makeTargetTexture(diameter, edges) {
+  const S = 512;
+  const cv = document.createElement('canvas');
+  cv.width = S; cv.height = S;
+  const ctx = cv.getContext('2d');
+  const rnd = mulberry32(91177);
+  const k = S / diameter;              // 米 -> 像素
+  const c = S / 2;
+  const outer = edges[edges.length - 1];
+  const colorOf = (r) => (r > 0.8 ? '#e8e6df' : r > 0.6 ? '#23252a' : r > 0.4 ? '#2f7fbf' : r > 0.2 ? '#cf3b32' : '#f0c53a');
+  for (let i = edges.length - 1; i >= 0; i--) {   // 由外向内叠圆，最后落下的就是黄心
+    ctx.fillStyle = colorOf(edges[i] / outer);
+    ctx.beginPath();
+    ctx.arc(c, c, edges[i] * k, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // 环分隔线 + 黄心里的十字：没有线条就没有"这是一环一环"的读感
+  ctx.strokeStyle = 'rgba(18,20,24,0.75)';
+  ctx.lineWidth = Math.max(1, 0.004 * k);
+  for (const r of edges) {
+    ctx.beginPath(); ctx.arc(c, c, r * k, 0, Math.PI * 2); ctx.stroke();
+  }
+  ctx.beginPath();
+  ctx.moveTo(c - edges[0] * k, c); ctx.lineTo(c + edges[0] * k, c);
+  ctx.moveTo(c, c - edges[0] * k); ctx.lineTo(c, c + edges[0] * k);
+  ctx.stroke();
+  // 草垫质感：一圈细麻点，别让靶面像贴了张纸
+  for (let i = 0; i < 2600; i++) {
+    const a = rnd() * Math.PI * 2, rr = Math.sqrt(rnd()) * outer * k;
+    ctx.fillStyle = `rgba(0,0,0,${0.03 + rnd() * 0.05})`;
+    ctx.fillRect(c + Math.cos(a) * rr, c + Math.sin(a) * rr, 1.6, 1.6);
+  }
+  const tex = new THREE.CanvasTexture(cv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 8;
+  return tex;
+}

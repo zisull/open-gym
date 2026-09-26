@@ -64,6 +64,15 @@ export class GameBall {
   }
 
   /**
+   * 手上拿的不是球（射箭模式）：收回手里 + 从画面里撤掉，
+   * 否则会有一只看不见的球在场上滚、还照样撞出音效。
+   */
+  stash(hidden) {
+    if (hidden) this.startHeld();
+    this.mesh.visible = !hidden;
+  }
+
+  /**
    * 拍球（无门槛装饰动作）：仅持球态可触发，球自动向下拍击并回手。
    * @returns {boolean} 是否成功触发（正在拍球/非持球态返回 false）
    */

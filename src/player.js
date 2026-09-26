@@ -55,7 +55,10 @@ export class Player {
       minX: CFG.gym.playerMinX, maxX: CFG.gym.playerMaxX,
       minZ: CFG.gym.playerMinZ, maxZ: CFG.gym.playerMaxZ,
     };
-    this.blockers = [{ x: 0, z: CFG.hoop.boardFaceZ - 0.95, r: 0.9 }]; // 篮架立柱
+    this.blockers = [
+      { x: 0, z: CFG.hoop.boardFaceZ - 0.95, r: 0.9 },  // 篮架立柱
+      { x: 0, z: CFG.arch.targetZ + 0.34, r: 0.8 },     // 靶架：别直接从正面走进靶子里
+    ];
   }
 
   /** 鼠标移动输入：dx/dy 为像素增量 */

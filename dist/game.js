@@ -7097,7 +7097,7 @@
       }
     }
   }
-  var REVISION, CullFaceNone, CullFaceBack, CullFaceFront, PCFShadowMap, PCFSoftShadowMap, VSMShadowMap, FrontSide, BackSide, DoubleSide, NoBlending, NormalBlending, AdditiveBlending, SubtractiveBlending, MultiplyBlending, CustomBlending, AddEquation, SubtractEquation, ReverseSubtractEquation, MinEquation, MaxEquation, ZeroFactor, OneFactor, SrcColorFactor, OneMinusSrcColorFactor, SrcAlphaFactor, OneMinusSrcAlphaFactor, DstAlphaFactor, OneMinusDstAlphaFactor, DstColorFactor, OneMinusDstColorFactor, SrcAlphaSaturateFactor, ConstantColorFactor, OneMinusConstantColorFactor, ConstantAlphaFactor, OneMinusConstantAlphaFactor, NeverDepth, AlwaysDepth, LessDepth, LessEqualDepth, EqualDepth, GreaterEqualDepth, GreaterDepth, NotEqualDepth, MultiplyOperation, MixOperation, AddOperation, NoToneMapping, LinearToneMapping, ReinhardToneMapping, CineonToneMapping, ACESFilmicToneMapping, CustomToneMapping, AgXToneMapping, UVMapping, CubeReflectionMapping, CubeRefractionMapping, EquirectangularReflectionMapping, EquirectangularRefractionMapping, CubeUVReflectionMapping, RepeatWrapping, ClampToEdgeWrapping, MirroredRepeatWrapping, NearestFilter, NearestMipmapNearestFilter, NearestMipmapLinearFilter, LinearFilter, LinearMipmapNearestFilter, LinearMipmapLinearFilter, UnsignedByteType, ByteType, ShortType, UnsignedShortType, IntType, UnsignedIntType, FloatType, HalfFloatType, UnsignedShort4444Type, UnsignedShort5551Type, UnsignedInt248Type, AlphaFormat, RGBAFormat, LuminanceFormat, LuminanceAlphaFormat, DepthFormat, DepthStencilFormat, RedFormat, RedIntegerFormat, RGFormat, RGIntegerFormat, RGBAIntegerFormat, RGB_S3TC_DXT1_Format, RGBA_S3TC_DXT1_Format, RGBA_S3TC_DXT3_Format, RGBA_S3TC_DXT5_Format, RGB_PVRTC_4BPPV1_Format, RGB_PVRTC_2BPPV1_Format, RGBA_PVRTC_4BPPV1_Format, RGBA_PVRTC_2BPPV1_Format, RGB_ETC1_Format, RGB_ETC2_Format, RGBA_ETC2_EAC_Format, RGBA_ASTC_4x4_Format, RGBA_ASTC_5x4_Format, RGBA_ASTC_5x5_Format, RGBA_ASTC_6x5_Format, RGBA_ASTC_6x6_Format, RGBA_ASTC_8x5_Format, RGBA_ASTC_8x6_Format, RGBA_ASTC_8x8_Format, RGBA_ASTC_10x5_Format, RGBA_ASTC_10x6_Format, RGBA_ASTC_10x8_Format, RGBA_ASTC_10x10_Format, RGBA_ASTC_12x10_Format, RGBA_ASTC_12x12_Format, RGBA_BPTC_Format, RGB_BPTC_SIGNED_Format, RGB_BPTC_UNSIGNED_Format, RED_RGTC1_Format, SIGNED_RED_RGTC1_Format, RED_GREEN_RGTC2_Format, SIGNED_RED_GREEN_RGTC2_Format, InterpolateDiscrete, InterpolateLinear, InterpolateSmooth, ZeroCurvatureEnding, ZeroSlopeEnding, WrapAroundEnding, LinearEncoding, sRGBEncoding, BasicDepthPacking, RGBADepthPacking, TangentSpaceNormalMap, ObjectSpaceNormalMap, NoColorSpace, SRGBColorSpace, LinearSRGBColorSpace, DisplayP3ColorSpace, LinearDisplayP3ColorSpace, LinearTransfer, SRGBTransfer, Rec709Primaries, P3Primaries, KeepStencilOp, AlwaysStencilFunc, NeverCompare, LessCompare, EqualCompare, LessEqualCompare, GreaterCompare, NotEqualCompare, GreaterEqualCompare, AlwaysCompare, StaticDrawUsage, GLSL3, _SRGBAFormat, WebGLCoordinateSystem, WebGPUCoordinateSystem, EventDispatcher, _lut, _seed, DEG2RAD, RAD2DEG, MathUtils, Vector2, Matrix3, _m3, _cache, LINEAR_SRGB_TO_LINEAR_DISPLAY_P3, LINEAR_DISPLAY_P3_TO_LINEAR_SRGB, COLOR_SPACES, SUPPORTED_WORKING_COLOR_SPACES, ColorManagement, _canvas, ImageUtils, _sourceId, Source, _textureId, Texture, Vector4, RenderTarget, WebGLRenderTarget, DataArrayTexture, Data3DTexture, Quaternion, Vector3, _vector$c, _quaternion$4, Box3, _points, _vector$b, _box$4, _v0$2, _v1$7, _v2$4, _f0, _f1, _f2, _center, _extents, _triangleNormal, _testAxis, _box$3, _v1$6, _v2$3, Sphere, _vector$a, _segCenter, _segDir, _diff, _edge1, _edge2, _normal$1, Ray, Matrix4, _v1$5, _m1$2, _zero, _one, _x, _y, _z, _matrix$1, _quaternion$3, Euler, Layers, _object3DId, _v1$4, _q1, _m1$1, _target, _position$3, _scale$2, _quaternion$2, _xAxis, _yAxis, _zAxis, _addedEvent, _removedEvent, Object3D, _v0$1, _v1$3, _v2$2, _v3$1, _vab, _vac, _vbc, _vap, _vbp, _vcp, warnedGetUV, Triangle, _colorKeywords, _hslA, _hslB, Color, _color, _materialId, Material, MeshBasicMaterial, _vector$9, _vector2$1, BufferAttribute, Uint16BufferAttribute, Uint32BufferAttribute, Float32BufferAttribute, _id$2, _m1, _obj, _offset, _box$2, _boxMorphTargets, _vector$8, BufferGeometry, _inverseMatrix$3, _ray$3, _sphere$6, _sphereHitAt, _vA$1, _vB$1, _vC$1, _tempA, _morphA, _uvA$1, _uvB$1, _uvC$1, _normalA, _normalB, _normalC, _intersectionPoint, _intersectionPointWorld, Mesh, BoxGeometry, UniformsUtils, default_vertex, default_fragment, ShaderMaterial, Camera, PerspectiveCamera, fov, aspect, CubeCamera, CubeTexture, WebGLCubeRenderTarget, _vector1, _vector2, _normalMatrix, Plane, _sphere$5, _vector$7, Frustum, PlaneGeometry, alphahash_fragment, alphahash_pars_fragment, alphamap_fragment, alphamap_pars_fragment, alphatest_fragment, alphatest_pars_fragment, aomap_fragment, aomap_pars_fragment, batching_pars_vertex, batching_vertex, begin_vertex, beginnormal_vertex, bsdfs, iridescence_fragment, bumpmap_pars_fragment, clipping_planes_fragment, clipping_planes_pars_fragment, clipping_planes_pars_vertex, clipping_planes_vertex, color_fragment, color_pars_fragment, color_pars_vertex, color_vertex, common, cube_uv_reflection_fragment, defaultnormal_vertex, displacementmap_pars_vertex, displacementmap_vertex, emissivemap_fragment, emissivemap_pars_fragment, colorspace_fragment, colorspace_pars_fragment, envmap_fragment, envmap_common_pars_fragment, envmap_pars_fragment, envmap_pars_vertex, envmap_vertex, fog_vertex, fog_pars_vertex, fog_fragment, fog_pars_fragment, gradientmap_pars_fragment, lightmap_fragment, lightmap_pars_fragment, lights_lambert_fragment, lights_lambert_pars_fragment, lights_pars_begin, envmap_physical_pars_fragment, lights_toon_fragment, lights_toon_pars_fragment, lights_phong_fragment, lights_phong_pars_fragment, lights_physical_fragment, lights_physical_pars_fragment, lights_fragment_begin, lights_fragment_maps, lights_fragment_end, logdepthbuf_fragment, logdepthbuf_pars_fragment, logdepthbuf_pars_vertex, logdepthbuf_vertex, map_fragment, map_pars_fragment, map_particle_fragment, map_particle_pars_fragment, metalnessmap_fragment, metalnessmap_pars_fragment, morphcolor_vertex, morphnormal_vertex, morphtarget_pars_vertex, morphtarget_vertex, normal_fragment_begin, normal_fragment_maps, normal_pars_fragment, normal_pars_vertex, normal_vertex, normalmap_pars_fragment, clearcoat_normal_fragment_begin, clearcoat_normal_fragment_maps, clearcoat_pars_fragment, iridescence_pars_fragment, opaque_fragment, packing, premultiplied_alpha_fragment, project_vertex, dithering_fragment, dithering_pars_fragment, roughnessmap_fragment, roughnessmap_pars_fragment, shadowmap_pars_fragment, shadowmap_pars_vertex, shadowmap_vertex, shadowmask_pars_fragment, skinbase_vertex, skinning_pars_vertex, skinning_vertex, skinnormal_vertex, specularmap_fragment, specularmap_pars_fragment, tonemapping_fragment, tonemapping_pars_fragment, transmission_fragment, transmission_pars_fragment, uv_pars_fragment, uv_pars_vertex, uv_vertex, worldpos_vertex, vertex$h, fragment$h, vertex$g, fragment$g, vertex$f, fragment$f, vertex$e, fragment$e, vertex$d, fragment$d, vertex$c, fragment$c, vertex$b, fragment$b, vertex$a, fragment$a, vertex$9, fragment$9, vertex$8, fragment$8, vertex$7, fragment$7, vertex$6, fragment$6, vertex$5, fragment$5, vertex$4, fragment$4, vertex$3, fragment$3, vertex$2, fragment$2, vertex$1, fragment$1, ShaderChunk, UniformsLib, ShaderLib, _rgb, OrthographicCamera, LOD_MIN, EXTRA_LOD_SIGMA, MAX_SAMPLES, _flatCamera, _clearColor, _oldTarget, _oldActiveCubeFace, _oldActiveMipmapLevel, PHI, INV_PHI, _axisDirections, PMREMGenerator, DepthTexture, emptyTexture, emptyShadowTexture, emptyArrayTexture, empty3dTexture, emptyCubeTexture, arrayCacheF32, arrayCacheI32, mat4array, mat3array, mat2array, SingleUniform, PureArrayUniform, StructuredUniform, RePathPart, WebGLUniforms, COMPLETION_STATUS_KHR, programIdCount, includePattern, shaderChunkMap, unrollLoopPattern, _id$1, WebGLShaderCache, WebGLShaderStage, nextVersion, MeshDepthMaterial, MeshDistanceMaterial, vertex, fragment, ArrayCamera, Group, _moveEvent, WebXRController, WebXRManager, WebGLRenderer, WebGL1Renderer, Fog, Scene, InstancedBufferAttribute, _instanceLocalMatrix, _instanceWorldMatrix, _instanceIntersects, _box3, _identity, _mesh$1, _sphere$3, InstancedMesh, LineBasicMaterial, _start$1, _end$1, _inverseMatrix$1, _ray$1, _sphere$1, Line, PointsMaterial, _inverseMatrix, _ray, _sphere, _position$2, Points, VideoTexture, CanvasTexture, Curve, EllipseCurve, ArcCurve, tmp, px, py, pz, CatmullRomCurve3, CubicBezierCurve, CubicBezierCurve3, LineCurve, LineCurve3, QuadraticBezierCurve, QuadraticBezierCurve3, SplineCurve, Curves, CircleGeometry, CylinderGeometry, ConeGeometry, SphereGeometry, TorusGeometry, TubeGeometry, RawShaderMaterial, MeshStandardMaterial, MeshPhysicalMaterial, LineDashedMaterial, Interpolant, CubicInterpolant, LinearInterpolant, DiscreteInterpolant, KeyframeTrack, BooleanKeyframeTrack, ColorKeyframeTrack, NumberKeyframeTrack, QuaternionLinearInterpolant, QuaternionKeyframeTrack, StringKeyframeTrack, VectorKeyframeTrack, Cache, LoadingManager, DefaultLoadingManager, Loader, ImageLoader, TextureLoader, Light, HemisphereLight, _projScreenMatrix$1, _lightPositionWorld$1, _lookTarget$1, LightShadow, _projScreenMatrix, _lightPositionWorld, _lookTarget, PointLightShadow, PointLight, DirectionalLightShadow, DirectionalLight, Clock, _RESERVED_CHARS_RE, _reservedRe, _wordChar, _wordCharOrDot, _directoryRe, _nodeRe, _objectRe, _propertyRe, _trackRe, _supportedObjectNames, Composite, PropertyBinding, _controlInterpolantsResultBuffer, Raycaster;
+  var REVISION, CullFaceNone, CullFaceBack, CullFaceFront, PCFShadowMap, PCFSoftShadowMap, VSMShadowMap, FrontSide, BackSide, DoubleSide, NoBlending, NormalBlending, AdditiveBlending, SubtractiveBlending, MultiplyBlending, CustomBlending, AddEquation, SubtractEquation, ReverseSubtractEquation, MinEquation, MaxEquation, ZeroFactor, OneFactor, SrcColorFactor, OneMinusSrcColorFactor, SrcAlphaFactor, OneMinusSrcAlphaFactor, DstAlphaFactor, OneMinusDstAlphaFactor, DstColorFactor, OneMinusDstColorFactor, SrcAlphaSaturateFactor, ConstantColorFactor, OneMinusConstantColorFactor, ConstantAlphaFactor, OneMinusConstantAlphaFactor, NeverDepth, AlwaysDepth, LessDepth, LessEqualDepth, EqualDepth, GreaterEqualDepth, GreaterDepth, NotEqualDepth, MultiplyOperation, MixOperation, AddOperation, NoToneMapping, LinearToneMapping, ReinhardToneMapping, CineonToneMapping, ACESFilmicToneMapping, CustomToneMapping, AgXToneMapping, UVMapping, CubeReflectionMapping, CubeRefractionMapping, EquirectangularReflectionMapping, EquirectangularRefractionMapping, CubeUVReflectionMapping, RepeatWrapping, ClampToEdgeWrapping, MirroredRepeatWrapping, NearestFilter, NearestMipmapNearestFilter, NearestMipmapLinearFilter, LinearFilter, LinearMipmapNearestFilter, LinearMipmapLinearFilter, UnsignedByteType, ByteType, ShortType, UnsignedShortType, IntType, UnsignedIntType, FloatType, HalfFloatType, UnsignedShort4444Type, UnsignedShort5551Type, UnsignedInt248Type, AlphaFormat, RGBAFormat, LuminanceFormat, LuminanceAlphaFormat, DepthFormat, DepthStencilFormat, RedFormat, RedIntegerFormat, RGFormat, RGIntegerFormat, RGBAIntegerFormat, RGB_S3TC_DXT1_Format, RGBA_S3TC_DXT1_Format, RGBA_S3TC_DXT3_Format, RGBA_S3TC_DXT5_Format, RGB_PVRTC_4BPPV1_Format, RGB_PVRTC_2BPPV1_Format, RGBA_PVRTC_4BPPV1_Format, RGBA_PVRTC_2BPPV1_Format, RGB_ETC1_Format, RGB_ETC2_Format, RGBA_ETC2_EAC_Format, RGBA_ASTC_4x4_Format, RGBA_ASTC_5x4_Format, RGBA_ASTC_5x5_Format, RGBA_ASTC_6x5_Format, RGBA_ASTC_6x6_Format, RGBA_ASTC_8x5_Format, RGBA_ASTC_8x6_Format, RGBA_ASTC_8x8_Format, RGBA_ASTC_10x5_Format, RGBA_ASTC_10x6_Format, RGBA_ASTC_10x8_Format, RGBA_ASTC_10x10_Format, RGBA_ASTC_12x10_Format, RGBA_ASTC_12x12_Format, RGBA_BPTC_Format, RGB_BPTC_SIGNED_Format, RGB_BPTC_UNSIGNED_Format, RED_RGTC1_Format, SIGNED_RED_RGTC1_Format, RED_GREEN_RGTC2_Format, SIGNED_RED_GREEN_RGTC2_Format, InterpolateDiscrete, InterpolateLinear, InterpolateSmooth, ZeroCurvatureEnding, ZeroSlopeEnding, WrapAroundEnding, LinearEncoding, sRGBEncoding, BasicDepthPacking, RGBADepthPacking, TangentSpaceNormalMap, ObjectSpaceNormalMap, NoColorSpace, SRGBColorSpace, LinearSRGBColorSpace, DisplayP3ColorSpace, LinearDisplayP3ColorSpace, LinearTransfer, SRGBTransfer, Rec709Primaries, P3Primaries, KeepStencilOp, AlwaysStencilFunc, NeverCompare, LessCompare, EqualCompare, LessEqualCompare, GreaterCompare, NotEqualCompare, GreaterEqualCompare, AlwaysCompare, StaticDrawUsage, GLSL3, _SRGBAFormat, WebGLCoordinateSystem, WebGPUCoordinateSystem, EventDispatcher, _lut, _seed, DEG2RAD, RAD2DEG, MathUtils, Vector2, Matrix3, _m3, _cache, LINEAR_SRGB_TO_LINEAR_DISPLAY_P3, LINEAR_DISPLAY_P3_TO_LINEAR_SRGB, COLOR_SPACES, SUPPORTED_WORKING_COLOR_SPACES, ColorManagement, _canvas, ImageUtils, _sourceId, Source, _textureId, Texture, Vector4, RenderTarget, WebGLRenderTarget, DataArrayTexture, Data3DTexture, Quaternion, Vector3, _vector$c, _quaternion$4, Box3, _points, _vector$b, _box$4, _v0$2, _v1$7, _v2$4, _f0, _f1, _f2, _center, _extents, _triangleNormal, _testAxis, _box$3, _v1$6, _v2$3, Sphere, _vector$a, _segCenter, _segDir, _diff, _edge1, _edge2, _normal$1, Ray, Matrix4, _v1$5, _m1$2, _zero, _one, _x, _y, _z, _matrix$1, _quaternion$3, Euler, Layers, _object3DId, _v1$4, _q1, _m1$1, _target, _position$3, _scale$2, _quaternion$2, _xAxis, _yAxis, _zAxis, _addedEvent, _removedEvent, Object3D, _v0$1, _v1$3, _v2$2, _v3$1, _vab, _vac, _vbc, _vap, _vbp, _vcp, warnedGetUV, Triangle, _colorKeywords, _hslA, _hslB, Color, _color, _materialId, Material, MeshBasicMaterial, _vector$9, _vector2$1, BufferAttribute, Uint16BufferAttribute, Uint32BufferAttribute, Float32BufferAttribute, _id$2, _m1, _obj, _offset, _box$2, _boxMorphTargets, _vector$8, BufferGeometry, _inverseMatrix$3, _ray$3, _sphere$6, _sphereHitAt, _vA$1, _vB$1, _vC$1, _tempA, _morphA, _uvA$1, _uvB$1, _uvC$1, _normalA, _normalB, _normalC, _intersectionPoint, _intersectionPointWorld, Mesh, BoxGeometry, UniformsUtils, default_vertex, default_fragment, ShaderMaterial, Camera, PerspectiveCamera, fov, aspect, CubeCamera, CubeTexture, WebGLCubeRenderTarget, _vector1, _vector2, _normalMatrix, Plane, _sphere$5, _vector$7, Frustum, PlaneGeometry, alphahash_fragment, alphahash_pars_fragment, alphamap_fragment, alphamap_pars_fragment, alphatest_fragment, alphatest_pars_fragment, aomap_fragment, aomap_pars_fragment, batching_pars_vertex, batching_vertex, begin_vertex, beginnormal_vertex, bsdfs, iridescence_fragment, bumpmap_pars_fragment, clipping_planes_fragment, clipping_planes_pars_fragment, clipping_planes_pars_vertex, clipping_planes_vertex, color_fragment, color_pars_fragment, color_pars_vertex, color_vertex, common, cube_uv_reflection_fragment, defaultnormal_vertex, displacementmap_pars_vertex, displacementmap_vertex, emissivemap_fragment, emissivemap_pars_fragment, colorspace_fragment, colorspace_pars_fragment, envmap_fragment, envmap_common_pars_fragment, envmap_pars_fragment, envmap_pars_vertex, envmap_vertex, fog_vertex, fog_pars_vertex, fog_fragment, fog_pars_fragment, gradientmap_pars_fragment, lightmap_fragment, lightmap_pars_fragment, lights_lambert_fragment, lights_lambert_pars_fragment, lights_pars_begin, envmap_physical_pars_fragment, lights_toon_fragment, lights_toon_pars_fragment, lights_phong_fragment, lights_phong_pars_fragment, lights_physical_fragment, lights_physical_pars_fragment, lights_fragment_begin, lights_fragment_maps, lights_fragment_end, logdepthbuf_fragment, logdepthbuf_pars_fragment, logdepthbuf_pars_vertex, logdepthbuf_vertex, map_fragment, map_pars_fragment, map_particle_fragment, map_particle_pars_fragment, metalnessmap_fragment, metalnessmap_pars_fragment, morphcolor_vertex, morphnormal_vertex, morphtarget_pars_vertex, morphtarget_vertex, normal_fragment_begin, normal_fragment_maps, normal_pars_fragment, normal_pars_vertex, normal_vertex, normalmap_pars_fragment, clearcoat_normal_fragment_begin, clearcoat_normal_fragment_maps, clearcoat_pars_fragment, iridescence_pars_fragment, opaque_fragment, packing, premultiplied_alpha_fragment, project_vertex, dithering_fragment, dithering_pars_fragment, roughnessmap_fragment, roughnessmap_pars_fragment, shadowmap_pars_fragment, shadowmap_pars_vertex, shadowmap_vertex, shadowmask_pars_fragment, skinbase_vertex, skinning_pars_vertex, skinning_vertex, skinnormal_vertex, specularmap_fragment, specularmap_pars_fragment, tonemapping_fragment, tonemapping_pars_fragment, transmission_fragment, transmission_pars_fragment, uv_pars_fragment, uv_pars_vertex, uv_vertex, worldpos_vertex, vertex$h, fragment$h, vertex$g, fragment$g, vertex$f, fragment$f, vertex$e, fragment$e, vertex$d, fragment$d, vertex$c, fragment$c, vertex$b, fragment$b, vertex$a, fragment$a, vertex$9, fragment$9, vertex$8, fragment$8, vertex$7, fragment$7, vertex$6, fragment$6, vertex$5, fragment$5, vertex$4, fragment$4, vertex$3, fragment$3, vertex$2, fragment$2, vertex$1, fragment$1, ShaderChunk, UniformsLib, ShaderLib, _rgb, OrthographicCamera, LOD_MIN, EXTRA_LOD_SIGMA, MAX_SAMPLES, _flatCamera, _clearColor, _oldTarget, _oldActiveCubeFace, _oldActiveMipmapLevel, PHI, INV_PHI, _axisDirections, PMREMGenerator, DepthTexture, emptyTexture, emptyShadowTexture, emptyArrayTexture, empty3dTexture, emptyCubeTexture, arrayCacheF32, arrayCacheI32, mat4array, mat3array, mat2array, SingleUniform, PureArrayUniform, StructuredUniform, RePathPart, WebGLUniforms, COMPLETION_STATUS_KHR, programIdCount, includePattern, shaderChunkMap, unrollLoopPattern, _id$1, WebGLShaderCache, WebGLShaderStage, nextVersion, MeshDepthMaterial, MeshDistanceMaterial, vertex, fragment, ArrayCamera, Group, _moveEvent, WebXRController, WebXRManager, WebGLRenderer, WebGL1Renderer, Fog, Scene, InstancedBufferAttribute, _instanceLocalMatrix, _instanceWorldMatrix, _instanceIntersects, _box3, _identity, _mesh$1, _sphere$3, InstancedMesh, LineBasicMaterial, _start$1, _end$1, _inverseMatrix$1, _ray$1, _sphere$1, Line, PointsMaterial, _inverseMatrix, _ray, _sphere, _position$2, Points, VideoTexture, CanvasTexture, Curve, EllipseCurve, ArcCurve, tmp, px, py, pz, CatmullRomCurve3, CubicBezierCurve, CubicBezierCurve3, LineCurve, LineCurve3, QuadraticBezierCurve, QuadraticBezierCurve3, SplineCurve, Curves, CircleGeometry, CylinderGeometry, ConeGeometry, RingGeometry, SphereGeometry, TorusGeometry, TubeGeometry, RawShaderMaterial, MeshStandardMaterial, MeshPhysicalMaterial, LineDashedMaterial, Interpolant, CubicInterpolant, LinearInterpolant, DiscreteInterpolant, KeyframeTrack, BooleanKeyframeTrack, ColorKeyframeTrack, NumberKeyframeTrack, QuaternionLinearInterpolant, QuaternionKeyframeTrack, StringKeyframeTrack, VectorKeyframeTrack, Cache, LoadingManager, DefaultLoadingManager, Loader, ImageLoader, TextureLoader, Light, HemisphereLight, _projScreenMatrix$1, _lightPositionWorld$1, _lookTarget$1, LightShadow, _projScreenMatrix, _lightPositionWorld, _lookTarget, PointLightShadow, PointLight, DirectionalLightShadow, DirectionalLight, Clock, _RESERVED_CHARS_RE, _reservedRe, _wordChar, _wordCharOrDot, _directoryRe, _nodeRe, _objectRe, _propertyRe, _trackRe, _supportedObjectNames, Composite, PropertyBinding, _controlInterpolantsResultBuffer, Raycaster;
   var init_three_module = __esm({
     "node_modules/three/build/three.module.js"() {
       REVISION = "160";
@@ -19288,6 +19288,67 @@
           return new _ConeGeometry(data.radius, data.height, data.radialSegments, data.heightSegments, data.openEnded, data.thetaStart, data.thetaLength);
         }
       };
+      RingGeometry = class _RingGeometry extends BufferGeometry {
+        constructor(innerRadius = 0.5, outerRadius = 1, thetaSegments = 32, phiSegments = 1, thetaStart = 0, thetaLength = Math.PI * 2) {
+          super();
+          this.type = "RingGeometry";
+          this.parameters = {
+            innerRadius,
+            outerRadius,
+            thetaSegments,
+            phiSegments,
+            thetaStart,
+            thetaLength
+          };
+          thetaSegments = Math.max(3, thetaSegments);
+          phiSegments = Math.max(1, phiSegments);
+          const indices = [];
+          const vertices = [];
+          const normals = [];
+          const uvs = [];
+          let radius = innerRadius;
+          const radiusStep = (outerRadius - innerRadius) / phiSegments;
+          const vertex2 = new Vector3();
+          const uv = new Vector2();
+          for (let j = 0; j <= phiSegments; j++) {
+            for (let i = 0; i <= thetaSegments; i++) {
+              const segment = thetaStart + i / thetaSegments * thetaLength;
+              vertex2.x = radius * Math.cos(segment);
+              vertex2.y = radius * Math.sin(segment);
+              vertices.push(vertex2.x, vertex2.y, vertex2.z);
+              normals.push(0, 0, 1);
+              uv.x = (vertex2.x / outerRadius + 1) / 2;
+              uv.y = (vertex2.y / outerRadius + 1) / 2;
+              uvs.push(uv.x, uv.y);
+            }
+            radius += radiusStep;
+          }
+          for (let j = 0; j < phiSegments; j++) {
+            const thetaSegmentLevel = j * (thetaSegments + 1);
+            for (let i = 0; i < thetaSegments; i++) {
+              const segment = i + thetaSegmentLevel;
+              const a2 = segment;
+              const b2 = segment + thetaSegments + 1;
+              const c2 = segment + thetaSegments + 2;
+              const d = segment + 1;
+              indices.push(a2, b2, d);
+              indices.push(b2, c2, d);
+            }
+          }
+          this.setIndex(indices);
+          this.setAttribute("position", new Float32BufferAttribute(vertices, 3));
+          this.setAttribute("normal", new Float32BufferAttribute(normals, 3));
+          this.setAttribute("uv", new Float32BufferAttribute(uvs, 2));
+        }
+        copy(source) {
+          super.copy(source);
+          this.parameters = Object.assign({}, source.parameters);
+          return this;
+        }
+        static fromJSON(data) {
+          return new _RingGeometry(data.innerRadius, data.outerRadius, data.thetaSegments, data.phiSegments, data.thetaStart, data.thetaLength);
+        }
+      };
       SphereGeometry = class _SphereGeometry extends BufferGeometry {
         constructor(radius = 1, widthSegments = 32, heightSegments = 16, phiStart = 0, phiLength = Math.PI * 2, thetaStart = 0, thetaLength = Math.PI) {
           super();
@@ -22224,6 +22285,37 @@
           every: [0.62, 0.4]
           // 自动拍球间隔：站着慢拍 → 全速快拍
         },
+        /* ---------- 射箭（+z 端那座草靶；原来第二只篮筐的位置） ---------- */
+        arch: {
+          // 靶心：高度取视高附近，站着平视就是黄心那条水平线
+          targetY: 1.6,
+          targetZ: 12.72,
+          faceR: 0.5,
+          boardHalf: 0.62,
+          // 环值由内向外（r 用米，与靶面贴图同一份表）。计分 = 环值 × ringBase × 距离倍率 × 连击倍率
+          rings: [{ r: 0.1, v: 10 }, { r: 0.2, v: 8 }, { r: 0.3, v: 6 }, { r: 0.4, v: 4 }, { r: 0.5, v: 2 }],
+          ringBase: 2,
+          chargeTime: 1.05,
+          // 拉弓 0→满（与投篮蓄力同一套操作语言）
+          cancelDraw: 0.08,
+          // 低于这个拉距松手 = 收弓，不放箭也不记出手
+          speedMin: 9,
+          // 箭速：力度 0 → 满；能射多远由 v²≥g·d 决定，拉不满就落在靶前
+          speedMax: 42,
+          // 满弓：12.7m（开场站位）平射只掉 0.45m，正好落在靶面里 —— 差一档力度就差一环
+          stepT: 1 / 240,
+          // 定步长积分：导向线与真飞行走同一条，虚线画在哪箭就落在哪
+          maxFlight: 4,
+          // 保底：超时还没落就判脱靶（卡墙缝之类）
+          guideEvery: 6,
+          // 虚线每隔几个积分步取一个顶点
+          guideCap: 96,
+          // 虚线顶点上限
+          stickMax: 10,
+          // 靶上最多留几支箭，超了回收最老的那支
+          looseMax: 12
+          // 落地/撞墙的箭最多留几支当痕迹
+        },
         /* ---------- 挑战模式 ---------- */
         challenge: {
           duration: 90,
@@ -22231,10 +22323,13 @@
           lastSecondTick: 10
           // 最后 N 秒每秒滴答
         },
-        /* ---------- 计分模式枚举 ---------- */
+        /* ---------- 计分模式枚举 ----------
+           tapScore/shotScore = 该模式是否计入这项得分；bow = 手上拿的是弓不是球
+           （决定结算要不要收球、HUD 读靶距还是篮距、球体要不要藏起来） */
         MODES: {
           free: { id: "free", name: "\u81EA\u7531\u6A21\u5F0F", recordKey: "fpbb.record.free", timed: false, tapScore: true, shotScore: true },
-          shot: { id: "shot", name: "\u6295\u7BEE\u9650\u65F6\u6311\u6218", recordKey: "fpbb.record.shot", timed: true, tapScore: false, shotScore: true }
+          shot: { id: "shot", name: "\u6295\u7BEE\u9650\u65F6\u6311\u6218", recordKey: "fpbb.record.shot", timed: true, tapScore: false, shotScore: true },
+          arch: { id: "arch", name: "\u5C04\u7BAD\u9650\u65F6\u6311\u6218", recordKey: "fpbb.record.arch", timed: true, tapScore: false, shotScore: false, bow: true }
         },
         /* ---------- 视觉 ---------- */
         fx: {
@@ -22458,10 +22553,10 @@
           if (target === void 0) {
             target = new _Mat3();
           }
-          const A = this.elements;
+          const A2 = this.elements;
           const B = matrix.elements;
           const T2 = target.elements;
-          const a11 = A[0], a12 = A[1], a13 = A[2], a21 = A[3], a22 = A[4], a23 = A[5], a31 = A[6], a32 = A[7], a33 = A[8];
+          const a11 = A2[0], a12 = A2[1], a13 = A2[2], a21 = A2[3], a22 = A2[4], a23 = A2[5], a31 = A2[6], a32 = A2[7], a33 = A2[8];
           const b11 = B[0], b12 = B[1], b13 = B[2], b21 = B[3], b22 = B[4], b23 = B[5], b31 = B[6], b32 = B[7], b33 = B[8];
           T2[0] = a11 * b11 + a12 * b21 + a13 * b31;
           T2[1] = a11 * b12 + a12 * b22 + a13 * b32;
@@ -30038,6 +30133,46 @@
     tex.colorSpace = SRGBColorSpace;
     return tex;
   }
+  function makeTargetTexture(diameter, edges) {
+    const S = 512;
+    const cv = document.createElement("canvas");
+    cv.width = S;
+    cv.height = S;
+    const ctx = cv.getContext("2d");
+    const rnd = mulberry32(91177);
+    const k = S / diameter;
+    const c2 = S / 2;
+    const outer = edges[edges.length - 1];
+    const colorOf = (r) => r > 0.8 ? "#e8e6df" : r > 0.6 ? "#23252a" : r > 0.4 ? "#2f7fbf" : r > 0.2 ? "#cf3b32" : "#f0c53a";
+    for (let i = edges.length - 1; i >= 0; i--) {
+      ctx.fillStyle = colorOf(edges[i] / outer);
+      ctx.beginPath();
+      ctx.arc(c2, c2, edges[i] * k, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.strokeStyle = "rgba(18,20,24,0.75)";
+    ctx.lineWidth = Math.max(1, 4e-3 * k);
+    for (const r of edges) {
+      ctx.beginPath();
+      ctx.arc(c2, c2, r * k, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.beginPath();
+    ctx.moveTo(c2 - edges[0] * k, c2);
+    ctx.lineTo(c2 + edges[0] * k, c2);
+    ctx.moveTo(c2, c2 - edges[0] * k);
+    ctx.lineTo(c2, c2 + edges[0] * k);
+    ctx.stroke();
+    for (let i = 0; i < 2600; i++) {
+      const a2 = rnd() * Math.PI * 2, rr = Math.sqrt(rnd()) * outer * k;
+      ctx.fillStyle = `rgba(0,0,0,${0.03 + rnd() * 0.05})`;
+      ctx.fillRect(c2 + Math.cos(a2) * rr, c2 + Math.sin(a2) * rr, 1.6, 1.6);
+    }
+    const tex = new CanvasTexture(cv);
+    tex.colorSpace = SRGBColorSpace;
+    tex.anisotropy = 8;
+    return tex;
+  }
   var init_textures = __esm({
     "src/textures.js"() {
       init_three_module();
@@ -30204,12 +30339,6 @@
       netGroup.add(ring);
     }
     hoopGroup.add(netGroup);
-    const far = hoopGroup.clone(true);
-    far.rotation.y = Math.PI;
-    far.traverse((o) => {
-      if (o.isMesh) o.castShadow = false;
-    });
-    scene.add(far);
     const bleacher = new Group();
     const concrete = paintedWood(4870232);
     const seatColors = [14172959, 2056152, 15774761, 3056474];
@@ -30452,6 +30581,7 @@
             chipS: $("chip-s"),
             comboS: $("combo-s"),
             mulS: $("mul-s"),
+            comboLabel: $("combo-label"),
             prompt: $("hud-prompt"),
             popup: $("score-popup"),
             pbar: $("power-bar"),
@@ -30470,6 +30600,7 @@
             resShare: $("res-share"),
             recFree: $("rec-free"),
             recShot: $("rec-shot"),
+            recArch: $("rec-arch"),
             setShadow: $("set-shadow"),
             setVolume: $("set-volume"),
             pauseShadow: $("pause-shadow")
@@ -30526,17 +30657,20 @@
           this.el.pause.classList.add("hidden");
           this.el.recFree.textContent = records.free;
           this.el.recShot.textContent = records.shot;
+          this.el.recArch.textContent = records.arch;
           this._setHelp(false);
         }
         hideMenu() {
           this.el.menu.classList.add("hidden");
         }
-        showHud(modeName, timed) {
+        /** modeDef 整体传进来：连击芯片的文案要跟着手上拿的是球还是弓变 */
+        showHud(modeDef) {
           this.hideMenu();
           this.el.hud.classList.remove("hidden");
           this.el.cross.classList.remove("hidden");
-          this.el.mode.textContent = modeName;
-          this.el.timerBox.classList.toggle("hidden", !timed);
+          this.el.mode.textContent = modeDef.name;
+          this.el.comboLabel.textContent = modeDef.bow ? "\u{1F3F9} \u5C04\u7BAD\u8FDE\u51FB" : "\u{1F3C0} \u6295\u7BEE\u8FDE\u51FB";
+          this.el.timerBox.classList.toggle("hidden", !modeDef.timed);
         }
         showPause(show) {
           this.el.pause.classList.toggle("hidden", !show);
@@ -30875,10 +31009,8 @@
       const slot = Math.PI * 2 / (edges || n);
       for (let i = 0; i < n; i++) {
         const sc = makeScreen(sources[i] || null, slot * (i + 0.5), slot);
-        sc.mesh.userData.screen = i;
         screens.push(sc);
       }
-      pickables = [bedHit, ...screens.map((x) => x.mesh)];
       syncVoices();
       applyAudio();
       layoutBigGrid(document.body.classList.contains("big-screen"));
@@ -30954,7 +31086,6 @@
     }
     scene.add(bed);
     const bedHit = bed.children[2];
-    let pickables = [bedHit];
     function setShape(toPoly) {
       shape = toPoly ? "poly" : "round";
       try {
@@ -31127,7 +31258,7 @@
       screens.forEach((s) => s.videoEl.pause());
       playBtn.textContent = "\u25B6 \u64AD\u653E";
     }
-    function tapScreen(i) {
+    function toggleVoice(i) {
       const s = screens[i];
       if (!s || !s.src) return;
       if (voices.has(i)) voices.delete(i);
@@ -31198,6 +31329,7 @@
         cell.style.cssText = css(rc);
         const spk = document.createElement("span");
         spk.className = "bwspk";
+        spk.title = "\u51FA\u58F0\u72B6\u6001\uFF08\u53EA\u8BFB\uFF09\uFF1A\u8981\u6539\u8BF7\u5728 \u{1F39B} \u63A7\u5236\u53F0\u91CC\u52FE";
         spk.textContent = voices.has(i) ? "\u{1F50A}" : "\u{1F507}";
         cell.appendChild(spk);
         if (s.src) {
@@ -31215,11 +31347,8 @@
         tag.className = "bwname";
         tag.textContent = s.src ? s.src.name : "\uFF0B \u8FD9\u4E2A\u7A7A\u4F4D\u8865\u4E00\u90E8";
         cell.appendChild(tag);
-        cell.title = s.src ? "\u70B9\u51FB\u5207\u6362\u8FD9\u90E8\u662F\u5426\u51FA\u58F0" : "\u8FD9\u5757\u8FD8\u662F\u7A7A\u4F4D\uFF1A\u70B9\u51FB\u9009\u4E00\u90E8\u7247\u8865\u4E0A";
-        cell.addEventListener("click", () => {
-          if (s.src) tapScreen(i);
-          else pickVideo(i);
-        });
+        cell.title = s.src ? "\u2715 \u4ECE\u73AF\u4E0A\u5220\u6389\u8FD9\u90E8\uFF08\u51FA\u58F0\u8BF7\u5230 \u{1F39B} \u63A7\u5236\u53F0\uFF09" : "\u8FD9\u5757\u8FD8\u662F\u7A7A\u4F4D\uFF1A\u70B9\u51FB\u9009\u4E00\u90E8\u7247\u8865\u4E0A";
+        if (!s.src) cell.addEventListener("click", () => pickVideo(i));
         wall2.appendChild(cell);
       });
       wall2.classList.remove("hidden");
@@ -31287,7 +31416,7 @@
           spk.className = "btn cc-spk" + (voices.has(i) ? " on" : "");
           spk.textContent = voices.has(i) ? "\u{1F50A}" : "\u{1F507}";
           spk.title = voices.has(i) ? "\u79FB\u51FA\u51FA\u58F0" : "\u52A0\u5165\u51FA\u58F0\uFF08\u53EF\u591A\u90E8\u540C\u65F6\uFF09";
-          spk.addEventListener("click", () => tapScreen(i));
+          spk.addEventListener("click", () => toggleVoice(i));
           const pp = document.createElement("button");
           pp.className = "btn cc-pp";
           pp.textContent = s.videoEl.paused ? "\u25B6" : "\u23F8";
@@ -31445,10 +31574,8 @@
     });
     let seated = false;
     let hoverBed = false;
-    let hoverScreen = -1;
     const raycaster = new Raycaster();
     const _center2 = { x: 0, y: 0 };
-    const _ndc = new Vector2();
     const hintEl = $2("cinema-hint");
     const GYM_BOUNDS = {
       minX: CFG.gym.playerMinX,
@@ -31546,7 +31673,7 @@
           rebuild();
           refreshStatus();
         }
-        setHint("<b>\u5DE6\u952E</b> \u70B9\u5C4F\u5E55\u5207\u6362\u51FA\u58F0 \xB7 \u9760\u8FD1\u5706\u5E8A <b>\u5DE6\u952E</b> \u5165\u5EA7 \xB7 \u56DE\u7403\u573A\u70B9\u653E\u6620\u6761 <b>\u{1F6AA} \u9000\u51FA\u5F71\u9662</b>");
+        setHint("\u9760\u8FD1\u5706\u5E8A <b>\u5DE6\u952E</b> \u5165\u5EA7 \xB7 \u51FA\u58F0\u5728 <b>\u{1F39B} \u63A7\u5236\u53F0</b> \u91CC\u7BA1 \xB7 \u56DE\u7403\u573A\u70B9\u653E\u6620\u6761 <b>\u{1F6AA} \u9000\u51FA\u5F71\u9662</b>");
       },
       exit() {
         stand();
@@ -31582,24 +31709,18 @@
           }
         }
         raycaster.setFromCamera(_center2, camera);
-        const hits = raycaster.intersectObjects(pickables, false);
-        const hit = hits.length && hits[0].distance < 24 ? hits[0] : null;
-        hoverBed = !!hit && hit.object === bedHit;
-        hoverScreen = hit ? hit.object.userData.screen ?? -1 : -1;
+        const hits = raycaster.intersectObject(bedHit, false);
+        hoverBed = !!hits.length && hits[0].distance < 24 && hits[0].object === bedHit;
         const dBed = Math.hypot(px2, pz2);
         const nearBed = hoverBed || dBed < K.bed.r + 0.6;
-        setHint(nearBed ? "<b>\u5DE6\u952E</b> \u5728\u5706\u5E8A\u4E0A\u5165\u5EA7\uFF08\u4EFB\u610F\u671D\u5411\uFF09" : hoverScreen >= 0 && screens[hoverScreen].src ? "<b>\u5DE6\u952E</b> \u64AD\u653E/\u6682\u505C \xB7 \u5207\u6362\u8BE5\u5C4F\u58F0\u97F3" : "");
+        setHint(nearBed ? "<b>\u5DE6\u952E</b> \u5728\u5706\u5E8A\u4E0A\u5165\u5EA7\uFF08\u4EFB\u610F\u671D\u5411\uFF09" : "");
       },
       onLeftDown() {
         if (seated) return;
         const ray = raycaster.ray;
         const sph = new Sphere(new Vector3(K.bed.x, 0.4, K.bed.z), K.bed.r + 0.35);
         const onBed = ray.intersectsSphere(sph) || Math.hypot(player.pos.x - K.bed.x, player.pos.z - K.bed.z) < K.bed.r + 0.6;
-        if (onBed) {
-          sit();
-          return;
-        }
-        if (hoverScreen >= 0) tapScreen(hoverScreen);
+        if (onBed) sit();
       },
       onRightDown() {
         if (seated) stand();
@@ -31611,16 +31732,6 @@
         applyZoom();
         setHint("");
         return true;
-      },
-      /** 入座（未锁指针）时用鼠标位置点某块银幕：切该屏出声/暂停 */
-      onClick(x, y) {
-        const rect = document.getElementById("gl").getBoundingClientRect();
-        _ndc.set(x / rect.width * 2 - 1, -(y / rect.height) * 2 + 1);
-        raycaster.setFromCamera(_ndc, camera);
-        const hits = raycaster.intersectObjects(screens.map((s) => s.mesh), false);
-        if (!hits.length) return;
-        const i = screens.findIndex((s) => s.mesh === hits[0].object);
-        if (i >= 0) tapScreen(i);
       },
       /** WASD 按下时 main 转发：坐着则起身（keydown 手势内可重新锁指针） */
       onMoveKey() {
@@ -31757,13 +31868,15 @@
           this.shotMade = 0;
           this.shotTaken = 0;
           this.spots = 0;
+          this.bulls = 0;
+          this.bestRing = 0;
           this.currentSpot = null;
           this.timeLeft = modeDef.timed ? CFG.challenge.duration : Infinity;
           this.ended = false;
         }
         /** 当前模式下展示的总分 */
         get displayScore() {
-          if (this.mode.id === "shot") return this.shotScore;
+          if (this.mode.id === "shot" || this.mode.id === "arch") return this.shotScore;
           return this.tapScore + this.shotScore;
         }
         /** 投篮连击倍数（索引=连击数，3+ 封顶） */
@@ -31788,7 +31901,7 @@
           this.tapScore += pts;
           return { points: pts };
         }
-        /** 投篮出手登记 */
+        /** 出手登记（投篮/射箭共用：都是"这一发的尝试"） */
         registerShotAttempt() {
           this.shotTaken++;
         }
@@ -31815,6 +31928,25 @@
             return true;
           }
           return false;
+        }
+        /**
+         * 一箭上靶（ring = 环值，dist = 出手时离靶心多少米）。
+         * 与 addShotMade 同一条式子、同一套连击/统计字段，只是基础分换成环值 × ringBase。
+         */
+        addArrowMade(ring, dist) {
+          const top = CFG.arch.rings[0].v;
+          this.shotCombo++;
+          this.shotComboMax = Math.max(this.shotComboMax, this.shotCombo);
+          this.shotFail = 0;
+          this.shotMade++;
+          this.bestRing = Math.max(this.bestRing, ring);
+          const bull = ring >= top;
+          if (bull) this.bulls++;
+          const distMul = _ScoreManager.distanceMultiplier(dist);
+          const mul = this.shotMultiplier();
+          const pts = Math.round(ring * CFG.arch.ringBase * distMul * mul);
+          this.shotScore += pts;
+          return { points: pts, distMul, multiplier: mul, bull };
         }
         /** 倒计时推进；返回是否刚好结束 */
         tickTimer(dt) {
@@ -33161,6 +33293,432 @@
     }
   });
 
+  // src/archery.js
+  function ringValue(d) {
+    for (const ring of A.rings) if (d <= ring.r) return ring.v;
+    return 0;
+  }
+  function targetDist(px2, pz2) {
+    return Math.hypot(px2 - TARGET_POS.x, pz2 - TARGET_POS.z, CFG.player.eye - TARGET_POS.y);
+  }
+  function buildRange(scene) {
+    const g = new Group();
+    g.position.set(0, 0, A.targetZ);
+    const bh = A.boardHalf;
+    const wood = new MeshStandardMaterial({ color: 7031339, roughness: 0.82, metalness: 0.04 });
+    const post = new MeshStandardMaterial({ color: 4008472, roughness: 0.88 });
+    const straw = new MeshStandardMaterial({ color: 11044671, roughness: 0.97 });
+    const back = new Mesh(new BoxGeometry(bh * 2, bh * 2, 0.1), wood);
+    back.position.set(0, A.targetY, 0.06);
+    g.add(back);
+    const butt = new Mesh(new CylinderGeometry(A.faceR + 0.035, A.faceR + 0.035, 0.12, 44), straw);
+    butt.rotation.x = Math.PI / 2;
+    butt.position.set(0, A.targetY, 5e-3);
+    g.add(butt);
+    const face = new Mesh(
+      new CircleGeometry(A.faceR, 44),
+      new MeshStandardMaterial({ map: makeTargetTexture(A.faceR * 2, A.rings.map((x) => x.r)), roughness: 0.95 })
+    );
+    face.rotation.y = Math.PI;
+    face.position.set(0, A.targetY, -0.055);
+    g.add(face);
+    for (const dx of [-bh - 0.05, bh + 0.05]) {
+      const leg = new Mesh(new CylinderGeometry(0.05, 0.06, A.targetY + bh + 0.12, 10), post);
+      leg.position.set(dx, (A.targetY + bh + 0.12) / 2, 0.34);
+      g.add(leg);
+      const brace = new Mesh(new CylinderGeometry(0.035, 0.04, A.targetY + bh - 0.1, 8), post);
+      brace.position.set(dx, (A.targetY + bh - 0.1) / 2, 0.72);
+      brace.rotation.x = 0.36;
+      g.add(brace);
+    }
+    const foot = new Mesh(new BoxGeometry(bh * 2 + 0.4, 0.1, 0.9), post);
+    foot.position.set(0, 0.05, 0.5);
+    g.add(foot);
+    g.traverse((o) => {
+      o.castShadow = false;
+      o.receiveShadow = false;
+    });
+    scene.add(g);
+    return { group: g, face };
+  }
+  function createArchery({ scene, camera, player, sfx, range }) {
+    scene.add(camera);
+    const rig = new Group();
+    rig.position.set(0.17, -0.22, -0.5);
+    rig.scale.setScalar(0.46);
+    rig.renderOrder = 6;
+    const bowMat = new MeshStandardMaterial({ color: 3087634, roughness: 0.45, metalness: 0.25, depthTest: false });
+    const gripMat = new MeshStandardMaterial({ color: 1316893, roughness: 0.9, depthTest: false });
+    const limbPts = (sign) => new CatmullRomCurve3([
+      new Vector3(0, sign * 0.1, 0),
+      new Vector3(0, sign * 0.26, -0.07),
+      new Vector3(0, sign * 0.4, -0.03)
+    ]);
+    for (const sign of [1, -1]) {
+      const limb = new Mesh(new TubeGeometry(limbPts(sign), 10, 0.014, 6), bowMat);
+      limb.renderOrder = 6;
+      rig.add(limb);
+    }
+    const riser = new Mesh(new BoxGeometry(0.026, 0.22, 0.045), gripMat);
+    riser.renderOrder = 6;
+    rig.add(riser);
+    const stringGeo = new BufferGeometry();
+    stringGeo.setAttribute("position", new BufferAttribute(new Float32Array(9), 3));
+    const bowString = new Line(stringGeo, new LineBasicMaterial({ color: 15262936, depthTest: false }));
+    bowString.renderOrder = 7;
+    bowString.frustumCulled = false;
+    rig.add(bowString);
+    const nocked = makeArrowMesh();
+    nocked.traverse((o) => {
+      if (o.material) o.material.depthTest = false;
+      o.renderOrder = 7;
+    });
+    nocked.renderOrder = 7;
+    rig.add(nocked);
+    rig.visible = false;
+    camera.add(rig);
+    const guideGeo = new BufferGeometry();
+    guideGeo.setAttribute("position", new BufferAttribute(new Float32Array(A.guideCap * 3), 3));
+    guideGeo.setDrawRange(0, 0);
+    const guide = new Line(guideGeo, new LineDashedMaterial({
+      color: 16765066,
+      dashSize: 0.16,
+      gapSize: 0.13,
+      transparent: true,
+      opacity: 0.9,
+      depthWrite: false
+    }));
+    guide.frustumCulled = false;
+    guide.renderOrder = 4;
+    scene.add(guide);
+    const marker = new Mesh(
+      new RingGeometry(0.045, 0.075, 24),
+      new MeshBasicMaterial({ color: 16765066, transparent: true, opacity: 0.9, side: DoubleSide, depthWrite: false })
+    );
+    marker.visible = false;
+    marker.renderOrder = 4;
+    scene.add(marker);
+    const fly = { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, t: 0, mesh: null };
+    const stuck = [];
+    const hits = [];
+    const loose = [];
+    const pool = [];
+    let acc = 0;
+    let recoil = 0;
+    const _dir = new Vector3();
+    const _up = new Vector3(0, 0, 1);
+    const _p = new Vector3();
+    const _lp = new Vector3();
+    const _ld = new Vector3();
+    const _lr = new Vector3();
+    const _lu = new Vector3();
+    const _st = { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, t: 0 };
+    const _fc = { n: 0, ev: null, x: 0, y: 0, z: 0 };
+    const _ev = { kind: "", ring: 0, dist: 0, x: 0, y: 0, z: 0 };
+    const _path = Array.from({ length: A.guideCap }, () => new Vector3());
+    function makeArrowMesh() {
+      const g = new Group();
+      const shaft = new Mesh(
+        new CylinderGeometry(55e-4, 55e-4, 0.66, 7),
+        new MeshStandardMaterial({ color: 14272931, roughness: 0.6 })
+      );
+      shaft.rotation.x = Math.PI / 2;
+      g.add(shaft);
+      const tip = new Mesh(
+        new ConeGeometry(8e-3, 0.05, 8),
+        new MeshStandardMaterial({ color: 10134445, roughness: 0.35, metalness: 0.7 })
+      );
+      tip.rotation.x = Math.PI / 2;
+      tip.position.z = 0.355;
+      g.add(tip);
+      for (let i = 0; i < 3; i++) {
+        const feather = new Mesh(
+          new BoxGeometry(2e-3, 0.028, 0.09),
+          new MeshStandardMaterial({ color: 15225407, roughness: 0.8 })
+        );
+        feather.position.z = -0.29;
+        feather.rotation.z = i / 3 * Math.PI * 2;
+        feather.position.y = Math.cos(i / 3 * Math.PI * 2) * 0.012;
+        feather.position.x = Math.sin(i / 3 * Math.PI * 2) * 0.012;
+        g.add(feather);
+      }
+      g.visible = false;
+      scene.add(g);
+      return g;
+    }
+    function stepOne(s) {
+      const px2 = s.x, py2 = s.y, pz2 = s.z;
+      s.vy -= G0 * A.stepT;
+      s.x += s.vx * A.stepT;
+      s.y += s.vy * A.stepT;
+      s.z += s.vz * A.stepT;
+      s.t += A.stepT;
+      _ev.x = s.x;
+      _ev.y = s.y;
+      _ev.z = s.z;
+      if (pz2 < TARGET_POS.z && s.z >= TARGET_POS.z) {
+        const f = (TARGET_POS.z - pz2) / (s.z - pz2);
+        const hx = px2 + (s.x - px2) * f, hy = py2 + (s.y - py2) * f;
+        if (Math.abs(hx - TARGET_POS.x) <= A.boardHalf && Math.abs(hy - TARGET_POS.y) <= A.boardHalf) {
+          s.x = hx;
+          s.y = hy;
+          s.z = TARGET_POS.z;
+          const d = Math.hypot(hx - TARGET_POS.x, hy - TARGET_POS.y);
+          const v = ringValue(d);
+          _ev.kind = v ? "hit" : "board";
+          _ev.ring = v;
+          _ev.dist = d;
+          _ev.x = s.x;
+          _ev.y = s.y;
+          _ev.z = s.z;
+          return _ev;
+        }
+      }
+      if (s.y <= 4e-3) {
+        _ev.kind = "drop";
+        _ev.ring = 0;
+        _ev.dist = 0;
+        return _ev;
+      }
+      if (s.z >= CFG.gym.halfL - 0.08 || Math.abs(s.x) >= CFG.gym.halfW - 0.08) {
+        _ev.kind = "wall";
+        _ev.ring = 0;
+        _ev.dist = 0;
+        return _ev;
+      }
+      return null;
+    }
+    function forecast(x, y, z, dir, speed) {
+      const s = _st;
+      s.x = x;
+      s.y = y;
+      s.z = z;
+      s.vx = dir.x * speed;
+      s.vy = dir.y * speed;
+      s.vz = dir.z * speed;
+      s.t = 0;
+      _fc.n = 0;
+      _fc.ev = null;
+      const maxSteps = A.maxFlight / A.stepT;
+      for (let i = 0; !_fc.ev && i < maxSteps; i++) {
+        _fc.ev = stepOne(s);
+        if (i % A.guideEvery === 0 && _fc.n < A.guideCap) _path[_fc.n++].set(s.x, s.y, s.z);
+      }
+      if (_fc.n < A.guideCap && _fc.ev) _path[_fc.n++].set(s.x, s.y, s.z);
+      _fc.x = s.x;
+      _fc.y = s.y;
+      _fc.z = s.z;
+      return _fc;
+    }
+    function showGuide(n) {
+      if (n < 2) {
+        guideGeo.setDrawRange(0, 0);
+        marker.visible = false;
+        return;
+      }
+      const at = guideGeo.attributes.position;
+      for (let i = 0; i < n; i++) at.setXYZ(i, _path[i].x, _path[i].y, _path[i].z);
+      at.needsUpdate = true;
+      guideGeo.setDrawRange(0, n);
+      guide.computeLineDistances();
+    }
+    function launchState() {
+      const q = camera.quaternion;
+      _ld.set(0, 0, -1).applyQuaternion(q);
+      _lr.set(1, 0, 0).applyQuaternion(q);
+      _lu.set(0, 1, 0).applyQuaternion(q);
+      _lp.copy(camera.position).addScaledVector(_lr, NOCK.right).addScaledVector(_lu, -NOCK.down).addScaledVector(_ld, NOCK.fwd);
+      _ld.multiplyScalar(NOCK_REF).add(camera.position).sub(_lp).normalize();
+    }
+    function takeArrow() {
+      const m = pool.pop() || makeArrowMesh();
+      m.visible = true;
+      return m;
+    }
+    function recycle(m) {
+      m.visible = false;
+      m.parent?.remove(m);
+      scene.add(m);
+      pool.push(m);
+    }
+    function stick(ev, s) {
+      const mesh = fly.mesh;
+      if (!mesh) return;
+      fly.mesh = null;
+      _dir.set(s.vx, s.vy, s.vz).normalize();
+      mesh.quaternion.setFromUnitVectors(_up, _dir);
+      mesh.visible = true;
+      if (ev.kind === "hit" || ev.kind === "board") {
+        hits.push({ x: s.x, y: s.y, z: s.z });
+        range.updateWorldMatrix(true, false);
+        mesh.position.copy(range.worldToLocal(_p.set(s.x, s.y, s.z + 0.055)));
+        range.add(mesh);
+        stuck.push(mesh);
+        if (stuck.length > A.stickMax) {
+          recycle(stuck.shift());
+          hits.shift();
+        }
+        return;
+      }
+      mesh.position.set(s.x, s.y, s.z);
+      loose.push(mesh);
+      if (loose.length > A.looseMax) recycle(loose.shift());
+    }
+    const api = {
+      /** 力度 0~1 -> 箭速（虚线与出手共用） */
+      speedOf(charge) {
+        return A.speedMin + charge * (A.speedMax - A.speedMin);
+      },
+      showRig(on) {
+        rig.visible = on;
+        if (!on) {
+          showGuide(0);
+          marker.visible = false;
+        }
+      },
+      /**
+       * 瞄准中每帧调用：摆弓、画虚线，返回「这一箭会落在哪」（复用槽，调用方当场读完）。
+       * 出手方向 = 相机朝向，准星指哪打哪，唯一的补偿是真实下坠（所以要看虚线）。
+       */
+      aim(charge) {
+        launchState();
+        const r = forecast(_lp.x, _lp.y, _lp.z, _ld, api.speedOf(charge));
+        showGuide(r.n);
+        if (r.n) {
+          marker.position.copy(_path[r.n - 1]);
+          marker.quaternion.copy(camera.quaternion);
+          marker.scale.setScalar(MathUtils.clamp(marker.position.distanceTo(camera.position) * 0.2, 1, 3.5));
+          marker.visible = true;
+        } else marker.visible = false;
+        poseBow(charge);
+        return r.ev;
+      },
+      /** 放箭：真箭用同一个 forecast 的第一步起步，所以预测==飞行 */
+      shoot() {
+        launchState();
+        const speed = api.speedOf(api.lastCharge);
+        fly.x = _lp.x;
+        fly.y = _lp.y;
+        fly.z = _lp.z;
+        fly.vx = _ld.x * speed;
+        fly.vy = _ld.y * speed;
+        fly.vz = _ld.z * speed;
+        fly.t = 0;
+        if (fly.mesh) recycle(fly.mesh);
+        fly.mesh = takeArrow();
+        fly.mesh.position.set(fly.x, fly.y, fly.z);
+        acc = 0;
+        recoil = 1;
+        showGuide(0);
+        marker.visible = false;
+        sfx.play("shoot", { rate: 1.35, volume: 0.85 });
+      },
+      /** 飞行推进：固定步长吃真实 dt，撞靶/落地/撞墙/超时都返回事件 */
+      advance(dt) {
+        if (!fly.mesh) return null;
+        acc += Math.min(dt, 0.1);
+        let ev = null, guard = 0;
+        while (acc >= A.stepT && guard++ < 90) {
+          acc -= A.stepT;
+          ev = stepOne(fly);
+          if (ev) break;
+        }
+        if (!ev && fly.t > A.maxFlight) {
+          _ev.kind = "time";
+          _ev.ring = 0;
+          _ev.dist = 0;
+          _ev.x = fly.x;
+          _ev.y = fly.y;
+          _ev.z = fly.z;
+          ev = _ev;
+        }
+        fly.mesh.position.set(fly.x, fly.y, fly.z);
+        _dir.set(fly.vx, fly.vy, fly.vz).normalize();
+        fly.mesh.quaternion.setFromUnitVectors(_up, _dir);
+        if (ev) stick(ev, fly);
+        return ev;
+      },
+      /** 收弓 / 换局：撤掉在飞的箭与虚线 */
+      reset() {
+        if (fly.mesh) {
+          recycle(fly.mesh);
+          fly.mesh = null;
+        }
+        acc = 0;
+        showGuide(0);
+        marker.visible = false;
+      },
+      clearStuck() {
+        hits.length = 0;
+        while (stuck.length) recycle(stuck.shift());
+        while (loose.length) recycle(loose.shift());
+      },
+      /* ---------- 无头断言用 ---------- */
+      debugGuide() {
+        const at = guideGeo.attributes.position;
+        const n = guideGeo.drawRange.count;
+        const last = n ? { x: at.getX(n - 1), y: at.getY(n - 1), z: at.getZ(n - 1) } : null;
+        return {
+          n,
+          last,
+          land: { x: _fc.x, y: _fc.y, z: _fc.z },
+          kind: _fc.ev ? _fc.ev.kind : "",
+          speed: api.speedOf(api.lastCharge || 0),
+          marker: marker.visible ? 1 : 0
+        };
+      },
+      debugLineLen() {
+        const at = guideGeo.attributes.position;
+        const n = Math.min(guideGeo.drawRange.count, A.guideCap);
+        if (n < 2) return 0;
+        let L = 0;
+        for (let i = 1; i < n; i++) {
+          const dx = at.getX(i) - at.getX(i - 1), dy = at.getY(i) - at.getY(i - 1), dz = at.getZ(i) - at.getZ(i - 1);
+          if (!Number.isFinite(dx) || !Number.isFinite(dy) || !Number.isFinite(dz)) return -1;
+          L += Math.hypot(dx, dy, dz);
+        }
+        return +L.toFixed(3);
+      },
+      debugStuck() {
+        return stuck.length;
+      },
+      debugHits() {
+        return hits;
+      }
+    };
+    api.lastCharge = 0;
+    function poseBow(charge) {
+      api.lastCharge = charge;
+      const pull = charge * 0.28 + recoil * 0.06;
+      const a2 = stringGeo.attributes.position;
+      a2.setXYZ(0, 0, 0.4, -0.03);
+      a2.setXYZ(1, 0.045, 0.02, pull);
+      a2.setXYZ(2, 0, -0.4, -0.03);
+      a2.needsUpdate = true;
+      const nockZ = pull - 0.33;
+      nocked.position.set(0.045, 0.02, nockZ);
+      nocked.rotation.set(0, Math.PI, 0);
+      nocked.visible = rig.visible && !fly.mesh;
+      rig.rotation.x = charge * 0.05 - recoil * 0.1;
+      recoil *= 0.86;
+    }
+    poseBow(0);
+    return api;
+  }
+  var A, G0, NOCK, NOCK_REF, TARGET_POS;
+  var init_archery = __esm({
+    "src/archery.js"() {
+      init_three_module();
+      init_config();
+      init_textures();
+      A = CFG.arch;
+      G0 = CFG.player.gravity;
+      NOCK = { right: 0.15, down: 0.2, fwd: 0.3 };
+      NOCK_REF = 16;
+      TARGET_POS = new Vector3(0, A.targetY, A.targetZ);
+    }
+  });
+
   // src/ball.js
   var GameBall;
   var init_ball = __esm({
@@ -33219,6 +33777,14 @@
           this._heldTimer = 0;
           this._tapT = void 0;
           this.mesh.scale.set(1, 1, 1);
+        }
+        /**
+         * 手上拿的不是球（射箭模式）：收回手里 + 从画面里撤掉，
+         * 否则会有一只看不见的球在场上滚、还照样撞出音效。
+         */
+        stash(hidden) {
+          if (hidden) this.startHeld();
+          this.mesh.visible = !hidden;
         }
         /**
          * 拍球（无门槛装饰动作）：仅持球态可触发，球自动向下拍击并回手。
@@ -33324,7 +33890,12 @@
             minZ: CFG.gym.playerMinZ,
             maxZ: CFG.gym.playerMaxZ
           };
-          this.blockers = [{ x: 0, z: CFG.hoop.boardFaceZ - 0.95, r: 0.9 }];
+          this.blockers = [
+            { x: 0, z: CFG.hoop.boardFaceZ - 0.95, r: 0.9 },
+            // 篮架立柱
+            { x: 0, z: CFG.arch.targetZ + 0.34, r: 0.8 }
+            // 靶架：别直接从正面走进靶子里
+          ];
         }
         /** 鼠标移动输入：dx/dy 为像素增量 */
         look(dx, dy) {
@@ -33654,12 +34225,13 @@
     ui.setPrompt("\u{1F3C0} \u7403\u4E22\u5728\u573A\u5730\u4E2D\u592E\u4E86 \xB7 \u8D70\u8FC7\u53BB\u6309 <b>E</b> \u6361\u56DE\u6765");
     machine.set("noBall");
   }
-  var State, NoBallState, HoldState, ShotState, StateMachine;
+  var State, NoBallState, HoldState, ShotState, _hitPos, ArchState, StateMachine;
   var init_states = __esm({
     "src/states.js"() {
       init_three_module();
       init_config();
       init_court();
+      init_archery();
       State = class {
         constructor(G) {
           this.G = G;
@@ -33705,11 +34277,14 @@
       HoldState = class extends State {
         enter() {
           const { player, ui, modeDef } = this.G;
+          this.passive = !!modeDef.bow;
+          if (this.passive) return;
           player.speed = CFG.player.speedHold;
           this.tapT = 0;
           ui.setPrompt(modeDef.id === "free" ? "\u7403<b>\u81EA\u52A8\u62CD</b>\uFF08\u8DDF\u7740\u8D70\u4F4D\u5C31\u53D8\u901F\uFF09\xB7 <b>\u5DE6\u952E</b> \u6295\u7BEE\uFF08\u6309\u4F4F\u84C4\u529B \u677E\u624B\u51FA\u624B\uFF09\xB7 <b>\u7A7A\u683C</b> \u8DF3\u8DC3\uFF08\u53EF\u8DF3\u6295\uFF09\xB7 <b>E</b> \u5F03\u7403" : "WASD \u8D70\u4F4D \xB7 \u7403\u81EA\u52A8\u62CD \xB7 <b>\u5DE6\u952E</b> \u6309\u4F4F\u84C4\u529B\u6295\u7BEE \xB7 <b>\u7A7A\u683C</b> \u8DF3\u6295 \xB7 <b>E</b> \u5F03\u7403");
         }
         update(dt) {
+          if (this.passive) return;
           const { player, ball, camera, scoring, machine } = this.G;
           ball.updateHeld(dt, camera);
           if (scoring.ended) return;
@@ -33777,10 +34352,10 @@
           const { player, scoring } = this.G;
           const spot = scoring.currentSpot;
           if (!spot) return;
-          const A = CFG.shot.spotArc;
+          const A2 = CFG.shot.spotArc;
           const dx = player.pos.x - RIM_POS.x, dz = player.pos.z - RIM_POS.z;
           const raw = Math.atan2(dx, dz);
-          const a2 = MathUtils.clamp(raw, -A, A);
+          const a2 = MathUtils.clamp(raw, -A2, A2);
           const ux = Math.sin(a2), uz = Math.cos(a2);
           const tx = uz, tz = -ux;
           player.pos.x = RIM_POS.x + ux * spot.r;
@@ -33928,6 +34503,80 @@
           );
         }
       };
+      _hitPos = new Vector3();
+      ArchState = class extends State {
+        enter() {
+          const { player, ui, archery } = this.G;
+          player.speed = CFG.player.speedIdle;
+          this.charge = 0;
+          this.charging = false;
+          this.flying = false;
+          this.releaseDist = 0;
+          archery.showRig(true);
+          ui.showPowerBar(true);
+          ui.setPrompt("WASD \u8D70\u4F4D\u6311\u9776\u8DDD \xB7 <b>\u6309\u4F4F\u5DE6\u952E</b> \u62C9\u5F13 \xB7 <b>\u677E\u624B</b> \u653E\u7BAD \xB7 \u865A\u7EBF\u672B\u7AEF\u5C31\u662F\u843D\u70B9 \xB7 <b>\u53F3\u952E</b> \u6536\u5F13");
+        }
+        exit() {
+          this.G.archery.showRig(false);
+          this.G.ui.showPowerBar(false);
+        }
+        update(dt) {
+          const { archery, ui } = this.G;
+          if (this.charging) this.charge = Math.min(1, this.charge + dt / CFG.arch.chargeTime);
+          if (this.flying) {
+            const ev = archery.advance(dt);
+            if (ev) this.resolve(ev);
+            return;
+          }
+          archery.aim(this.charge);
+          ui.updatePowerBar(this.charge, null);
+        }
+        onLeftDown() {
+          if (!this.flying) this.charging = true;
+        }
+        onLeftUp() {
+          if (this.flying || !this.charging) return;
+          this.charging = false;
+          const { archery, scoring, ui, player } = this.G;
+          if (this.charge < CFG.arch.cancelDraw) {
+            this.charge = 0;
+            ui.updatePowerBar(0, null);
+            return;
+          }
+          this.releaseDist = targetDist(player.pos.x, player.pos.z);
+          scoring.registerShotAttempt();
+          archery.shoot();
+          this.flying = true;
+        }
+        onRightDown() {
+          if (this.flying) return;
+          this.charging = false;
+          this.charge = 0;
+          this.G.sfx.play("tap", { volume: 0.5, rate: 1.4 });
+        }
+        /** 一箭落定：上靶面才计分，其余与投篮同一套连击惩罚 */
+        resolve(ev) {
+          const { scoring, sfx, fx, ui } = this.G;
+          this.flying = false;
+          this.charge = 0;
+          ui.updatePowerBar(0, null);
+          if (ev.kind === "hit") {
+            const { points, distMul, bull } = scoring.addArrowMade(ev.ring, this.releaseDist);
+            sfx.play("rim", { volume: 0.9, rate: 1.5 });
+            if (bull) {
+              sfx.play("cheer", { volume: 0.7 });
+              fx.shake();
+              fx.flash();
+            }
+            fx.burstScore(_hitPos.set(ev.x, ev.y, ev.z));
+            ui.showScorePopup(points, `${bull ? "\u{1F3AF} \u9EC4\u5FC3" : ev.ring + " \u73AF"} \xB7 \u9776\u8DDD\xD7${distMul.toFixed(1)}`);
+            return;
+          }
+          const comboReset = scoring.addShotMiss();
+          sfx.play(ev.kind === "board" ? "rim" : "bounce", { volume: 0.5, rate: 0.85 });
+          ui.showScorePopup(0, ev.kind === "board" ? "\u64E6\u5230\u9776\u67B6\uFF0C\u6CA1\u4E0A\u9776\u9762" : comboReset ? "\u8FDE\u51FB\u6E05\u96F6\u2026 \u76EF\u865A\u7EBF\u672B\u7AEF\u62AC\u4E00\u70B9" : "\u6CA1\u4E0A\u9776 \xB7 \u770B\u865A\u7EBF\u843D\u70B9\u518D\u7784");
+        }
+      };
       StateMachine = class {
         constructor() {
           this.states = {};
@@ -34060,6 +34709,7 @@
       init_court();
       init_cinema();
       init_pool();
+      init_archery();
       init_ball();
       init_player();
       init_effects();
@@ -34094,6 +34744,7 @@
       composer.addPass(bloomPass);
       composer.addPass(new OutputPass());
       var courtRefs = buildCourt(scene);
+      var archRange = buildRange(scene);
       addWallArt(scene);
       var lights = setupLights(scene);
       var { world, ballBody, matRim, matBoard } = createPhysics();
@@ -34103,6 +34754,7 @@
       var scoring = new ScoreManager();
       var sfx = new Sfx();
       var ui = new UI();
+      var archery = createArchery({ scene, camera, player, sfx, range: archRange.group });
       player.onLand = () => sfx.play("bounce", { volume: 0.3, rate: 0.72 });
       var cinema = createCinema({ camera, player, sfx });
       cinema.scene.environment = scene.environment;
@@ -34197,7 +34849,7 @@
           player.vel.set(0, 0, 0);
           player.freeYaw = Math.atan2(D.x, player.pos.z);
           player.freePitch = 0;
-          ui.showHud(G.modeDef.name, G.modeDef.timed);
+          ui.showHud(G.modeDef);
         });
       }
       cinema.onExitRequest = () => exitRoomToGym("cinema");
@@ -34221,6 +34873,7 @@
         fx,
         ui,
         doorHint,
+        archery,
         modeDef: CFG.MODES.free,
         netSway: () => {
           netSway.t = 1;
@@ -34230,19 +34883,21 @@
       machine.register("noBall", new NoBallState(G));
       machine.register("hold", new HoldState(G));
       machine.register("shot", new ShotState(G));
+      machine.register("arch", new ArchState(G));
       G.machine = machine;
       var gameState = "menu";
       var currentModeId = "free";
       var menuCamAngle = 0;
       var lastSecond = -1;
       var bestCache = 0;
-      var hudRef = { free: null, mul10: -1, n1: -1, made: -1, taken: -1, live: "" };
+      var hudRef = { free: null, bow: null, mul10: -1, n1: -1, made: -1, taken: -1, live: "" };
       function refreshMenu() {
         forceGym();
         gameState = "menu";
         machine.set("noBall");
+        ball.stash(false);
         ball.startPhysics(new Vector3(1.4, 1, 0.5), null);
-        ui.showMenu({ free: loadRecord("free"), shot: loadRecord("shot") });
+        ui.showMenu({ free: loadRecord("free"), shot: loadRecord("shot"), arch: loadRecord("arch") });
         ui.setShadowChecked(shadowOn);
         document.exitPointerLock?.();
       }
@@ -34264,6 +34919,7 @@
         player.exitShotAim();
         player.mode = "free";
         player.blend = 0;
+        ball.stash(!!G.modeDef.bow);
         if (id === "shot") {
           const spot = randomShotSpot();
           const p = shotSpotXZ(spot);
@@ -34271,6 +34927,12 @@
           scoring.currentSpot = spot;
           ball.startHeld();
           machine.set("shot");
+        } else if (id === "arch") {
+          archery.clearStuck();
+          player.pos.set(0, 0, 0);
+          player.freeYaw = Math.PI;
+          player.yaw = Math.PI;
+          machine.set("arch");
         } else {
           player.pos.set(0.6, 0, 1.5);
           ball.startPhysics(new Vector3(1.2, 0.8, 0.4), null);
@@ -34279,7 +34941,7 @@
         gameState = "playing";
         player.inputEnabled = true;
         lastSecond = -1;
-        ui.showHud(G.modeDef.name, G.modeDef.timed);
+        ui.showHud(G.modeDef);
         ui.hideResult();
         ui.showPause(false);
         lockPointer();
@@ -34312,11 +34974,14 @@
         if (fin.isNew) bestCache = fin.best;
         sfx.play("buzzer", { volume: 0.8 });
         const m = scoring.mode;
-        const scoreLabel = m.id === "free" ? "\u603B\u5206\uFF08\u62CD\u7403+\u6295\u7BEE\uFF09" : "\u6295\u7BEE\u5F97\u5206";
+        const scoreLabel = m.id === "free" ? "\u603B\u5206\uFF08\u62CD\u7403+\u6295\u7BEE\uFF09" : m.id === "arch" ? "\u5C04\u7BAD\u5F97\u5206" : "\u6295\u7BEE\u5F97\u5206";
         const stats = [];
-        stats.push(`\u{1F44B} \u62CD\u7403 <b>${scoring.taps}</b> \u6B21\uFF08+${scoring.tapScore} \u5206\uFF09`);
-        if (m.shotScore) {
-          const pct = scoring.shotTaken ? Math.round(scoring.shotMade / scoring.shotTaken * 100) : 0;
+        const pct = scoring.shotTaken ? Math.round(scoring.shotMade / scoring.shotTaken * 100) : 0;
+        if (m.tapScore) stats.push(`\u{1F44B} \u62CD\u7403 <b>${scoring.taps}</b> \u6B21\uFF08+${scoring.tapScore} \u5206\uFF09`);
+        if (m.bow) {
+          stats.push(`\u{1F3F9} \u4E0A\u9776 <b>${scoring.shotMade}</b> / <b>${scoring.shotTaken}</b>\uFF08<b>${pct}%</b>\uFF09\xB7 \u9EC4\u5FC3 <b>${scoring.bulls}</b> \u6B21 \xB7 \u5355\u7BAD\u6700\u9AD8 <b>${scoring.bestRing}</b> \u73AF`);
+          stats.push(`\u{1F3AF} \u8FDE\u51FB <b>${scoring.shotComboMax}</b> \u624B\uFF08\u9776\u9762 10/8/6/4/2 \u73AF\uFF0C\u5206\u6570\u8FD8\u5403\u9776\u8DDD\u4E0E\u8FDE\u51FB\u500D\u7387\uFF09`);
+        } else if (m.shotScore) {
           stats.push(`\u{1F3AF} \u6295\u7BEE <b>${scoring.shotMade}</b> / <b>${scoring.shotTaken}</b> \u4E2D\uFF08\u547D\u4E2D\u7387 <b>${pct}%</b>\uFF09\xB7 \u6700\u9AD8\u8FDE\u51FB <b>${scoring.shotComboMax}</b>`);
         }
         if (m.id === "shot") stats.push(`\u{1F3B2} \u547D\u4E2D\u6362\u4F4D <b>${scoring.spots}</b> \u6B21`);
@@ -34443,12 +35108,6 @@
       addEventListener("blur", () => {
         for (const k in keys) keys[k] = false;
       });
-      var seatAim = { x: 0, y: 0, t: 0, moved: 0, set(x, y) {
-        this.x = x;
-        this.y = y;
-        this.t = performance.now();
-        this.moved = 0;
-      } };
       document.addEventListener("mousemove", (e) => {
         if (gameState !== "playing") return;
         if (document.pointerLockElement === canvas) {
@@ -34456,7 +35115,6 @@
           else player.look(e.movementX, e.movementY);
         } else if (playerLoc === "cinema" && cinema.seated && e.buttons & 1 && e.target === canvas) {
           player.look(e.movementX, e.movementY);
-          if (seatAim.t) seatAim.moved += Math.abs(e.movementX) + Math.abs(e.movementY);
         }
       });
       addEventListener("wheel", (e) => {
@@ -34468,10 +35126,10 @@
         if (gameState !== "playing") return;
         if (document.pointerLockElement !== canvas) {
           if (playerLoc === "cinema") {
-            if (cinema.seated) {
-              if (!e.button) seatAim.set(e.clientX, e.clientY);
-            } else if (!e.button) cinema.onLeftDown();
-            else lockPointer();
+            if (!cinema.seated) {
+              if (!e.button) cinema.onLeftDown();
+              else lockPointer();
+            }
           } else if (playerLoc === "pool" && poolHud && !e.button) {
             setPoolHud(false);
           }
@@ -34497,10 +35155,6 @@
           return;
         }
         if (e.button === 0 && playerLoc === "gym") machine.dispatch("onLeftUp");
-        if (e.button === 0 && playerLoc === "cinema" && cinema.seated && seatAim.t) {
-          if (seatAim.moved < 6) cinema.onClick(e.clientX, e.clientY);
-          seatAim.t = 0;
-        }
       });
       document.addEventListener("contextmenu", (e) => e.preventDefault());
       document.addEventListener("pointerlockchange", () => {
@@ -34580,18 +35234,20 @@
               if (justEnd) finishSession();
               ui.setTimer(scoring.timeLeft, scoring.timeLeft / CFG.challenge.duration, scoring.timeLeft <= 10);
             }
-            const curDist = Math.hypot(player.pos.x - RIM_POS.x, player.pos.z - RIM_POS.z);
+            const bow = !!scoring.mode.bow;
+            const curDist = bow ? targetDist(player.pos.x, player.pos.z) : Math.hypot(player.pos.x - RIM_POS.x, player.pos.z - RIM_POS.z);
             const mul10 = Math.round(ScoreManager.distanceMultiplier(curDist) * 10);
             const free = scoring.mode.id === "free";
-            const n1 = free ? scoring.taps : scoring.spots;
-            if (free !== hudRef.free || mul10 !== hudRef.mul10 || n1 !== hudRef.n1 || scoring.shotMade !== hudRef.made || scoring.shotTaken !== hudRef.taken) {
+            const n1 = free ? scoring.taps : bow ? scoring.bestRing : scoring.spots;
+            if (free !== hudRef.free || bow !== hudRef.bow || mul10 !== hudRef.mul10 || n1 !== hudRef.n1 || scoring.shotMade !== hudRef.made || scoring.shotTaken !== hudRef.taken) {
               hudRef.free = free;
+              hudRef.bow = bow;
               hudRef.mul10 = mul10;
               hudRef.n1 = n1;
               hudRef.made = scoring.shotMade;
               hudRef.taken = scoring.shotTaken;
               const dMul = (mul10 / 10).toFixed(1);
-              hudRef.live = free ? `\u62CD\u7403 ${scoring.taps} \u6B21 \xB7 \u6295\u7BEE ${scoring.shotMade}/${scoring.shotTaken} \xB7 \u5F53\u524D\u8DDD\u79BB\xD7${dMul}` : `\u8FDB ${scoring.shotMade} \xB7 \u6362\u4F4D ${scoring.spots} \u6B21 \xB7 \u5F53\u524D\u8DDD\u79BB\xD7${dMul}`;
+              hudRef.live = free ? `\u62CD\u7403 ${scoring.taps} \u6B21 \xB7 \u6295\u7BEE ${scoring.shotMade}/${scoring.shotTaken} \xB7 \u5F53\u524D\u8DDD\u79BB\xD7${dMul}` : bow ? `\u4E0A\u9776 ${scoring.shotMade}/${scoring.shotTaken} \xB7 \u9EC4\u5FC3 ${scoring.bulls} \u6B21 \xB7 \u6700\u9AD8 ${scoring.bestRing} \u73AF \xB7 \u5F53\u524D\u9776\u8DDD\xD7${dMul}` : `\u8FDB ${scoring.shotMade} \xB7 \u6362\u4F4D ${scoring.spots} \u6B21 \xB7 \u5F53\u524D\u8DDD\u79BB\xD7${dMul}`;
             }
             ui.setScore(
               scoring.displayScore,
@@ -34897,7 +35553,11 @@
             player.freeYaw = 0;
             player.yaw = 0;
             cinema.update(0.016);
-            hoverHint = document.getElementById("cinema-hint").textContent.replace(/<[^>]+>/g, "").slice(0, 10);
+            const hint = () => document.getElementById("cinema-hint").textContent.replace(/<[^>]+>/g, "").slice(0, 8);
+            hoverHint = `\u5C4F=${hint() || "\u65E0"}`;
+            player.pos.set(0, 0, CFG.cinema.bed.r + 0.4);
+            cinema.update(0.016);
+            hoverHint += ` \u5E8A=${hint() || "\u65E0"}`;
             player.pos.set(0, 0, CFG.cinema.bed.z + 1.6);
             cinema.onLeftDown();
             if (demo === "grid") document.getElementById("cb-big").click();
@@ -35459,6 +36119,65 @@
             machine.current.relocateAndContinue();
             mark(`S3 \u547D\u4E2D\u540E r=${before.toFixed(2)}\u2192${r0().toFixed(2)} \u843D\u70B9d=${rd().toFixed(2)} \u6362\u8DDD\u79BB=${before === r0() ? "\u5426" : "\u662F"}`);
           }, 3100);
+        }
+        if (demo === "arch") {
+          const st2 = () => machine.current;
+          const F = 1, W = 0.3;
+          setTimeout(() => {
+            startMode("arch");
+            player.pos.set(0, 0, 0);
+            player.freeYaw = Math.PI;
+            player.yaw = Math.PI;
+            player.freePitch = 0;
+            player.pitch = 0;
+            for (let i = 0; i < 40; i++) player.update(0.016);
+            const s = st2();
+            s.charge = W;
+            s.update(0.016);
+            const g = archery.debugGuide();
+            let rims = 0;
+            scene.traverse((o) => {
+              if (o.geometry && o.geometry.type === "TorusGeometry" && o.geometry.parameters.radius === CFG.hoop.rimRadius) rims++;
+            });
+            mark(`A0 \u9776\u8DDD=${targetDist(player.pos.x, player.pos.z).toFixed(2)} \u7BEE\u5708\u6570=${rims} \u7403\u53EF\u89C1=${ball.mesh.visible ? 1 : 0} \u6301\u7403=${ball.mode === "held" ? 1 : 0} \u72B6\u6001=${machine.name} \u529B\u5EA6\u6761=${document.getElementById("power-bar").classList.contains("hidden") ? 0 : 1}`);
+            mark(`A1 \u4E09\u6210\u5F13 \u9884\u6D4B=${g.kind} \u672B\u70B9y=${g.last ? g.last.y.toFixed(2) : "-"} \u7EBF\u957F=${archery.debugLineLen()} \u51FA\u624B\u6570=${scoring.shotTaken}`);
+          }, 1200);
+          setTimeout(() => {
+            const s = st2();
+            s.charging = true;
+            s.charge = 0.05;
+            s.onLeftUp();
+            mark(`A2 \u6536\u5F13 \u5728\u98DE=${s.flying ? 1 : 0} \u51FA\u624B\u6570=${scoring.shotTaken} \u63D2\u9776=${archery.debugStuck()}`);
+          }, 2e3);
+          setTimeout(() => {
+            const s = st2();
+            s.charge = F;
+            s.update(0.016);
+            const g = archery.debugGuide();
+            s.charging = true;
+            s.onLeftUp();
+            const shotFrom = { x: g.last.x, y: g.last.y, z: g.last.z };
+            for (let i = 0; i < 12 && st2().flying; i++) st2().update(0.05);
+            const h = archery.debugHits();
+            const hit = h[h.length - 1];
+            mark(`A3 \u6EE1\u5F13 \u9884\u6D4B=${g.kind} \u672B\u70B9=${shotFrom.x.toFixed(2)},${shotFrom.y.toFixed(2)},${shotFrom.z.toFixed(2)} \u547D\u4E2D=${hit ? `${hit.x.toFixed(2)},${hit.y.toFixed(2)},${hit.z.toFixed(2)}` : "\u65E0"} \u8BEF\u5DEE=${hit ? Math.hypot(hit.x - shotFrom.x, hit.y - shotFrom.y).toFixed(3) : "-"}m \u5728\u98DE=${st2().flying ? 1 : 0} \u73AF=${scoring.bestRing} \u5206=${scoring.displayScore}`);
+          }, 2600);
+          setTimeout(() => {
+            mark(`A4 \u8BA1\u5206 \u4E0A\u9776=${scoring.shotMade}/${scoring.shotTaken} \u8FDE\u51FB=${scoring.shotCombo} \u9EC4\u5FC3=${scoring.bulls} \u5206=${scoring.displayScore} \u82AF\u7247=${document.getElementById("combo-label").textContent} \u63D2\u9776=${archery.debugStuck()} \u526F\u6807\u9898=${document.getElementById("hud-sub").textContent}`);
+            st2().charge = F;
+            st2().update(0.016);
+            const gg = archery.debugGuide();
+            mark(`A4b \u6EE1\u5F13\u9759\u7784 \u9884\u6D4B=${gg.kind} \u672B\u70B9=${gg.last ? `${gg.last.x.toFixed(2)},${gg.last.y.toFixed(2)},${gg.last.z.toFixed(2)}` : "-"} \u843D\u70B9\u5708=${gg.marker}`);
+          }, 3200);
+          setTimeout(() => {
+            startMode("free");
+            mark(`A5 \u6362\u5C40 \u7403\u53EF\u89C1=${ball.mesh.visible ? 1 : 0} \u72B6\u6001=${machine.name} \u529B\u5EA6\u6761=${document.getElementById("power-bar").classList.contains("hidden") ? 0 : 1} \u63D2\u9776=${archery.debugStuck()}`);
+            startMode("arch");
+            for (let i = 0; i < 10; i++) player.update(0.016);
+            st2().charge = F;
+            st2().update(0.016);
+            mark(`END \u65B0\u5C40 \u63D2\u9776=${archery.debugStuck()} \u9884\u6D4B=${archery.debugGuide().kind} \u5206=${scoring.displayScore} \u7403\u53EF\u89C1=${ball.mesh.visible ? 1 : 0}`);
+          }, 3900);
         }
       } catch {
       }

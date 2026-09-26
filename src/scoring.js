@@ -1,6 +1,9 @@
 /**
  * scoring.js —— 计分与本地记录管理
- * 两种模式相互隔离；拍球为无门槛装饰得分（仅自由模式计入），投篮连击独立计数。
+ * 各模式相互隔离；拍球为无门槛装饰得分（仅自由模式计入），投篮连击独立计数。
+ * 投篮与射箭**共用**出手/命中/连击/得分这一套字段（一局只玩一种，reset 每局清零，
+ * 两笔账不会打架），计分口径也同一条：基础分 × 距离倍率 × 连击倍率 —— 射箭只是把
+ * 基础分换成环值。射箭另有两个专属统计（黄心次数、最高单箭环值）。
  * 最高分使用 localStorage 持久保存（键见 CFG.MODES[*].recordKey）。
  */
 import { CFG } from './config.js';
@@ -45,6 +48,8 @@ export class ScoreManager {
     this.shotMade = 0;       // 统计：进球数
     this.shotTaken = 0;      // 统计：出手数
     this.spots = 0;          // 统计：投篮挑战命中的站位数（换位次数）
+    this.bulls = 0;          // 统计：射箭打中黄心（最高环）次数
+    this.bestRing = 0;       // 统计：本局单箭最高环值
     this.currentSpot = null; // 投篮挑战本球：{ r 锁定距离, a 出生角 }，角度可沿弧自由走位
     this.timeLeft = modeDef.timed ? CFG.challenge.duration : Infinity;
     this.ended = false;
@@ -52,7 +57,7 @@ export class ScoreManager {
 
   /** 当前模式下展示的总分 */
   get displayScore() {
-    if (this.mode.id === 'shot') return this.shotScore;
+    if (this.mode.id === 'shot' || this.mode.id === 'arch') return this.shotScore;
     return this.tapScore + this.shotScore; // 自由模式：合并计算
   }
 
@@ -81,7 +86,7 @@ export class ScoreManager {
     return { points: pts };
   }
 
-  /** 投篮出手登记 */
+  /** 出手登记（投篮/射箭共用：都是"这一发的尝试"） */
   registerShotAttempt() { this.shotTaken++; }
 
   /** 进球。返回 { points, is3, distMul, multiplier }；连击 +1 */
@@ -108,6 +113,26 @@ export class ScoreManager {
       return true;
     }
     return false;
+  }
+
+  /**
+   * 一箭上靶（ring = 环值，dist = 出手时离靶心多少米）。
+   * 与 addShotMade 同一条式子、同一套连击/统计字段，只是基础分换成环值 × ringBase。
+   */
+  addArrowMade(ring, dist) {
+    const top = CFG.arch.rings[0].v;
+    this.shotCombo++;
+    this.shotComboMax = Math.max(this.shotComboMax, this.shotCombo);
+    this.shotFail = 0;
+    this.shotMade++;
+    this.bestRing = Math.max(this.bestRing, ring);
+    const bull = ring >= top;
+    if (bull) this.bulls++;
+    const distMul = ScoreManager.distanceMultiplier(dist);
+    const mul = this.shotMultiplier();
+    const pts = Math.round(ring * CFG.arch.ringBase * distMul * mul);
+    this.shotScore += pts;
+    return { points: pts, distMul, multiplier: mul, bull };
   }
 
   /** 倒计时推进；返回是否刚好结束 */

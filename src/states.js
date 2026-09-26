@@ -1,6 +1,6 @@
 /**
  * states.js —— 独立游戏状态机
- * 三种状态：无球(noBall) / 持球(hold) / 投篮蓄力(shot)
+ * 球在手的三种状态：无球(noBall) / 持球(hold) / 投篮蓄力(shot)，加上手上是弓的 arch。
  * 每个状态是一个独立类，逻辑解耦；状态间只通过 G（游戏上下文）通信。
  *
  * 事件接口：enter() / exit() / update(dt) / onLeftDown() / onLeftUp() / onRightDown() / onGrab()（E）
@@ -10,6 +10,7 @@
 import * as THREE from 'three';
 import { CFG } from './config.js';
 import { RIM_POS } from './court.js';
+import { targetDist } from './archery.js';
 
 /* ================= 共用工具 ================= */
 
@@ -121,6 +122,9 @@ export class NoBallState extends State {
 export class HoldState extends State {
   enter() {
     const { player, ui, modeDef } = this.G;
+    // 结算时一律切到 hold 收尾；射箭模式手上没有球，这里当"什么都不拿"的落地态用
+    this.passive = !!modeDef.bow;
+    if (this.passive) return;
     player.speed = CFG.player.speedHold;
     this.tapT = 0;
     ui.setPrompt(modeDef.id === 'free'
@@ -128,6 +132,7 @@ export class HoldState extends State {
       : 'WASD 走位 · 球自动拍 · <b>左键</b> 按住蓄力投篮 · <b>空格</b> 跳投 · <b>E</b> 弃球');
   }
   update(dt) {
+    if (this.passive) return;
     const { player, ball, camera, scoring, machine } = this.G;
     ball.updateHeld(dt, camera);
     // 结算已定：拍球声/+2 飘字都不许再冒出来（球仍随手持，只是不再打地）
@@ -371,6 +376,83 @@ export class ShotState extends State {
     this.releaseDist = Math.hypot(
       player.pos.x - RIM_POS.x, player.pos.z - RIM_POS.z
     );
+  }
+}
+
+/* ================= 4. 射箭（手上是弓，没有球） =================
+   操作语言与投篮一致：按住左键蓄力、松手出手、右键取消。
+   区别只有两件 —— 距离自己走位挑（没有锁弧），以及有一条**说真话的弹道虚线**：
+   虚线与这一发走的是同一段定步长积分，所以虚线末端落在哪、箭就扎在哪。 */
+const _hitPos = new THREE.Vector3();
+
+export class ArchState extends State {
+  enter() {
+    const { player, ui, archery } = this.G;
+    player.speed = CFG.player.speedIdle;   // 空手走位：距离和角度都由自己挑
+    this.charge = 0;
+    this.charging = false;
+    this.flying = false;
+    this.releaseDist = 0;
+    archery.showRig(true);
+    ui.showPowerBar(true);
+    ui.setPrompt('WASD 走位挑靶距 · <b>按住左键</b> 拉弓 · <b>松手</b> 放箭 · 虚线末端就是落点 · <b>右键</b> 收弓');
+  }
+  exit() {
+    this.G.archery.showRig(false);
+    this.G.ui.showPowerBar(false);
+  }
+  update(dt) {
+    const { archery, ui } = this.G;
+    if (this.charging) this.charge = Math.min(1, this.charge + dt / CFG.arch.chargeTime);
+    if (this.flying) {
+      const ev = archery.advance(dt);
+      if (ev) this.resolve(ev);
+      return;
+    }
+    archery.aim(this.charge);      // 未拉弓也画：这条线就是准星之外唯一的瞄具
+    ui.updatePowerBar(this.charge, null);
+  }
+  onLeftDown() { if (!this.flying) this.charging = true; }
+  onLeftUp() {
+    if (this.flying || !this.charging) return;
+    this.charging = false;
+    const { archery, scoring, ui, player } = this.G;
+    // 一拉就松（拉距过低）= 收弓，不出箭也不记出手
+    if (this.charge < CFG.arch.cancelDraw) {
+      this.charge = 0;
+      ui.updatePowerBar(0, null);
+      return;
+    }
+    this.releaseDist = targetDist(player.pos.x, player.pos.z);   // 与 HUD 那个倍率同一个口径
+    scoring.registerShotAttempt();
+    archery.shoot();
+    this.flying = true;
+  }
+  onRightDown() {
+    if (this.flying) return;
+    this.charging = false;
+    this.charge = 0;
+    this.G.sfx.play('tap', { volume: 0.5, rate: 1.4 });
+  }
+
+  /** 一箭落定：上靶面才计分，其余与投篮同一套连击惩罚 */
+  resolve(ev) {
+    const { scoring, sfx, fx, ui } = this.G;
+    this.flying = false;
+    this.charge = 0;
+    ui.updatePowerBar(0, null);
+    if (ev.kind === 'hit') {
+      const { points, distMul, bull } = scoring.addArrowMade(ev.ring, this.releaseDist);
+      sfx.play('rim', { volume: 0.9, rate: 1.5 });   // 扎进草垫那一声闷响
+      if (bull) { sfx.play('cheer', { volume: 0.7 }); fx.shake(); fx.flash(); }
+      fx.burstScore(_hitPos.set(ev.x, ev.y, ev.z));
+      ui.showScorePopup(points, `${bull ? '🎯 黄心' : ev.ring + ' 环'} · 靶距×${distMul.toFixed(1)}`);
+      return;
+    }
+    const comboReset = scoring.addShotMiss();
+    sfx.play(ev.kind === 'board' ? 'rim' : 'bounce', { volume: 0.5, rate: 0.85 });
+    ui.showScorePopup(0, ev.kind === 'board' ? '擦到靶架，没上靶面'
+      : (comboReset ? '连击清零… 盯虚线末端抬一点' : '没上靶 · 看虚线落点再瞄'));
   }
 }
 

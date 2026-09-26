@@ -34,7 +34,7 @@
     <!-- 右上：投篮连击计数器 -->
     <div id="hud-right">
       <div class="combo-chip glass" id="chip-s">
-        <span class="cl">🏀 投篮连击</span><b id="combo-s">0</b><em id="mul-s">×1</em>
+        <span class="cl" id="combo-label">🏀 投篮连击</span><b id="combo-s">0</b><em id="mul-s">×1</em>
       </div>
     </div>
 
@@ -73,6 +73,12 @@
         <p>90 秒 · 每进一球<b>换个投篮点</b><br><b>越远倍率越高</b>（≤×3）</p>
         <div class="rec">最高分 <b id="rec-shot">0</b></div>
       </button>
+      <button class="card" data-mode="arch">
+        <div class="ci">🏹</div>
+        <h3>射箭限时挑战</h3>
+        <p>90 秒 · +Z 端草靶 10/8/6/4/2 环<br>虚线指落点 · <b>拉满才射得到</b></p>
+        <div class="rec">最高分 <b id="rec-arch">0</b></div>
+      </button>
     </div>
     <div id="settings">
       <label class="st"><input type="checkbox" id="set-shadow" checked><span>软阴影</span><small>低配电脑可关闭以提升帧率</small></label>
@@ -81,7 +87,7 @@
     <!-- 主页只留"一眼能用"的操作条；房间细节收进「📖 怎么玩」，点开才占屏幕 -->
     <div id="keys">
       <span><b>WASD</b>移动</span><span><b>鼠标</b>转向</span><span><b>E</b>捡球 / 弃球</span>
-      <span><b>左键</b>按住蓄力投篮</span><span><b>空格</b>跳跃 · 空中出手＝跳投</span>
+      <span><b>左键</b>按住蓄力投篮 / 拉弓</span><span><b>空格</b>跳跃 · 空中出手＝跳投</span>
       <span><b>右键</b>取消</span><span><b>ESC</b>暂停</span>
     </div>
     <p id="keys-2">持球就自动拍球，走位越快拍得越急 · 最高分自动记住</p>
@@ -141,7 +147,7 @@
       <button class="btn" id="cb-shape" title="切换厅形">◯ 圆筒厅</button>
       <button class="btn" id="cb-share" title="把屏幕上任意窗口/网页标签挂上一块幕（浏览器会弹选择框，需要一次真实点击）">📡 共享窗口</button>
     </div>
-    <div class="cc-tip">勾 <b>🔊</b> 的那几部会<b>同时出声</b>；也可以直接点影厅里的银幕或大屏格切换出声。</div>
+    <div class="cc-tip">勾 <b>🔊</b> 的那几部会<b>同时出声</b> —— 这里是唯一的出声开关，银幕和大屏格上的 🔊 只是状态。</div>
     <div id="cc-list"></div>
     <!-- 播放过的片源清单快照（点一条整条换回），由 src/cinema.js 填充，不足两条自动隐藏 -->
     <div id="cc-hist" class="cc-hist hidden"></div>

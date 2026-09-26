@@ -23,14 +23,14 @@ export class UI {
       hud: $('hud'), cross: $('crosshair'),
       mode: $('hud-mode'), score: $('hud-score'), best: $('hud-best'), sub: $('hud-sub'),
       timerBox: $('hud-timer'), timerText: $('timer-text'), timerFill: $('timer-fill'),
-      chipS: $('chip-s'), comboS: $('combo-s'), mulS: $('mul-s'),
+      chipS: $('chip-s'), comboS: $('combo-s'), mulS: $('mul-s'), comboLabel: $('combo-label'),
       prompt: $('hud-prompt'), popup: $('score-popup'),
       pbar: $('power-bar'), pFill: $('power-fill'), pSweet: $('power-sweet'),
       menu: $('menu'), pause: $('pause'), result: $('result'),
       help: $('help'), helpBtn: $('btn-help'),
       badgeNew: $('badge-new'), resTitle: $('res-title'), resScore: $('res-score'),
       resScoreLabel: $('res-score-label'), resLines: $('res-lines'), resShare: $('res-share'),
-      recFree: $('rec-free'), recShot: $('rec-shot'),
+      recFree: $('rec-free'), recShot: $('rec-shot'), recArch: $('rec-arch'),
       setShadow: $('set-shadow'), setVolume: $('set-volume'), pauseShadow: $('pause-shadow'),
     };
     this._lastComboS = -1;
@@ -84,17 +84,20 @@ export class UI {
     this.el.pause.classList.add('hidden');
     this.el.recFree.textContent = records.free;
     this.el.recShot.textContent = records.shot;
-    // 回主菜单一律收起说明：主页永远保持"两卡片 + 一条键位"的极简样子
+    this.el.recArch.textContent = records.arch;
+    // 回主菜单一律收起说明：主页永远保持"三卡片 + 一条键位"的极简样子
     this._setHelp(false);
   }
   hideMenu() { this.el.menu.classList.add('hidden'); }
 
-  showHud(modeName, timed) {
+  /** modeDef 整体传进来：连击芯片的文案要跟着手上拿的是球还是弓变 */
+  showHud(modeDef) {
     this.hideMenu();
     this.el.hud.classList.remove('hidden');
     this.el.cross.classList.remove('hidden');
-    this.el.mode.textContent = modeName;
-    this.el.timerBox.classList.toggle('hidden', !timed);
+    this.el.mode.textContent = modeDef.name;
+    this.el.comboLabel.textContent = modeDef.bow ? '🏹 射箭连击' : '🏀 投篮连击';
+    this.el.timerBox.classList.toggle('hidden', !modeDef.timed);
   }
 
   showPause(show) { this.el.pause.classList.toggle('hidden', !show); }

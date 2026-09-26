@@ -191,7 +191,7 @@ export function createCinema({ camera, player, sfx }) {
   /**
    * 出声集合：存的是**片源名**（不是下标），所以删片/加片/重开都不会错位。
    * 允许多部同时出声——这是"统一控制台"要解决的核心问题（旧模型只有一个 focus 位，
-   * 且 rebuild 把非焦点屏 volume 写成 0、tapScreen 又只改 muted 不改 volume，点了没声）。
+   * 且 rebuild 把非焦点屏 volume 写成 0、toggleVoice 又只改 muted 不改 volume，点了没声）。
    */
   const VOICE_KEY = 'bb.cinema.voices';
   let voiceNames = loadVoiceNames();
@@ -301,10 +301,8 @@ export function createCinema({ camera, player, sfx }) {
     const slot = (Math.PI * 2) / (edges || n);
     for (let i = 0; i < n; i++) {
       const sc = makeScreen(sources[i] || null, slot * (i + 0.5), slot);
-      sc.mesh.userData.screen = i; // 命中物自带屏号：省掉每帧一次数组查找
       screens.push(sc);
     }
-    pickables = [bedHit, ...screens.map((x) => x.mesh)];   // 点击目标表跟着屏走（每帧射线用它，不再每帧拼数组）
     syncVoices();
     applyAudio(); // 新建的 <video> 一律 muted，必须在这里按出声集合重新放行
     layoutBigGrid(document.body.classList.contains('big-screen'));
@@ -381,8 +379,7 @@ export function createCinema({ camera, player, sfx }) {
     }
   }
   scene.add(bed);
-  const bedHit = bed.children[2]; // 床垫作为点击目标
-  let pickables = [bedHit];       // 准星射线的目标表：rebuild 时重填，避免每帧拼数组
+  const bedHit = bed.children[2]; // 床垫是准星唯一的目标：出声归控制台管，银幕不再吃点击
 
   /* ================= 厅形切换（圆筒弧幕 / 正多边形直墙平面幕） =================
      厅里**没有门**：墙是一整圈闭合的黑匣子，整圈都能挂幕，回球场走放映条「🚪 退出影院」。
@@ -558,8 +555,9 @@ export function createCinema({ camera, player, sfx }) {
     playBtn.textContent = '▶ 播放';
   }
 
-  /** 点屏幕 = 把这部片加进/移出"出声集合"（可以多部一起响），顺手把它播起来 */
-  function tapScreen(i) {
+  /** 把这部片加进/移出"出声集合"（可以多部一起响），顺手把它播起来。
+   *  厅里点银幕、平铺里点格子都不再改出声 —— 这是唯一的入口，只由控制台那颗 🔊 调用。 */
+  function toggleVoice(i) {
     const s = screens[i];
     if (!s || !s.src) return;
     if (voices.has(i)) voices.delete(i);
@@ -580,7 +578,8 @@ export function createCinema({ camera, player, sfx }) {
    * 拼法：先按目标行高 h0 贪心分行，每行按 ar 加权把视口宽度分完（自然行高 = VW/Σar），
    * 再把所有行高等比归一到视口高度——拼不满就把余量**纵向摊开**，不留空格；
    * 画面一律 object-fit:cover，所以只裁边缘、绝不出黑边。
-   * 一格上的操作：整格点＝切这部出声／空洞格点＝往这个位置补一部／右上角 ✕＝从环上删掉。
+   * 一格上的操作：空洞格点＝往这个位置补一部／右上角 ✕＝从环上删掉。
+   * 🔊 角标只读——出声与否一律在 🎛 控制台里勾（见 toggleVoice 的唯一调用方）。
    */
   function layoutBigGrid(on) {
     const wall = $('big-wall');
@@ -630,6 +629,7 @@ export function createCinema({ camera, player, sfx }) {
       cell.style.cssText = css(rc);
       const spk = document.createElement('span');
       spk.className = 'bwspk';
+      spk.title = '出声状态（只读）：要改请在 🎛 控制台里勾';
       spk.textContent = voices.has(i) ? '🔊' : '🔇';
       cell.appendChild(spk);
       if (s.src) {
@@ -644,8 +644,8 @@ export function createCinema({ camera, player, sfx }) {
       tag.className = 'bwname';
       tag.textContent = s.src ? s.src.name : '＋ 这个空位补一部';
       cell.appendChild(tag);
-      cell.title = s.src ? '点击切换这部是否出声' : '这块还是空位：点击选一部片补上';
-      cell.addEventListener('click', () => { if (s.src) tapScreen(i); else pickVideo(i); });
+      cell.title = s.src ? '✕ 从环上删掉这部（出声请到 🎛 控制台）' : '这块还是空位：点击选一部片补上';
+      if (!s.src) cell.addEventListener('click', () => pickVideo(i));
       wall.appendChild(cell);
     });
     wall.classList.remove('hidden');
@@ -719,7 +719,7 @@ export function createCinema({ camera, player, sfx }) {
         spk.className = 'btn cc-spk' + (voices.has(i) ? ' on' : '');
         spk.textContent = voices.has(i) ? '🔊' : '🔇';
         spk.title = voices.has(i) ? '移出出声' : '加入出声（可多部同时）';
-        spk.addEventListener('click', () => tapScreen(i));
+        spk.addEventListener('click', () => toggleVoice(i));
         const pp = document.createElement('button');
         pp.className = 'btn cc-pp';
         pp.textContent = s.videoEl.paused ? '▶' : '⏸';
@@ -862,10 +862,8 @@ export function createCinema({ camera, player, sfx }) {
   /* ================= 入座 / 走动 ================= */
   let seated = false;
   let hoverBed = false;
-  let hoverScreen = -1;
   const raycaster = new THREE.Raycaster();
   const _center = { x: 0, y: 0 };   // 准星恒在屏幕正中，不必每帧抛一个临时坐标
-  const _ndc = new THREE.Vector2();
   const hintEl = $('cinema-hint');
 
   const GYM_BOUNDS = {
@@ -961,7 +959,7 @@ export function createCinema({ camera, player, sfx }) {
       applyZoom();
       lockPointer();                 // 走动状态锁指针（与球馆一致）
       if (!sources.some(Boolean)) { sources = loadSources(); rebuild(); refreshStatus(); }
-      setHint('<b>左键</b> 点屏幕切换出声 · 靠近圆床 <b>左键</b> 入座 · 回球场点放映条 <b>🚪 退出影院</b>');
+      setHint('靠近圆床 <b>左键</b> 入座 · 出声在 <b>🎛 控制台</b> 里管 · 回球场点放映条 <b>🚪 退出影院</b>');
     },
     exit() {
       stand();
@@ -992,16 +990,13 @@ export function createCinema({ camera, player, sfx }) {
         const d = Math.hypot(px, pz);
         if (d > lim) { player.pos.x = K.bed.x + px * (lim / d); player.pos.z = K.bed.z + pz * (lim / d); }
       }
-      // 准星射线：圆床 + 环上所有幕（厅里没门，少一个目标也少一次"隐形物挡射线"的坑）
+      // 准星射线只认圆床：坐下/站起的唯一手势，银幕一律不参与点击
       raycaster.setFromCamera(_center, camera);
-      const hits = raycaster.intersectObjects(pickables, false);
-      const hit = (hits.length && hits[0].distance < 24) ? hits[0] : null;   // 结果已按距离排序
-      hoverBed = !!hit && hit.object === bedHit;
-      hoverScreen = hit ? (hit.object.userData.screen ?? -1) : -1;
+      const hits = raycaster.intersectObject(bedHit, false);
+      hoverBed = !!hits.length && hits[0].distance < 24 && hits[0].object === bedHit;
       const dBed = Math.hypot(px, pz);
       const nearBed = hoverBed || dBed < K.bed.r + 0.6;
-      setHint(nearBed ? '<b>左键</b> 在圆床上入座（任意朝向）'
-        : hoverScreen >= 0 && screens[hoverScreen].src ? '<b>左键</b> 播放/暂停 · 切换该屏声音' : '');
+      setHint(nearBed ? '<b>左键</b> 在圆床上入座（任意朝向）' : '');
     },
 
     onLeftDown() {
@@ -1011,8 +1006,7 @@ export function createCinema({ camera, player, sfx }) {
       const sph = new THREE.Sphere(new THREE.Vector3(K.bed.x, 0.4, K.bed.z), K.bed.r + 0.35);
       const onBed = ray.intersectsSphere(sph) ||
         Math.hypot(player.pos.x - K.bed.x, player.pos.z - K.bed.z) < K.bed.r + 0.6;
-      if (onBed) { sit(); return; }
-      if (hoverScreen >= 0) tapScreen(hoverScreen);
+      if (onBed) sit();
     },
     onRightDown() {
       if (seated) stand();
@@ -1024,16 +1018,6 @@ export function createCinema({ camera, player, sfx }) {
       applyZoom();
       setHint('');
       return true;
-    },
-    /** 入座（未锁指针）时用鼠标位置点某块银幕：切该屏出声/暂停 */
-    onClick(x, y) {
-      const rect = document.getElementById('gl').getBoundingClientRect();
-      _ndc.set((x / rect.width) * 2 - 1, -(y / rect.height) * 2 + 1);
-      raycaster.setFromCamera(_ndc, camera);
-      const hits = raycaster.intersectObjects(screens.map((s) => s.mesh), false);
-      if (!hits.length) return;
-      const i = screens.findIndex((s) => s.mesh === hits[0].object);
-      if (i >= 0) tapScreen(i);
     },
     /** WASD 按下时 main 转发：坐着则起身（keydown 手势内可重新锁指针） */
     onMoveKey() {
