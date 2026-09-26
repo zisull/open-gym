@@ -382,7 +382,8 @@ export class ShotState extends State {
 /* ================= 4. 射箭（手上是弓，没有球） =================
    操作语言与投篮一致：按住左键蓄力、松手出手、右键取消。
    台球室那条说真话的弹道虚线**这里刻意不给**：有落点圈指着，射箭就退化成点名，
-   玩家报的"难度太低"正是它。现在唯一的瞄具是准星 + 力度条，下坠自己补。 */
+   玩家报的"难度太低"正是它。力度条是唯一的依据 —— 连准星也撤了，箭从右下的弓上平行于视线飞，
+   所以瞄着哪儿都会低一截、偏右一点，抬多少自己记。 */
 const _hitPos = new THREE.Vector3();
 
 export class ArchState extends State {
@@ -395,7 +396,7 @@ export class ArchState extends State {
     this.releaseDist = 0;
     archery.showRig(true);
     ui.showPowerBar(true);
-    ui.setPrompt('WASD 走位挑靶距 · <b>按住左键</b> 拉弓 · <b>松手</b> 放箭 · 箭会下坠，拉得越满越平直 · <b>右键</b> 收弓');
+    ui.setPrompt('WASD 走位挑靶距 · <b>按住左键</b> 拉弓 · <b>松手</b> 放箭 · <b>无准星</b>：箭从右下的弓上飞出还会下坠，瞄高一点 · <b>右键</b> 收弓');
   }
   exit() {
     this.G.archery.showRig(false);
@@ -452,7 +453,7 @@ export class ArchState extends State {
     const comboReset = scoring.addShotMiss();
     sfx.play(ev.kind === 'board' ? 'rim' : 'bounce', { volume: 0.5, rate: 0.85 });
     ui.showScorePopup(0, ev.kind === 'board' ? '擦到靶架，没上靶面'
-      : (comboReset ? '连击清零… 拉满弓、准星抬高一档' : '没上靶 · 箭在往下掉，瞄高一点'));
+      : (comboReset ? '连击清零… 拉满弓、瞄点再抬高一档' : '没上靶 · 箭在往下掉，瞄高一点'));
   }
 }
 

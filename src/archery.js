@@ -1,8 +1,9 @@
 /**
  * archery.js —— 射箭：靶位（+z 端，原第二只篮筐的位置）+ 弓箭视角模型
  *
- * **故意不给弹道辅助线**（台球室那条虚线在这里被撤掉）：有落点圈指着的射箭等于点名，
- * 玩家报的"难度太低"就是这个。现在只有准星与力度条 —— 下坠是真的，抬多少自己算。
+ * **故意不给弹道辅助线，也不给准星**（台球室那条虚线在这里被撤掉，屏幕正中的瞄具也撤掉）：
+ * 有落点圈或准星指着的射箭等于点名，玩家报的"难度太低"就是这个。
+ * 现在唯一的依据是力度条 + 手里的弓 —— 下坠是真的，箭从右下出手也是真的，抬多少自己算。
  * 好在靶子够大（1.5m）、箭够快（满弓 12.7m 只掉 0.14m），第一箭就能上靶。
  */
 import * as THREE from 'three';
@@ -13,12 +14,11 @@ const A = CFG.arch;
 const G0 = CFG.player.gravity;
 
 /**
- * 出手点在弓上（相机右下前方），不在眼睛上 —— 与手里的 viewmodel 对得上。
- * 方向指向准星射线上的远处（NOCK_REF），所以箭一路向准星收拢：
- * 到 12.7m 那一面靶时只与准星差 3cm，远小于黄心半径（15cm），可以当"准星指哪打哪"。
+ * 出手点在弓上（相机右下前方），方向就是相机朝向 —— 屏幕正中不再等于落点。
+ * 没有准星、也不往准星上收拢：箭从眼睛右下 15cm/20cm 处平行于视线飞出去，
+ * 所以瞄着黄心会扎在黄心下方一环，抬多少得自己记住（这才是这一模式的全部难度）。
  */
 const NOCK = { right: 0.15, down: 0.20, fwd: 0.30 };
-const NOCK_REF = 16;
 
 /** 靶心世界坐标（命中平面、靶距倍率都以此为原点）；只在本模块内用，外面要靶距请调 targetDist() */
 const TARGET_POS = new THREE.Vector3(0, A.targetY, A.targetZ);
@@ -202,7 +202,7 @@ export function createArchery({ scene, camera, player, sfx, range }) {
     return null;
   }
 
-  /** 算出这一箭的出手点与方向：由相机姿态现推 */
+  /** 算出这一箭的出手点与方向：由相机姿态现推（方向＝视线本身，不向任何瞄具收拢） */
   function launchState() {
     const q = camera.quaternion;
     _ld.set(0, 0, -1).applyQuaternion(q);
@@ -212,8 +212,6 @@ export function createArchery({ scene, camera, player, sfx, range }) {
       .addScaledVector(_lr, NOCK.right)
       .addScaledVector(_lu, -NOCK.down)
       .addScaledVector(_ld, NOCK.fwd);
-    // 方向 = 从弓指向准星射线上的参考远点：远处收拢到准星，近处看得见偏移
-    _ld.multiplyScalar(NOCK_REF).add(camera.position).sub(_lp).normalize();
   }
 
   /** 取一支空闲箭网格（没有才新建）—— 一局几百箭也不能攒几百个 Group */

@@ -94,7 +94,8 @@ export class UI {
   showHud(modeDef) {
     this.hideMenu();
     this.el.hud.classList.remove('hidden');
-    this.el.cross.classList.remove('hidden');
+    // 射箭局连准星都不给：屏幕上没有任何"这就是落点"的标记，力度条是唯一的依据
+    this.el.cross.classList.toggle('hidden', !!modeDef.bow);
     this.el.mode.textContent = modeDef.name;
     this.el.comboLabel.textContent = modeDef.bow ? '🏹 射箭连击' : '🏀 投篮连击';
     this.el.timerBox.classList.toggle('hidden', !modeDef.timed);

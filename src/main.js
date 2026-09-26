@@ -133,9 +133,9 @@ const ROOMS = {
   pool: {
     door: DOOR_P,
     api: pool,
-    // 台球室不用准星（导向线就是瞄准器），离场再还回来
+    // 台球室不用准星（导向线就是瞄准器），离场再还回来 —— 射箭局本来就无准星，别还出个多余的点
     enter: () => { ui.el.cross.classList.add('hidden'); pool.enter(); },
-    leave: () => { setPoolHud(false); pool.exit(); ui.el.cross.classList.remove('hidden'); },
+    leave: () => { setPoolHud(false); pool.exit(); ui.el.cross.classList.toggle('hidden', !!G.modeDef.bow); },
   },
 };
 function enterRoom(id) {
@@ -1413,10 +1413,18 @@ try {
     }, 3100);
   }
   if (demo === 'arch') {
-    // 射箭：**这里没有弹道辅助线**（有落点圈指着就是点名，玩家报的"难度太低"正是它），
-    // 所以这一组断言全部读**真飞行**的结果：两成弓够不着靶面、半弓就能上靶（＝旧满弓的力度）、
-    // 满弓平视正中黄心；外加"轻点松手不记出手"与换局清靶。
+    // 射箭：**既没有弹道辅助线也没有准星**（有落点圈或瞄点指着就是点名，玩家报的"难度太低"正是它），
+    // 所以这一组断言全部读**真飞行**的结果：两成弓够不着靶面、半弓平视上 4 环、满弓平视只到 8 环，
+    // 想打黄心必须自己把瞄点抬高约 1.2°（A4b）。外加"轻点松手不记出手"与换局清靶。
     const st = () => machine.current;
+    /** 屏幕上有没有那颗准星点（射箭局必须没有） */
+    const cross = () => (document.getElementById('crosshair').classList.contains('hidden') ? 0 : 1);
+    /** 抬/低头（pitch 正=向上）、左右微调（正=往 +x 偏）并推帧让阻尼角收敛 */
+    const look = (p, dy = 0) => {
+      player.freePitch = p; player.pitch = p;
+      player.freeYaw = Math.PI + dy; player.yaw = Math.PI + dy;
+      for (let i = 0; i < 40; i++) player.update(0.016);
+    };
     /** 拉到位 c 就松手，手动推帧跑到落定，返回这一箭结算 */
     const fire = (c) => {
       const s = st();
@@ -1440,7 +1448,7 @@ try {
       });
       mark(`A0 靶距=${targetDist(player.pos.x, player.pos.z).toFixed(2)} 靶宽=${(CFG.arch.faceR * 2).toFixed(2)} 篮圈数=${rims}`
         + ` 球可见=${ball.mesh.visible ? 1 : 0} 持球=${ball.mode === 'held' ? 1 : 0}`
-        + ` 状态=${machine.name} 力度条=${document.getElementById('power-bar').classList.contains('hidden') ? 0 : 1}`);
+        + ` 状态=${machine.name} 力度条=${document.getElementById('power-bar').classList.contains('hidden') ? 0 : 1} 准星=${cross()}`);
       // A1 两成弓：射程根本到不了靶距，箭落在靶子前面（靶上不许有箭）
       const a1 = fire(0.2);
       mark(`A1 两成弓 落点=${a1.kind} 命中=${a1.pt} 插靶=${archery.debugStuck()} 出手数=${scoring.shotTaken}`);
@@ -1453,24 +1461,32 @@ try {
     // A3 半弓＝旧满弓的力度：平视也够得到靶面（"最高档挪到半弓"就断言在这一行）
     setTimeout(() => {
       const a = fire(0.5);
-      mark(`A3 半弓 落点=${a.kind} 命中=${a.pt} 环=${scoring.bestRing} 分=${scoring.displayScore} 插靶=${archery.debugStuck()}`);
+      mark(`A3 半弓平视 落点=${a.kind} 命中=${a.pt} 环=${scoring.bestRing} 分=${scoring.displayScore} 插靶=${archery.debugStuck()}`);
     }, 2600);
-    // A4 满弓：12.7m 平射只掉 0.14m → 黄心；计分 = 环值×ringBase×靶距倍率×连击倍率
+    // A4 满弓平视：**不再是黄心** —— 没有准星也就不再向准星收拢，箭从眼下 20cm 的弓上平行飞出，
+    //       平视必然偏低（掉到 8 环）。这一行就是"指哪打哪"被撤掉的凭据。
     setTimeout(() => {
       const a = fire(1);
-      mark(`A4 满弓 落点=${a.kind} 命中=${a.pt} 在飞=${a.fly} 黄心=${scoring.bulls} 上靶=${scoring.shotMade}/${scoring.shotTaken}`
-        + ` 分=${scoring.displayScore} 芯片=${document.getElementById('combo-label').textContent}`
-        + ` 副标题=${document.getElementById('hud-sub').textContent}`);
+      mark(`A4 满弓平视 落点=${a.kind} 命中=${a.pt} 在飞=${a.fly} 黄心=${scoring.bulls} 上靶=${scoring.shotMade}/${scoring.shotTaken}`
+        + ` 分=${scoring.displayScore} 芯片=${document.getElementById('combo-label').textContent}`);
     }, 3200);
-    // A5 换局：回篮球模式球要重新露面、弓和力度条当场退场；再开一局射箭则先把靶上的箭清干净
+    // A4b 满弓 + 自己补瞄点：抬高 1.2°（0.021rad）补那 20cm 出手高度、左偏 0.0118rad 补 15cm 弓的偏右
+    //     → 黄心。补偿是真的补得上，只是再没人拿个点告诉你该补多少。
+    setTimeout(() => {
+      look(0.021, 0.0118);
+      const a = fire(1);
+      mark(`A4b 满弓补瞄点 落点=${a.kind} 命中=${a.pt} 黄心=${scoring.bulls} 上靶=${scoring.shotMade}/${scoring.shotTaken} 分=${scoring.displayScore}`);
+      look(0);
+    }, 3800);
+    // A5 换局：回篮球模式球要重新露面、准星还回来；再开射箭局弓和力度条当场退场/准星再收起，靶上的箭清干净
     setTimeout(() => {
       startMode('free');
       mark(`A5 换局 球可见=${ball.mesh.visible ? 1 : 0} 状态=${machine.name} 力度条=${document.getElementById('power-bar').classList.contains('hidden') ? 0 : 1}`
-        + ` 插靶=${archery.debugStuck()}`);
+        + ` 准星=${cross()} 插靶=${archery.debugStuck()}`);
       startMode('arch');
       for (let i = 0; i < 10; i++) player.update(0.016);
       const a = fire(1);
-      mark(`END 新局 插靶=${archery.debugStuck()} 落点=${a.kind} 分=${scoring.displayScore} 球可见=${ball.mesh.visible ? 1 : 0}`);
-    }, 3900);
+      mark(`END 新局 插靶=${archery.debugStuck()} 落点=${a.kind} 分=${scoring.displayScore} 球可见=${ball.mesh.visible ? 1 : 0} 准星=${cross()}`);
+    }, 4500);
   }
 } catch { /* 生产环境忽略 */ }

@@ -30602,7 +30602,7 @@
         showHud(modeDef) {
           this.hideMenu();
           this.el.hud.classList.remove("hidden");
-          this.el.cross.classList.remove("hidden");
+          this.el.cross.classList.toggle("hidden", !!modeDef.bow);
           this.el.mode.textContent = modeDef.name;
           this.el.comboLabel.textContent = modeDef.bow ? "\u{1F3F9} \u5C04\u7BAD\u8FDE\u51FB" : "\u{1F3C0} \u6295\u7BEE\u8FDE\u51FB";
           this.el.timerBox.classList.toggle("hidden", !modeDef.timed);
@@ -33405,7 +33405,6 @@
       _lr.set(1, 0, 0).applyQuaternion(q);
       _lu.set(0, 1, 0).applyQuaternion(q);
       _lp.copy(camera.position).addScaledVector(_lr, NOCK.right).addScaledVector(_lu, -NOCK.down).addScaledVector(_ld, NOCK.fwd);
-      _ld.multiplyScalar(NOCK_REF).add(camera.position).sub(_lp).normalize();
     }
     function takeArrow() {
       const m = pool.pop() || makeArrowMesh();
@@ -33541,7 +33540,7 @@
     poseBow(0);
     return api;
   }
-  var A, G0, NOCK, NOCK_REF, TARGET_POS;
+  var A, G0, NOCK, TARGET_POS;
   var init_archery = __esm({
     "src/archery.js"() {
       init_three_module();
@@ -33550,7 +33549,6 @@
       A = CFG.arch;
       G0 = CFG.player.gravity;
       NOCK = { right: 0.15, down: 0.2, fwd: 0.3 };
-      NOCK_REF = 16;
       TARGET_POS = new Vector3(0, A.targetY, A.targetZ);
     }
   });
@@ -34350,7 +34348,7 @@
           this.releaseDist = 0;
           archery.showRig(true);
           ui.showPowerBar(true);
-          ui.setPrompt("WASD \u8D70\u4F4D\u6311\u9776\u8DDD \xB7 <b>\u6309\u4F4F\u5DE6\u952E</b> \u62C9\u5F13 \xB7 <b>\u677E\u624B</b> \u653E\u7BAD \xB7 \u7BAD\u4F1A\u4E0B\u5760\uFF0C\u62C9\u5F97\u8D8A\u6EE1\u8D8A\u5E73\u76F4 \xB7 <b>\u53F3\u952E</b> \u6536\u5F13");
+          ui.setPrompt("WASD \u8D70\u4F4D\u6311\u9776\u8DDD \xB7 <b>\u6309\u4F4F\u5DE6\u952E</b> \u62C9\u5F13 \xB7 <b>\u677E\u624B</b> \u653E\u7BAD \xB7 <b>\u65E0\u51C6\u661F</b>\uFF1A\u7BAD\u4ECE\u53F3\u4E0B\u7684\u5F13\u4E0A\u98DE\u51FA\u8FD8\u4F1A\u4E0B\u5760\uFF0C\u7784\u9AD8\u4E00\u70B9 \xB7 <b>\u53F3\u952E</b> \u6536\u5F13");
         }
         exit() {
           this.G.archery.showRig(false);
@@ -34410,7 +34408,7 @@
           }
           const comboReset = scoring.addShotMiss();
           sfx.play(ev.kind === "board" ? "rim" : "bounce", { volume: 0.5, rate: 0.85 });
-          ui.showScorePopup(0, ev.kind === "board" ? "\u64E6\u5230\u9776\u67B6\uFF0C\u6CA1\u4E0A\u9776\u9762" : comboReset ? "\u8FDE\u51FB\u6E05\u96F6\u2026 \u62C9\u6EE1\u5F13\u3001\u51C6\u661F\u62AC\u9AD8\u4E00\u6863" : "\u6CA1\u4E0A\u9776 \xB7 \u7BAD\u5728\u5F80\u4E0B\u6389\uFF0C\u7784\u9AD8\u4E00\u70B9");
+          ui.showScorePopup(0, ev.kind === "board" ? "\u64E6\u5230\u9776\u67B6\uFF0C\u6CA1\u4E0A\u9776\u9762" : comboReset ? "\u8FDE\u51FB\u6E05\u96F6\u2026 \u62C9\u6EE1\u5F13\u3001\u7784\u70B9\u518D\u62AC\u9AD8\u4E00\u6863" : "\u6CA1\u4E0A\u9776 \xB7 \u7BAD\u5728\u5F80\u4E0B\u6389\uFF0C\u7784\u9AD8\u4E00\u70B9");
         }
       };
       StateMachine = class {
@@ -34652,7 +34650,7 @@
         pool: {
           door: DOOR_P,
           api: pool,
-          // 台球室不用准星（导向线就是瞄准器），离场再还回来
+          // 台球室不用准星（导向线就是瞄准器），离场再还回来 —— 射箭局本来就无准星，别还出个多余的点
           enter: () => {
             ui.el.cross.classList.add("hidden");
             pool.enter();
@@ -34660,7 +34658,7 @@
           leave: () => {
             setPoolHud(false);
             pool.exit();
-            ui.el.cross.classList.remove("hidden");
+            ui.el.cross.classList.toggle("hidden", !!G.modeDef.bow);
           }
         }
       };
@@ -35958,6 +35956,14 @@
         }
         if (demo === "arch") {
           const st2 = () => machine.current;
+          const cross = () => document.getElementById("crosshair").classList.contains("hidden") ? 0 : 1;
+          const look = (p, dy = 0) => {
+            player.freePitch = p;
+            player.pitch = p;
+            player.freeYaw = Math.PI + dy;
+            player.yaw = Math.PI + dy;
+            for (let i = 0; i < 40; i++) player.update(0.016);
+          };
           const fire = (c2) => {
             const s = st2();
             s.charge = c2;
@@ -35981,7 +35987,7 @@
             scene.traverse((o) => {
               if (o.geometry && o.geometry.type === "TorusGeometry" && o.geometry.parameters.radius === CFG.hoop.rimRadius) rims++;
             });
-            mark(`A0 \u9776\u8DDD=${targetDist(player.pos.x, player.pos.z).toFixed(2)} \u9776\u5BBD=${(CFG.arch.faceR * 2).toFixed(2)} \u7BEE\u5708\u6570=${rims} \u7403\u53EF\u89C1=${ball.mesh.visible ? 1 : 0} \u6301\u7403=${ball.mode === "held" ? 1 : 0} \u72B6\u6001=${machine.name} \u529B\u5EA6\u6761=${document.getElementById("power-bar").classList.contains("hidden") ? 0 : 1}`);
+            mark(`A0 \u9776\u8DDD=${targetDist(player.pos.x, player.pos.z).toFixed(2)} \u9776\u5BBD=${(CFG.arch.faceR * 2).toFixed(2)} \u7BEE\u5708\u6570=${rims} \u7403\u53EF\u89C1=${ball.mesh.visible ? 1 : 0} \u6301\u7403=${ball.mode === "held" ? 1 : 0} \u72B6\u6001=${machine.name} \u529B\u5EA6\u6761=${document.getElementById("power-bar").classList.contains("hidden") ? 0 : 1} \u51C6\u661F=${cross()}`);
             const a1 = fire(0.2);
             mark(`A1 \u4E24\u6210\u5F13 \u843D\u70B9=${a1.kind} \u547D\u4E2D=${a1.pt} \u63D2\u9776=${archery.debugStuck()} \u51FA\u624B\u6570=${scoring.shotTaken}`);
           }, 1200);
@@ -35994,20 +36000,26 @@
           }, 2e3);
           setTimeout(() => {
             const a2 = fire(0.5);
-            mark(`A3 \u534A\u5F13 \u843D\u70B9=${a2.kind} \u547D\u4E2D=${a2.pt} \u73AF=${scoring.bestRing} \u5206=${scoring.displayScore} \u63D2\u9776=${archery.debugStuck()}`);
+            mark(`A3 \u534A\u5F13\u5E73\u89C6 \u843D\u70B9=${a2.kind} \u547D\u4E2D=${a2.pt} \u73AF=${scoring.bestRing} \u5206=${scoring.displayScore} \u63D2\u9776=${archery.debugStuck()}`);
           }, 2600);
           setTimeout(() => {
             const a2 = fire(1);
-            mark(`A4 \u6EE1\u5F13 \u843D\u70B9=${a2.kind} \u547D\u4E2D=${a2.pt} \u5728\u98DE=${a2.fly} \u9EC4\u5FC3=${scoring.bulls} \u4E0A\u9776=${scoring.shotMade}/${scoring.shotTaken} \u5206=${scoring.displayScore} \u82AF\u7247=${document.getElementById("combo-label").textContent} \u526F\u6807\u9898=${document.getElementById("hud-sub").textContent}`);
+            mark(`A4 \u6EE1\u5F13\u5E73\u89C6 \u843D\u70B9=${a2.kind} \u547D\u4E2D=${a2.pt} \u5728\u98DE=${a2.fly} \u9EC4\u5FC3=${scoring.bulls} \u4E0A\u9776=${scoring.shotMade}/${scoring.shotTaken} \u5206=${scoring.displayScore} \u82AF\u7247=${document.getElementById("combo-label").textContent}`);
           }, 3200);
           setTimeout(() => {
+            look(0.021, 0.0118);
+            const a2 = fire(1);
+            mark(`A4b \u6EE1\u5F13\u8865\u7784\u70B9 \u843D\u70B9=${a2.kind} \u547D\u4E2D=${a2.pt} \u9EC4\u5FC3=${scoring.bulls} \u4E0A\u9776=${scoring.shotMade}/${scoring.shotTaken} \u5206=${scoring.displayScore}`);
+            look(0);
+          }, 3800);
+          setTimeout(() => {
             startMode("free");
-            mark(`A5 \u6362\u5C40 \u7403\u53EF\u89C1=${ball.mesh.visible ? 1 : 0} \u72B6\u6001=${machine.name} \u529B\u5EA6\u6761=${document.getElementById("power-bar").classList.contains("hidden") ? 0 : 1} \u63D2\u9776=${archery.debugStuck()}`);
+            mark(`A5 \u6362\u5C40 \u7403\u53EF\u89C1=${ball.mesh.visible ? 1 : 0} \u72B6\u6001=${machine.name} \u529B\u5EA6\u6761=${document.getElementById("power-bar").classList.contains("hidden") ? 0 : 1} \u51C6\u661F=${cross()} \u63D2\u9776=${archery.debugStuck()}`);
             startMode("arch");
             for (let i = 0; i < 10; i++) player.update(0.016);
             const a2 = fire(1);
-            mark(`END \u65B0\u5C40 \u63D2\u9776=${archery.debugStuck()} \u843D\u70B9=${a2.kind} \u5206=${scoring.displayScore} \u7403\u53EF\u89C1=${ball.mesh.visible ? 1 : 0}`);
-          }, 3900);
+            mark(`END \u65B0\u5C40 \u63D2\u9776=${archery.debugStuck()} \u843D\u70B9=${a2.kind} \u5206=${scoring.displayScore} \u7403\u53EF\u89C1=${ball.mesh.visible ? 1 : 0} \u51C6\u661F=${cross()}`);
+          }, 4500);
         }
       } catch {
       }
