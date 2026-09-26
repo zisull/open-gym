@@ -34440,6 +34440,9 @@
         const k = e.key.toLowerCase();
         if (k in keys) keys[k] = false;
       });
+      addEventListener("blur", () => {
+        for (const k in keys) keys[k] = false;
+      });
       var seatAim = { x: 0, y: 0, t: 0, moved: 0, set(x, y) {
         this.x = x;
         this.y = y;
@@ -35427,7 +35430,16 @@
             walk("A3 \u5BF9\u7167\xB7\u5F00\u5173\u5173\u6389");
             player.inputEnabled = true;
           }, 2400);
-          setTimeout(() => mark(`END state=${GAME.state} loc=${GAME.location}`), 2800);
+          setTimeout(() => {
+            player.pos.set(0, 0, 6);
+            player.vel.set(0, 0, 0);
+            tap("w");
+            dispatchEvent(new Event("blur"));
+            for (let i = 0; i < 30; i++) player.update(0.016);
+            lift("w");
+            mark(`A4 \u5931\u7126\u540E \u524D\u8FDB=${(6 - player.pos.z).toFixed(2)}m\uFF08\u5E94=0\uFF09`);
+          }, 2700);
+          setTimeout(() => mark(`END state=${GAME.state} loc=${GAME.location}`), 3100);
         }
         if (demo === "spot") {
           const rd = () => Math.hypot(player.pos.x - RIM_POS.x, player.pos.z - RIM_POS.z);

@@ -45,7 +45,7 @@ export class ScoreManager {
     this.shotMade = 0;       // 统计：进球数
     this.shotTaken = 0;      // 统计：出手数
     this.spots = 0;          // 统计：投篮挑战命中的站位数（换位次数）
-    this.currentSpot = null; // 投篮挑战当前站位中心（小圈走位钳制用）
+    this.currentSpot = null; // 投篮挑战本球：{ r 锁定距离, a 出生角 }，角度可沿弧自由走位
     this.timeLeft = modeDef.timed ? CFG.challenge.duration : Infinity;
     this.ended = false;
   }

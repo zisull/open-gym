@@ -392,6 +392,9 @@ addEventListener('keyup', (e) => {
   const k = e.key.toLowerCase();
   if (k in keys) keys[k] = false;
 });
+// 按住方向键切走窗口（Alt+Tab）时 keyup 根本不会送到，键就卡在按下态：人自己往前走、
+// 还停不下来。失焦一律当松手处理。
+addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
 /* 沙发上（未锁指针）区分「点击选屏」与「拖拽转向」：按下记起点，累计位移小于 6px 才算点击 */
 const seatAim = { x: 0, y: 0, t: 0, moved: 0, set(x, y) { this.x = x; this.y = y; this.t = performance.now(); this.moved = 0; } };
 document.addEventListener('mousemove', (e) => {
@@ -1364,7 +1367,16 @@ try {
     // 负对照：同一个量法显式把开关关掉，必须读 0 —— 不然说明这条断言根本不敏感，
     // A2 的 2.22m 只是碰巧来自别处。（测试自带对照，就不用去临时改生产代码验干了）
     setTimeout(() => { player.inputEnabled = false; walk('A3 对照·开关关掉'); player.inputEnabled = true; }, 2400);
-    setTimeout(() => mark(`END state=${GAME.state} loc=${GAME.location}`), 2800);
+    // A4：按住 W 切走窗口 —— keyup 收不到，全靠 blur 把键松掉，否则人会自己一直往前走
+    setTimeout(() => {
+      player.pos.set(0, 0, 6); player.vel.set(0, 0, 0);
+      tap('w');
+      dispatchEvent(new Event('blur'));
+      for (let i = 0; i < 30; i++) player.update(0.016);
+      lift('w');
+      mark(`A4 失焦后 前进=${(6 - player.pos.z).toFixed(2)}m（应=0）`);
+    }, 2700);
+    setTimeout(() => mark(`END state=${GAME.state} loc=${GAME.location}`), 3100);
   }
   if (demo === 'spot') {
     // 投篮挑战：只锁距离、不锁角度。甩到非法位置应被吸回本球那条弧；
