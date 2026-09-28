@@ -100,11 +100,13 @@ tools/audit_cfg.js / audit_exports.js  两条收口审计
 
 ## 墙面二次元贴画
 
-球馆四面墙会自动挂载海报框，展示 `imgs/wall/` 里的图片。放图流程：
+球馆四面墙会自动挂载海报框，展示 `imgs/wall/` 里的图片。**仓库已预置一套贴画**：
+目录里的图与打包产物 `manifest.js` 一起入库，克隆下来不用跑任何命令墙上就有画。
+想换成自己的图：
 
 1. 把 JPG / PNG（也支持 webp/gif/bmp）图片丢进 `imgs/wall/` 目录；
-2. 双击 `tools/gen_walls.bat`（或 `npm run walls`）——它把图片打包成
-   base64 内嵌的 `imgs/wall/manifest.js`；
+2. 双击 `tools/gen_walls.bat`（或 `npm run walls`）——它把目录里的图打包成
+   base64 内嵌的 `imgs/wall/manifest.js`（整体覆盖，删掉的图随之下墙）；
 3. 刷新游戏，贴画自动均匀分布到四面墙（多张图轮转排布，按宽高等比缩放）。
 
 > 为什么需要打包那一步：`file://` 下浏览器会把本地 `<img>` 视为污染源，
@@ -391,13 +393,13 @@ SAVE  落盘=0.600,-0.350 名称=低杆右塞
 
 ## 开发构建
 
-仓库刻意保持轻量：**`node_modules/`（45MB）不入库**，克隆下来只有 5.2MB / 50 个文件，
-其中最大的是示例墙贴画 2.5MB 和打包产物 `dist/game.js` 1.5MB。
+仓库刻意保持轻量：**`node_modules/`（45MB）不入库**，克隆下来约 23MB / 56 个文件，
+其中最大的是预置墙贴画的 base64 清单 `imgs/wall/manifest.js`（11.6MB）与那几张原图。
 所以拿到仓库不需要装任何东西就能玩；要改代码才需要下面这一步。
 
 **双击根目录的 `安装环境.bat`** 就够：装依赖（官方源不通自动切 npmmirror 镜像）
-→ 打包 `dist/game.js` → 生成 `imgs/wall/manifest.js`、`video/manifest.js`
-（这两个含 base64 素材，不入库，每台机器各自扫盘生成）。
+→ 打包 `dist/game.js` → 生成 `video/manifest.js`
+（片源清单含 base64，不入库，每台机器各自扫盘生成；墙贴画清单已随仓库预置，改图才需重跑）。
 之后改完 `src/` 再跑一次它就行。
 
 > 为什么逻辑在 `tools/setup.js` 而不是写在 .bat 里：cmd 在 `chcp 65001` 下按**字节**
@@ -419,8 +421,8 @@ npm run regress      # 全量回归：22 个 demo 一次跑完（篮球/射箭/�
 npm run audit        # 两条收口审计：未被引用的 config 键 + 未被 import 的导出
 ```
 
-> `npm run regress` 的 22 个用例**不读本机素材**：干净克隆（`video/`、`imgs/wall/` 里
-> 没有你自己的文件）跑出来的断言输出与本机逐字一致，已实测。
+> `npm run regress` 的 22 个用例**不依赖自备素材**：墙贴画虽随仓库走，但断言只读几何与
+> 状态通道、不数墙上有几张画；`video/` 仍不入库，干净克隆跑出来的断言输出与本机逐字一致，已实测。
 
 > 为什么打包成普通脚本：浏览器在 `file://` 下禁止 `<script type="module">` 与
 > fetch 本地文件，因此源码用 ES Module 组织、发布时 esbuild 打成 IIFE；

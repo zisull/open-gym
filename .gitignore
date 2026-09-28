@@ -2,16 +2,9 @@ node_modules/
 .idea/
 .shots/
 dist/*.map
-imgs/wall/manifest.js
 video/manifest.js
-# 用户自备素材不入库（仓库保持轻量，manifest 也含 base64 副本）
-imgs/wall/*.jpg
-imgs/wall/*.jpeg
-imgs/wall/*.webp
-imgs/wall/*.gif
-imgs/wall/*.bmp
-imgs/wall/*.png
-!imgs/wall/sample-anime-girl.png
+# 用户自备片源不入库（仓库保持轻量，manifest 也含 base64 副本）；
+# 墙贴画相反：imgs/wall/ 连同它的 manifest.js 一起入库，克隆即预配置
 video/*.mp4
 video/*.m4v
 video/*.webm
